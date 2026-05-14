@@ -1,9 +1,3 @@
-Aquí tienes el contenido completo y organizado para tu archivo `README.md`. Este documento es la "Biblia" del proyecto para tu equipo; si lo siguen al pie de la letra, no deberían tener ningún error de compilación.
-
-Copia y pega lo siguiente en un archivo llamado `README.md` dentro de la carpeta `frontend`:
-
----
-
 # ⚡ VoltMind Access - Frontend (Vue.js + Capacitor)
 
 Este repositorio contiene la interfaz profesional de **VoltMind Access**, diseñada para la gestión de energía y control de asistencia mediante NFC en los ambientes de formación del SENA.
