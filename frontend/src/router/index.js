@@ -1,4 +1,3 @@
-// src/router/index.js
 import { createRouter, createWebHistory } from "vue-router";
 
 const routes = [
@@ -9,7 +8,6 @@ const routes = [
   {
     path: "/login",
     name: "Login",
-    // 💡 Lazy Loading: Se carga únicamente cuando el usuario entra a la raíz o a /login
     component: () => import("@/views/auth/Login.vue"),
     meta: { title: "VoltMind Access - Iniciar Sesión" },
   },
