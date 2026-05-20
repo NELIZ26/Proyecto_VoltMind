@@ -1,28 +1,40 @@
-/* 1. IMPORTACIÓN DE FUENTES (Siempre al inicio) */
-@import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700&display=swap');
+/* ==========================================================================
+   1. IMPORTACIÓN DE FUENTES (Obligatoria: Inter)
+   ========================================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
-/* 2. VARIABLES DE COLOR Y FUENTE */
+/* ==========================================================================
+   2. VARIABLES DE COLOR Y FUENTE NATIVAS
+   ========================================================================== */
 :root {
-  /* Tipografía */
-  --fuente-principal: 'Work Sans', sans-serif;
+  /* Tipografía Corporativa Forzada */
+  --fuente-principal: 'Inter', sans-serif;
 
-  /* Colores Principales SENA */
+  /* Colores Identitarios SENA */
   --sena-verde: #39A900;
   --sena-naranja: #FF6B00;
   --sena-azul: #00324D;
-  
-  /* Variaciones Modernas */
   --sena-verde-claro: #deff9a; 
-  --sena-gris-fondo: #F4F4F4;
   --sena-blanco: #FFFFFF;
-  
-  /* Colores de Interfaz */
+
+  /* 💡 PALETA DE INTERFAZ (Configurada por defecto para el entorno VoltMind) */
+  --sena-gris-fondo: #080f14;     /* Fondo oscuro tecnológico */
+  --texto-principal: #FFFFFF;     /* Texto claro para alta legibilidad */
+  --texto-secundario: #a0aec0;   /* Textos atenuados o de soporte */
+  --borde: rgba(255, 255, 255, 0.08);
+
+  /* 💡 OPCIONAL: Descomenta estas líneas si necesitas regresar al diseño claro tradicional */
+  /*
+  --sena-gris-fondo: #F4F4F4;
   --texto-principal: #212121;
   --texto-secundario: #616161;
   --borde: #E0E0E0;
+  */
 }
 
-/* 3. RESET Y CONFIGURACIÓN BASE */
+/* ==========================================================================
+   3. RESET DE CAJA Y HERENCIA ESTRICTA
+   ========================================================================== */
 * {
   margin: 0;
   padding: 0;
@@ -34,19 +46,32 @@ body {
   background-color: var(--sena-gris-fondo);
   color: var(--texto-principal);
   line-height: 1.6;
-  /* Suavizado de fuente para pantallas de alta resolución */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* 4. UTILIDADES PARA ICONOS Y BOTONES */
+/* Evita que los inputs y botones usen las fuentes por defecto del sistema en teléfonos */
+input, select, textarea, button {
+  font-family: var(--fuente-principal);
+}
+
+/* ==========================================================================
+   4. CLASES DE UTILIDAD GENERAL (CSS PURO)
+   ========================================================================== */
 .icon-margin {
   margin-right: 10px;
 }
 
-.bg-sena { background-color: var(--sena-verde); color: white; }
-.text-sena { color: var(--sena-verde); }
+.bg-sena { 
+  background-color: var(--sena-verde); 
+  color: white; 
+}
 
+.text-sena { 
+  color: var(--sena-verde); 
+}
+
+/* Botón Primario Estándar para vistas generales (Fichas, Dashboards, etc.) */
 .btn-primary {
   display: inline-flex;
   align-items: center;
@@ -57,13 +82,17 @@ body {
   border-radius: 8px;
   color: white;
   font-weight: 600;
-  font-family: var(--fuente-principal);
   cursor: pointer;
   transition: all 0.3s ease;
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
   background-color: #2d8500;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(57, 169, 0, 0.2);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
