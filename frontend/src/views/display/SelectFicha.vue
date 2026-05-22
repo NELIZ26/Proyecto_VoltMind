@@ -100,12 +100,12 @@ const seleccionarFicha = (ficha) => {
    ========================================================================== */
 .select-shell {
   min-height: 100vh;
-  background: radial-gradient(circle at center, #111115 0%, #060608 100%);
+  background: var(--sena-gris-fondo);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 3rem 1.5rem;
-  font-family: var(--fuente-principal, "Inter", sans-serif);
+  font-family: var(--fuente-principal);
 }
 
 .select-container {
@@ -146,7 +146,7 @@ const seleccionarFicha = (ficha) => {
 .brand-divider {
   width: 1px;
   height: 28px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--borde);
 }
 
 .location-badge {
@@ -154,10 +154,10 @@ const seleccionarFicha = (ficha) => {
   align-items: center;
   gap: 8px;
   background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--borde);
   padding: 6px 14px;
   border-radius: 6px;
-  color: var(--sena-verde, #39a900);
+  color: var(--sena-verde);
   font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.05em;
@@ -167,14 +167,14 @@ const seleccionarFicha = (ficha) => {
 .select-header h1 {
   font-size: 1.8rem;
   font-weight: 900;
-  color: var(--texto-principal, #ffffff);
+  color: var(--texto-principal);
   letter-spacing: -0.02em;
   margin: 0 0 0.5rem 0;
 }
 
 .instruction {
   font-size: 0.9rem;
-  color: var(--texto-secundario, #a0aec0);
+  color: var(--texto-secundario);
   opacity: 0.7;
 }
 
@@ -187,8 +187,8 @@ const seleccionarFicha = (ficha) => {
 
 /* Estilo Premium de la Tarjeta */
 .ficha-card {
-  background: #0d0d0f;
-  border: 1px solid var(--borde, rgba(255, 255, 255, 0.08));
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--borde);
   border-radius: 16px;
   padding: 1.75rem;
   text-align: left;
@@ -204,8 +204,8 @@ const seleccionarFicha = (ficha) => {
 
 .ficha-card:hover {
   transform: translateY(-8px);
-  background: #121215;
-  border-color: var(--sena-verde, #39a900);
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--sena-verde);
   box-shadow: 0 20px 40px -15px rgba(57, 169, 0, 0.25);
 }
 
@@ -216,7 +216,7 @@ const seleccionarFicha = (ficha) => {
   right: 15px;
   font-size: 0.6rem;
   font-weight: 900;
-  color: var(--sena-verde, #39a900);
+  color: var(--sena-verde);
   opacity: 0.5;
   letter-spacing: 0.1em;
 }
@@ -225,21 +225,21 @@ const seleccionarFicha = (ficha) => {
   width: 48px;
   height: 48px;
   background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--borde);
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.25rem;
-  color: var(--texto-secundario, #a0aec0);
+  color: var(--texto-secundario);
   margin-bottom: 1.5rem;
   transition: all 0.3s ease;
 }
 
 .ficha-card:hover .card-icon {
-  background: var(--sena-verde, #39a900);
-  color: white;
-  border-color: var(--sena-verde, #39a900);
+  background: var(--sena-verde);
+  color: var(--sena-blanco);
+  border-color: var(--sena-verde);
   box-shadow: 0 0 15px rgba(57, 169, 0, 0.3);
 }
 
@@ -247,7 +247,7 @@ const seleccionarFicha = (ficha) => {
   display: block;
   font-size: 0.6rem;
   font-weight: 700;
-  color: var(--texto-secundario, #a0aec0);
+  color: var(--texto-secundario);
   letter-spacing: 0.05em;
   margin-bottom: 4px;
 }
@@ -255,14 +255,14 @@ const seleccionarFicha = (ficha) => {
 .ficha-number {
   font-size: 1.6rem;
   font-weight: 800;
-  color: var(--texto-principal, #ffffff);
+  color: var(--texto-principal);
   margin: 0 0 8px 0;
   letter-spacing: -0.02em;
 }
 
 .program-name {
   font-size: 0.85rem;
-  color: var(--texto-secundario, #a0aec0);
+  color: var(--texto-secundario);
   line-height: 1.4;
   margin: 0;
   opacity: 0.8;
@@ -274,25 +274,25 @@ const seleccionarFicha = (ficha) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid var(--borde);
   padding-top: 1rem;
 }
 
 .jornada-tag {
   font-size: 0.65rem;
   font-weight: 700;
-  color: var(--sena-verde-claro, #deff9a);
+  color: var(--sena-verde-claro);
   text-transform: uppercase;
 }
 
 .arrow {
   font-size: 0.8rem;
-  color: var(--borde, rgba(255, 255, 255, 0.1));
+  color: var(--texto-secundario);
   transition: transform 0.3s ease;
 }
 
 .ficha-card:hover .arrow {
-  color: var(--sena-verde, #39a900);
+  color: var(--sena-verde);
   transform: translateX(5px);
 }
 
@@ -304,8 +304,8 @@ const seleccionarFicha = (ficha) => {
 
 .btn-back {
   background: transparent;
-  border: 1px solid var(--borde, rgba(255, 255, 255, 0.08));
-  color: var(--texto-secundario, #a0aec0);
+  border: 1px solid var(--borde);
+  color: var(--texto-secundario);
   padding: 12px 24px;
   border-radius: 8px;
   font-size: 0.75rem;
@@ -319,7 +319,7 @@ const seleccionarFicha = (ficha) => {
 
 .btn-back:hover {
   border-color: rgba(255, 255, 255, 0.2);
-  color: var(--texto-principal, #ffffff);
+  color: var(--texto-principal);
   background: rgba(255, 255, 255, 0.02);
 }
 </style>

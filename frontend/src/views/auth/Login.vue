@@ -78,7 +78,7 @@ const handleAzureLogin = () => {
 
 <style scoped>
 /* ==========================================================================
-   CONSOLA DE AUTENTICACIÓN - TERMINAL PRINCIPAL (VoltMind Access UI)
+   CONSOLA DE AUTENTICACIÓN - TERMINAL PRINCIPAL (Caso 1: Blanco SENA 2024)
    ========================================================================== */
 .login-shell {
   min-height: 100vh;
@@ -86,51 +86,49 @@ const handleAzureLogin = () => {
   align-items: center;
   justify-content: center;
   padding: 2rem 1.5rem;
-  background: radial-gradient(circle at center, #111115 0%, #060608 100%);
-  font-family: var(--fuente-principal, "Inter", sans-serif);
+  background: var(--fondo-app);
+  font-family: var(--fuente-principal);
   position: relative;
 }
 
-/* Rejilla de fondo emulando trazado electrónico sutil */
+/* Rejilla de fondo sutil adaptada a fondo claro usando el azul oscuro SENA */
 .login-shell::before {
   content: "";
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.006) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.006) 1px, transparent 1px);
+    linear-gradient(rgba(0, 48, 64, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 48, 64, 0.03) 1px, transparent 1px);
   background-size: 30px 30px;
   mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
   pointer-events: none;
 }
 
 .login-card {
-  background: linear-gradient(145deg, #0a0a0c 0%, #0e0e12 100%);
-  border: 1px solid var(--borde, rgba(255, 255, 255, 0.06));
+  background: var(--fondo-tarjetas);
+  border: 1px solid var(--borde);
   border-radius: 18px;
   width: 100%;
   max-width: 450px;
   padding: 3rem 2.25rem;
   text-align: center;
   box-shadow:
-    0 30px 60px -15px rgba(0, 0, 0, 0.8),
-    inset 0 1px 0px rgba(255, 255, 255, 0.05);
+    0 20px 40px rgba(0, 48, 64, 0.06),
+    0 1px 3px rgba(0, 0, 0, 0.05);
   position: relative;
-  transition:
-    border-color 0.4s ease,
-    box-shadow 0.4s ease;
+  transition: all 0.4s ease;
+  z-index: 1;
 }
 
-/* Efecto Hover predictivo en la tarjeta global */
+/* Efecto Hover predictivo limpio */
 .login-card:hover {
-  border-color: rgba(57, 169, 0, 0.2);
+  border-color: var(--sena-verde);
   box-shadow:
-    0 30px 60px -15px rgba(0, 0, 0, 0.9),
-    0 0 40px -10px rgba(57, 169, 0, 0.05),
-    inset 0 1px 0px rgba(255, 255, 255, 0.05);
+    0 30px 60px rgba(0, 48, 64, 0.1),
+    0 0 0 1px var(--sena-verde);
 }
 
-/* Micro-Detalles de Esquinas Industriales */
+/* Micro-Detalles de Esquinas */
 .card-corner {
   position: absolute;
   width: 12px;
@@ -140,21 +138,28 @@ const handleAzureLogin = () => {
   opacity: 0.3;
   transition: opacity 0.3s ease;
 }
+
 .login-card:hover .card-corner {
-  opacity: 0.7;
+  opacity: 0.8;
 }
 
 .top-left {
   top: 14px;
   left: 14px;
-  border-top-color: var(--texto-secundario, #a0aec0);
-  border-left-color: var(--texto-secundario, #a0aec0);
+  border-top-color: var(--borde);
+  border-left-color: var(--borde);
 }
+
+.login-card:hover .top-left {
+  border-top-color: var(--sena-verde);
+  border-left-color: var(--sena-verde);
+}
+
 .bottom-right {
   bottom: 14px;
   right: 14px;
-  border-bottom-color: var(--sena-verde, #39a900);
-  border-right-color: var(--sena-verde, #39a900);
+  border-bottom-color: var(--sena-verde);
+  border-right-color: var(--sena-verde);
 }
 
 /* ==========================================================================
@@ -171,35 +176,32 @@ const handleAzureLogin = () => {
 .logo-voltmind {
   height: 34px;
   width: auto;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
 }
 
 .logo-sena {
   height: 38px;
   width: auto;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
 }
 
 .brand-divider {
   width: 1px;
   height: 24px;
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--borde);
 }
 
 .login-header h1 {
   font-size: 1.5rem;
   font-weight: 900;
-  color: var(--texto-principal, #ffffff);
+  color: var(--texto-principal);
   margin: 0 0 0.6rem 0;
   letter-spacing: -0.02em;
 }
 
 .subtitle {
   font-size: 0.8rem;
-  color: var(--texto-secundario, #a0aec0);
+  color: var(--texto-secundario);
   line-height: 1.5;
   margin: 0;
-  opacity: 0.75;
   padding: 0 10px;
 }
 
@@ -215,8 +217,8 @@ const handleAzureLogin = () => {
 
 /* Caja de Aviso Técnico */
 .notice-box {
-  background: rgba(0, 50, 77, 0.12);
-  border: 1px solid rgba(0, 50, 77, 0.35);
+  background: var(--fondo-app);
+  border: 1px solid var(--borde);
   border-radius: 10px;
   padding: 12px 14px;
   display: flex;
@@ -225,9 +227,10 @@ const handleAzureLogin = () => {
   text-align: left;
 }
 
+/* Icono reemplazado por la alerta del Amarillo institucional SENA */
 .icon-glow-wrapper {
-  background: rgba(255, 107, 0, 0.06);
-  border: 1px solid rgba(255, 107, 0, 0.15);
+  background: rgba(253, 195, 0, 0.15);
+  border: 1px solid rgba(253, 195, 0, 0.3);
   width: 32px;
   height: 32px;
   border-radius: 6px;
@@ -238,7 +241,7 @@ const handleAzureLogin = () => {
 }
 
 .icon-notice {
-  color: var(--sena-naranja, #ff6b00);
+  color: var(--sena-amarillo);
   font-size: 1rem;
 }
 
@@ -251,26 +254,24 @@ const handleAzureLogin = () => {
 .notice-text span {
   font-size: 0.65rem;
   font-weight: 800;
-  color: var(--sena-naranja, #ff6b00);
+  color: var(--texto-principal);
   letter-spacing: 0.05em;
 }
 
 .notice-text p {
   font-size: 0.75rem;
-  color: var(--texto-secundario, #a0aec0);
+  color: var(--texto-secundario);
   margin: 0;
   line-height: 1.35;
-  opacity: 0.85;
 }
 
 /* ==========================================================================
    BOTÓN ACRÍLICO PERSONALIZADO (AZURE INTEGRATION)
    ========================================================================== */
 .btn-azure {
-  background: rgba(255, 255, 255, 0.03);
-  color: var(--texto-principal, #ffffff);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(4px);
+  background: var(--fondo-tarjetas);
+  color: var(--texto-principal);
+  border: 1px solid var(--borde);
   padding: 13px 18px;
   border-radius: 8px;
   font-size: 0.85rem;
@@ -281,24 +282,22 @@ const handleAzureLogin = () => {
   justify-content: center;
   gap: 12px;
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s ease;
 }
 
 .btn-azure:hover {
-  background: rgba(255, 255, 255, 0.06);
-  border-color: rgba(255, 255, 255, 0.2);
-  box-shadow:
-    0 10px 25px -5px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0px rgba(255, 255, 255, 0.1);
+  background: var(--fondo-app);
+  border-color: var(--sena-azul-oscuro);
+  box-shadow: 0 4px 12px rgba(0, 48, 64, 0.08);
   transform: translateY(-1px);
 }
 
 .btn-azure:active {
   transform: translateY(0);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--fondo-tarjetas);
 }
 
-/* Icono Nativo Centrado */
+/* Icono Nativo Centrado (Se mantienen estáticos porque son colores corporativos exclusivos de Microsoft) */
 .microsoft-icon {
   width: 16px;
   height: 16px;
@@ -312,28 +311,16 @@ const handleAzureLogin = () => {
   width: 7px;
   height: 7px;
 }
-.ms-box.red {
-  background-color: #f25022;
-  filter: drop-shadow(0 0 2px rgba(242, 80, 34, 0.4));
-}
-.ms-box.green {
-  background-color: #7fba00;
-  filter: drop-shadow(0 0 2px rgba(127, 186, 0, 0.4));
-}
-.ms-box.blue {
-  background-color: #00a4ef;
-  filter: drop-shadow(0 0 2px rgba(0, 164, 239, 0.4));
-}
-.ms-box.yellow {
-  background-color: #ffb900;
-  filter: drop-shadow(0 0 2px rgba(255, 185, 0, 0.4));
-}
+.ms-box.red { background-color: #f25022; }
+.ms-box.green { background-color: #7fba00; }
+.ms-box.blue { background-color: #00a4ef; }
+.ms-box.yellow { background-color: #ffb900; }
 
 /* ==========================================================================
    FOOTER CORPORATIVO DE LA TERMINAL
    ========================================================================== */
 .login-footer {
-  border-top: 1px solid var(--borde, rgba(255, 255, 255, 0.06));
+  border-top: 1px solid var(--borde);
   padding-top: 1.5rem;
   display: flex;
   flex-direction: column;
@@ -343,9 +330,8 @@ const handleAzureLogin = () => {
 
 .login-footer p {
   font-size: 0.68rem;
-  color: var(--texto-secundario, #a0aec0);
+  color: var(--texto-secundario);
   margin: 0;
-  opacity: 0.4;
 }
 
 /* Badge de Estado Activo Local */
@@ -353,8 +339,8 @@ const handleAzureLogin = () => {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(57, 169, 0, 0.05);
-  border: 1px solid rgba(57, 169, 0, 0.15);
+  background: rgba(57, 169, 0, 0.08);
+  border: 1px solid rgba(57, 169, 0, 0.2);
   padding: 4px 10px;
   border-radius: 4px;
 }
@@ -362,9 +348,9 @@ const handleAzureLogin = () => {
 .pulse-dot {
   width: 5px;
   height: 5px;
-  background-color: var(--sena-verde, #39a900);
+  background-color: var(--sena-verde);
   border-radius: 50%;
-  box-shadow: 0 0 6px var(--sena-verde, #39a900);
+  box-shadow: 0 0 6px var(--sena-verde);
   animation: hardwarePulse 2s infinite;
 }
 
@@ -376,7 +362,7 @@ const handleAzureLogin = () => {
 
 .terminal-badge small {
   font-size: 0.6rem;
-  color: var(--sena-verde-claro, #deff9a);
+  color: var(--sena-verde-oscuro);
   font-weight: 700;
   letter-spacing: 0.04em;
 }

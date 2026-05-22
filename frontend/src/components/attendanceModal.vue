@@ -101,134 +101,108 @@ const formatLogText = (log) => {
 </template>
 
 <style scoped>
-/* ==========================================================================
-   ESTILOS PREMIUM - REPORTE DE ASISTENCIA (VoltMind UI)
-   ========================================================================== */
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(10px);
+  background: rgba(0, 48, 64, 0.6);
+  backdrop-filter: blur(4px);
   z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1rem;
-  font-family: var(--fuente-principal, "Inter", sans-serif);
 }
 
 .modal-card {
-  background: #0d0d0f; /* Negro zinc texturizado corporativo */
-  border: 1px solid var(--borde, rgba(255, 255, 255, 0.08));
+  background: var(--fondo-tarjetas);
+  border: 1px solid var(--borde);
   border-radius: 16px;
   width: 100%;
   max-width: 440px;
   padding: 1.75rem;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
 }
 
-/* Encabezado */
 .modal-header {
   display: flex;
   align-items: center;
   gap: 10px;
   margin-bottom: 1.5rem;
 }
-
 .header-indicator {
   width: 4px;
   height: 16px;
-  background-color: var(
-    --sena-naranja,
-    #ff6b00
-  ); /* Cambio a naranja para denotar historial/alertas */
+  background-color: var(--sena-naranja);
   border-radius: 2px;
-  box-shadow: 0 0 10px rgba(255, 107, 0, 0.4);
 }
-
 .modal-header h3 {
   font-size: 0.8rem;
   font-weight: 800;
-  color: var(--texto-secundario, #a0aec0);
+  color: var(--sena-azul-oscuro);
   margin: 0;
   letter-spacing: 0.08em;
 }
 
-/* Dashboard de Estadísticas */
 .attendance-dashboard-box {
   display: flex;
   gap: 12px;
   margin-bottom: 1.5rem;
 }
-
 .stat-card {
   flex: 1;
-  background: #121215;
-  border: 1px solid var(--borde, rgba(255, 255, 255, 0.08));
+  background: var(--fondo-app);
+  border: 1px solid var(--borde);
   padding: 12px;
-  border-radius: 10px;
+  border-radius: 12px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  text-align: center;
+  align-items: center;
 }
-
 .border-orange {
-  border-left: 3px solid var(--sena-naranja, #ff6b00);
+  border-left: 4px solid var(--sena-naranja);
 }
 .border-sena {
-  border-left: 3px solid var(--sena-verde, #39a900);
+  border-left: 4px solid var(--sena-verde);
 }
 
 .stat-label {
   font-size: 0.65rem;
-  font-weight: 600;
-  color: var(--texto-secundario, #a0aec0);
+  font-weight: 700;
+  color: var(--texto-secundario);
   text-transform: uppercase;
-  letter-spacing: 0.03em;
 }
-
 .stat-value {
   font-size: 1.4rem;
-  font-weight: 700;
+  font-weight: 800;
 }
-
 .text-orange {
-  color: var(--sena-naranja, #ff6b00);
+  color: var(--sena-naranja);
 }
 .text-sena-claro {
-  color: var(--sena-verde-claro, #deff9a);
+  color: var(--sena-verde);
 }
 
 .section-title {
   font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--texto-secundario, #a0aec0);
-  margin-bottom: 0.75rem;
-  text-align: left;
-}
-
-/* ==========================================================================
-   ESTRUCTURA DE LÍNEA DE TIEMPO (TIMELINE)
-   ========================================================================== */
-.timeline-container {
-  position: relative;
-  max-height: 220px; /* Scroll controlado si el historial crece demasiado */
-  overflow-y: auto;
-  padding-left: 8px;
+  font-weight: 700;
+  color: var(--sena-azul-oscuro);
   margin-bottom: 1rem;
 }
 
-/* Barra vertical de fondo */
+.timeline-container {
+  position: relative;
+  max-height: 250px;
+  overflow-y: auto;
+  padding-left: 8px;
+}
 .timeline-line {
   position: absolute;
   left: 17px;
   top: 10px;
   bottom: 10px;
   width: 2px;
-  background: rgba(255, 255, 255, 0.04);
+  background: var(--borde);
 }
-
 .history-list {
   list-style: none;
   padding: 0;
@@ -237,118 +211,79 @@ const formatLogText = (log) => {
   flex-direction: column;
   gap: 12px;
 }
-
 .timeline-item {
   display: flex;
   align-items: center;
   position: relative;
   z-index: 2;
 }
-
 .timeline-icon-wrapper {
   width: 20px;
   display: flex;
   justify-content: center;
-  background: #0d0d0f; /* Tapa la línea que pasa por detrás */
+  background: var(--fondo-tarjetas);
 }
-
 .icon-status {
   font-size: 0.95rem;
-  background: #0d0d0f;
+  background: var(--fondo-tarjetas);
   border-radius: 50%;
 }
-
 .text-green {
-  color: var(--sena-verde, #39a900);
-  box-shadow: 0 0 6px rgba(57, 169, 0, 0.2);
+  color: var(--sena-verde);
 }
 .text-red {
-  color: #ef4444;
-  box-shadow: 0 0 6px rgba(239, 68, 68, 0.2);
+  color: var(--sena-amarillo);
 }
 
-/* Contenedor de Datos de Fila */
 .timeline-content-box {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.03);
+  background: var(--fondo-app);
+  border: 1px solid var(--borde);
   padding: 8px 12px;
   border-radius: 8px;
   margin-left: 12px;
-  transition: all 0.2s ease;
 }
-
-.timeline-content-box:hover {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.06);
-}
-
 .session-name {
   font-size: 0.8rem;
-  font-weight: 500;
-  color: var(--texto-principal, #ffffff);
+  font-weight: 600;
+  color: var(--sena-azul-oscuro);
 }
-
-/* Badges Translúcidos */
 .badge-status {
   font-size: 0.65rem;
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 4px;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
 }
-
 .badge-presente {
-  background: rgba(57, 169, 0, 0.08);
-  border: 1px solid rgba(57, 169, 0, 0.15);
-  color: var(--sena-verde-claro, #deff9a);
+  background: rgba(57, 169, 0, 0.1);
+  color: var(--sena-verde);
 }
-
 .badge-falta {
-  background: rgba(239, 68, 68, 0.08);
-  border: 1px solid rgba(239, 68, 68, 0.15);
-  color: #fca5a5;
+  background: rgba(253, 195, 0, 0.1);
+  color: var(--sena-azul-oscuro);
 }
 
-/* Footer y Botones */
 .modal-footer {
   margin-top: 1.5rem;
   display: flex;
   justify-content: flex-end;
 }
-
 .btn-modal-close {
-  background: transparent;
-  border: 1px solid var(--borde, rgba(255, 255, 255, 0.08));
-  color: var(--texto-secundario, #a0aec0);
+  background: var(--sena-azul-oscuro);
+  color: white;
+  border: none;
   padding: 10px 20px;
   border-radius: 8px;
   cursor: pointer;
   font-size: 0.75rem;
   font-weight: 700;
-  letter-spacing: 0.05em;
-  transition: all 0.2s ease;
+  transition: opacity 0.2s;
 }
-
 .btn-modal-close:hover {
-  background: rgba(255, 255, 255, 0.03);
-  border-color: rgba(255, 255, 255, 0.2);
-  color: var(--texto-principal, #ffffff);
-}
-
-/* Personalización del Scrollbar de la línea de tiempo */
-.timeline-container::-webkit-scrollbar {
-  width: 4px;
-}
-.timeline-container::-webkit-scrollbar-track {
-  background: transparent;
-}
-.timeline-container::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 2px;
+  opacity: 0.9;
 }
 </style>
