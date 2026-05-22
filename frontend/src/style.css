@@ -4,32 +4,33 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 /* ==========================================================================
-   2. VARIABLES DE COLOR Y FUENTE NATIVAS
+   2. VARIABLES DE COLOR OFICIALES SENA 2024
    ========================================================================== */
 :root {
   /* Tipografía Corporativa Forzada */
   --fuente-principal: 'Inter', sans-serif;
 
-  /* Colores Identitarios SENA */
-  --sena-verde: #39A900;
-  --sena-naranja: #FF6B00;
-  --sena-azul: #00324D;
-  --sena-verde-claro: #deff9a; 
-  --sena-blanco: #FFFFFF;
+  /* Color Principal */
+  --sena-verde: #39A900; 
 
-  /* 💡 PALETA DE INTERFAZ (Configurada por defecto para el entorno VoltMind) */
-  --sena-gris-fondo: #080f14;     /* Fondo oscuro tecnológico */
-  --texto-principal: #FFFFFF;     /* Texto claro para alta legibilidad */
-  --texto-secundario: #a0aec0;   /* Textos atenuados o de soporte */
-  --borde: rgba(255, 255, 255, 0.08);
+  /* Colores Secundarios */
+  --sena-verde-oscuro: #007832;
+  --sena-azul-oscuro: #003040;
+  --sena-azul-claro: #50E5F9;
+  --sena-violeta: #71277A;
+  --sena-amarillo: #FDC300;
 
-  /* 💡 OPCIONAL: Descomenta estas líneas si necesitas regresar al diseño claro tradicional */
-  /*
-  --sena-gris-fondo: #F4F4F4;
-  --texto-principal: #212121;
-  --texto-secundario: #616161;
-  --borde: #E0E0E0;
-  */
+  /* Colores Neutros y Fondos (Caso 1 - Blanco Predominante) */
+  --sena-blanco: #ffffff;
+  --sena-negro: #000000;
+  --sena-gris-claro: #F6F6F6;
+
+  /* 💡 PALETA DE INTERFAZ (Aplicada a componentes) */
+  --fondo-app: var(--sena-gris-claro); 
+  --fondo-tarjetas: var(--sena-blanco);
+  --texto-principal: var(--sena-azul-oscuro); 
+  --texto-secundario: #555555; /* Gris oscuro para legibilidad estándar */
+  --borde: #E0E0E0; /* Gris sutil para separar elementos en fondos blancos */
 }
 
 /* ==========================================================================

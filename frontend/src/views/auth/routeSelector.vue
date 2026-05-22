@@ -90,7 +90,7 @@ const navigateTo = (path, name) => {
 
 <style scoped>
 /* ==========================================================================
-   ESTRUCTURA DE CONTEXTO PRINCIPAL (SHELL GLOBAL)
+   ESTRUCTURA DE CONTEXTO PRINCIPAL (Caso 1: Blanco SENA 2024)
    ========================================================================== */
 .selector-shell {
   min-height: 100vh;
@@ -98,19 +98,20 @@ const navigateTo = (path, name) => {
   align-items: center;
   justify-content: center;
   padding: 2rem 1.5rem;
-  background: radial-gradient(circle at center, #101014 0%, #070709 100%);
-  font-family: var(--fuente-principal, "Inter", sans-serif);
+  background: var(--fondo-app);
+  font-family: var(--fuente-principal);
   position: relative;
   overflow: hidden;
 }
 
-/* Líneas decorativas de fondo emulando cuadrícula de hardware (Opcional/Minimalista) */
+/* Líneas decorativas sutiles adaptadas al fondo claro usando el azul oscuro SENA */
 .selector-shell::before {
   content: '';
   position: absolute;
   inset: 0;
-  background-image: linear-gradient(rgba(255, 255, 255, 0.01) 1px, transparent 1px),
-                    linear-gradient(90deg, rgba(255, 255, 255, 0.01) 1px, transparent 1px);
+  background-image: 
+    linear-gradient(rgba(0, 48, 64, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 48, 64, 0.03) 1px, transparent 1px);
   background-size: 40px 40px;
   mask-image: radial-gradient(ellipse at center, black, transparent 70%);
   pointer-events: none;
@@ -142,13 +143,13 @@ const navigateTo = (path, name) => {
 
 .brand-logo {
   height: 38px;
-  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5));
+  filter: drop-shadow(0 2px 4px rgba(0, 48, 64, 0.1)); /* Sombra ajustada a claro */
 }
 
 .badge-status-dev {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: var(--texto-secundario, #a0aec0);
+  background: var(--sena-blanco);
+  border: 1px solid var(--borde);
+  color: var(--sena-azul-oscuro);
   padding: 2px 8px;
   border-radius: 4px;
   font-family: monospace;
@@ -161,17 +162,17 @@ const navigateTo = (path, name) => {
   font-size: 1.35rem;
   font-weight: 900;
   letter-spacing: 0.1em;
-  color: var(--texto-principal, #ffffff);
+  color: var(--texto-principal);
   margin: 0 0 0.75rem 0;
 }
 
-/* Barra de Estado Exitoso */
+/* Barra de Estado Exitoso - Adaptada con el Verde Oficial */
 .status-message {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  background: rgba(57, 169, 0, 0.04);
-  border: 1px solid rgba(57, 169, 0, 0.12);
+  background: rgba(57, 169, 0, 0.08); /* Verde con baja opacidad */
+  border: 1px solid rgba(57, 169, 0, 0.2);
   padding: 6px 14px;
   border-radius: 20px;
 }
@@ -179,9 +180,9 @@ const navigateTo = (path, name) => {
 .pulse-dot {
   width: 6px;
   height: 6px;
-  background-color: var(--sena-verde, #39a900);
+  background-color: var(--sena-verde);
   border-radius: 50%;
-  box-shadow: 0 0 8px var(--sena-verde, #39a900);
+  box-shadow: 0 0 8px var(--sena-verde);
   animation: telemetryPulse 1.8s infinite;
 }
 
@@ -190,9 +191,9 @@ const navigateTo = (path, name) => {
 }
 
 .status-message p {
-  color: var(--sena-verde-claro, #deff9a);
+  color: var(--sena-verde-oscuro);
   font-size: 0.8rem;
-  font-weight: 500;
+  font-weight: 700;
   margin: 0;
 }
 
@@ -206,8 +207,8 @@ const navigateTo = (path, name) => {
 }
 
 .route-card {
-  background: #0d0d0f;
-  border: 1px solid var(--borde, rgba(255, 255, 255, 0.06));
+  background: var(--fondo-tarjetas);
+  border: 1px solid var(--borde);
   border-radius: 14px;
   padding: 1.25rem 1.5rem;
   display: flex;
@@ -215,18 +216,19 @@ const navigateTo = (path, name) => {
   text-align: left;
   cursor: pointer;
   width: 100%;
-  color: var(--texto-principal, #ffffff);
+  color: var(--texto-principal);
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
+  box-shadow: 0 4px 12px rgba(0, 48, 64, 0.03); /* Sombra sutil de profundidad */
 }
 
-/* Hover de la Tarjeta */
+/* Hover de la Tarjeta - Usando colores dinámicos si están definidos inline, si no, fallback al verde SENA */
 .route-card:hover {
-  background: #121216;
-  border-color: var(--card-color);
+  background: var(--sena-blanco);
+  border-color: var(--card-color, var(--sena-verde));
   transform: translateY(-2px);
-  box-shadow: 0 12px 30px -10px var(--card-glow),
-              inset 0 1px 0px rgba(255, 255, 255, 0.1);
+  box-shadow: 0 12px 30px -10px var(--card-glow, rgba(57, 169, 0, 0.2)),
+              0 0 0 1px var(--card-color, var(--sena-verde));
 }
 
 /* Envoltura del Icono */
@@ -240,17 +242,17 @@ const navigateTo = (path, name) => {
   font-size: 1.25rem;
   margin-right: 1.25rem;
   flex-shrink: 0;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  color: var(--texto-secundario, #a0aec0);
+  background: var(--fondo-app);
+  border: 1px solid var(--borde);
+  color: var(--texto-secundario);
   transition: all 0.3s ease;
 }
 
 .route-card:hover .icon-wrap {
-  color: #ffffff;
-  background: var(--card-color);
-  border-color: var(--card-color);
-  box-shadow: 0 0 12px var(--card-glow);
+  color: var(--sena-blanco);
+  background: var(--card-color, var(--sena-verde));
+  border-color: var(--card-color, var(--sena-verde));
+  box-shadow: 0 4px 12px var(--card-glow, rgba(57, 169, 0, 0.3));
 }
 
 .card-text {
@@ -266,9 +268,9 @@ const navigateTo = (path, name) => {
 }
 
 .card-text h3 {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--texto-principal, #ffffff);
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--texto-principal);
   margin: 0;
 }
 
@@ -276,40 +278,39 @@ const navigateTo = (path, name) => {
 .path-label {
   font-family: monospace;
   font-size: 0.7rem;
-  color: var(--texto-secundario, #a0aec0);
-  opacity: 0.5;
+  color: var(--texto-secundario);
+  opacity: 0.7;
 }
 
 .route-card:hover .path-label {
-  color: var(--card-color);
-  opacity: 0.8;
+  color: var(--card-color, var(--sena-verde));
+  opacity: 1;
 }
 
 .card-text p {
   font-size: 0.8rem;
-  color: var(--texto-secundario, #a0aec0);
+  color: var(--texto-secundario);
   margin: 0;
   line-height: 1.4;
-  opacity: 0.85;
 }
 
 /* Flecha de Navegación Derecha */
 .arrow-indicator {
-  color: var(--borde, rgba(255, 255, 255, 0.1));
+  color: var(--borde);
   font-size: 1.05rem;
   transition: all 0.3s ease;
   margin-left: 1.25rem;
 }
 
 .route-card:hover .arrow-indicator {
-  color: var(--card-color);
+  color: var(--card-color, var(--sena-verde));
   transform: translateX(5px);
 }
 
 /* Clic Activo Físico */
 .route-card:active {
   transform: translateY(0);
-  box-shadow: 0 4px 12px -5px var(--card-glow);
+  box-shadow: 0 4px 12px -5px var(--card-glow, rgba(57, 169, 0, 0.1));
 }
 
 /* ==========================================================================
@@ -317,12 +318,12 @@ const navigateTo = (path, name) => {
    ========================================================================== */
 .selector-footer-info {
   margin-top: 3rem;
-  opacity: 0.3;
+  text-align: center;
 }
 
 .selector-footer-info p {
-  font-size: 0.7rem;
-  color: var(--texto-secundario, #a0aec0);
+  font-size: 0.75rem;
+  color: var(--texto-secundario);
   letter-spacing: 0.02em;
   margin: 0;
 }
