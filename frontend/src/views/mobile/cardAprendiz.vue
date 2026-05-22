@@ -1,20 +1,12 @@
 <template>
   <div class="carnet-shell">
-    <div class="bg-particles">
-      <span
-        v-for="n in 12"
-        :key="n"
-        class="particle"
-        :style="particleStyle(n)"
-      />
-    </div>
+    <WaveTexture direction="horizontal" />
 
     <div
       class="carnet"
       :class="{ 'is-validated': isValidated || isNfcTransmitting }"
     >
       <div class="laser-scanner" />
-      <div class="holo-overlay" />
 
       <div class="carnet-header">
         <div class="carnet-header-left">
@@ -26,7 +18,7 @@
           <div class="carnet-brand">
             <div class="brand-title-group">
               <span class="brand-name">SENA</span>
-              <span class="brand-divider" :style="{ background: neonColor }" />
+              <span class="brand-divider" />
               <span class="brand-project">VoltMind</span>
             </div>
             <span class="brand-sub"
@@ -39,14 +31,7 @@
           class="carnet-badge"
           :class="{ 'is-active': isValidated || isNfcTransmitting }"
         >
-          <span
-            class="badge-led"
-            :style="
-              isValidated || isNfcTransmitting
-                ? { backgroundColor: '#39a900', boxShadow: '0 0 8px #39a900' }
-                : { backgroundColor: '#ffd700', boxShadow: '0 0 8px #ffd700' }
-            "
-          />
+          <span class="badge-led" />
           <font-awesome-icon
             :icon="
               isValidated || isNfcTransmitting
@@ -66,123 +51,12 @@
       </div>
 
       <div class="carnet-identity">
-        <div
-          class="avatar-ring"
-          :style="{
-            '--neon-dynamic': isNfcTransmitting ? '#00ffcc' : neonColor,
-          }"
-        >
-          <div class="avatar-inner">
-            <img
-              v-if="userStore.avatarUrl"
-              :src="userStore.avatarUrl"
-              :alt="userStore.name"
-              class="avatar-img"
-            />
-
-            <div v-else class="avatar-robot-fallback">
-              <svg
-                viewBox="0 0 100 100"
-                class="robot-svg"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M42 20 L35 10 M58 20 L65 10"
-                  stroke="#7f8c8d"
-                  stroke-width="3"
-                  stroke-linecap="round"
-                />
-                <circle
-                  cx="35"
-                  cy="10"
-                  r="3"
-                  :fill="isNfcTransmitting ? '#00ffcc' : neonColor"
-                />
-                <circle
-                  cx="65"
-                  cy="10"
-                  r="3"
-                  :fill="isNfcTransmitting ? '#00ffcc' : neonColor"
-                />
-
-                <rect
-                  x="20"
-                  y="42"
-                  width="6"
-                  height="16"
-                  rx="2"
-                  fill="#2c3e50"
-                />
-                <rect
-                  x="74"
-                  y="42"
-                  width="6"
-                  height="16"
-                  rx="2"
-                  fill="#2c3e50"
-                />
-                <circle
-                  cx="23"
-                  cy="50"
-                  r="1.5"
-                  :fill="isNfcTransmitting ? '#00ffcc' : neonColor"
-                />
-                <circle
-                  cx="77"
-                  cy="50"
-                  r="1.5"
-                  :fill="isNfcTransmitting ? '#00ffcc' : neonColor"
-                />
-
-                <rect
-                  x="25"
-                  y="25"
-                  width="50"
-                  height="50"
-                  rx="14"
-                  :fill="headColor"
-                  stroke="#111115"
-                  stroke-width="2"
-                />
-
-                <rect
-                  x="32"
-                  y="38"
-                  width="36"
-                  height="18"
-                  rx="6"
-                  fill="#0d0d11"
-                  stroke="rgba(255,255,255,0.05)"
-                  stroke-width="1"
-                />
-
-                <circle
-                  cx="43"
-                  cy="47"
-                  r="4.5"
-                  :fill="isNfcTransmitting ? '#00ffcc' : neonColor"
-                  class="eye-glow"
-                />
-                <circle
-                  cx="57"
-                  cy="47"
-                  r="4.5"
-                  :fill="isNfcTransmitting ? '#00ffcc' : neonColor"
-                  class="eye-glow"
-                />
-                <circle cx="44" cy="46" r="1.5" fill="#ffffff" />
-                <circle cx="58" cy="46" r="1.5" fill="#ffffff" />
-
-                <path
-                  d="M42 63 L58 63 M45 67 L55 67 M48 71 L52 71"
-                  stroke="rgba(255,255,255,0.2)"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                />
-              </svg>
-            </div>
-          </div>
-        </div>
+        <UserAvatar
+          :src="userStore.avatarUrl"
+          :alt="userStore.name"
+          :isTransmitting="isNfcTransmitting"
+          :isValidated="isValidated"
+        />
 
         <div class="user-info">
           <h2 class="user-name">{{ userStore.name || "Aprendiz SENA" }}</h2>
@@ -207,10 +81,6 @@
           class="otp-preview"
           :class="{ 'otp-active': otpCode || isNfcTransmitting }"
         >
-          <div
-            class="otp-glow-bg"
-            :style="{ background: isNfcTransmitting ? '#00ffcc' : neonColor }"
-          />
           <div class="otp-title">
             {{ isNfcTransmitting ? "VÍNCULO NFC ACTIVO" : "PIN DINÁMICO" }}
           </div>
@@ -222,11 +92,13 @@
               <font-awesome-icon icon="fa-solid fa-clock" class="icon-pulse" />
               {{ otpSeconds }}s restantes
             </span>
-            <span class="otp-status-text">{{
-              isNfcTransmitting
-                ? "Acerque el teléfono a la antena de la tablet."
-                : otpMessage
-            }}</span>
+            <span class="otp-status-text">
+              {{
+                isNfcTransmitting
+                  ? "Acerque el teléfono a la antena de la tablet."
+                  : otpMessage
+              }}
+            </span>
           </div>
         </div>
       </div>
@@ -235,7 +107,7 @@
         <div class="carnet-id-number">
           <font-awesome-icon
             icon="fa-solid fa-fingerprint"
-            class="icon-glow-tech"
+            class="icon-brand-tech"
           />
           VM-{{ idCode }}
         </div>
@@ -252,8 +124,6 @@
         @click="generateOtp"
         :disabled="isGeneratingOtp || isNfcTransmitting"
       >
-        <span class="btn-glow" v-if="isGeneratingOtp" />
-        <span class="btn-shine" />
         <font-awesome-icon icon="fa-solid fa-lock" />
         <span>{{ isGeneratingOtp ? "Generando..." : "PIN" }}</span>
       </button>
@@ -307,6 +177,8 @@
 <script setup>
 import { ref, computed, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
+import WaveTexture from "@/components/WaveTexture.vue";
+import UserAvatar from "@/components/UserAvatar.vue";
 
 const router = useRouter();
 
@@ -326,37 +198,13 @@ const userStore = ref({
   avatarUrl: "",
 });
 
-const getUniqueColor = (text, type) => {
-  if (!text) return type === "head" ? "#5c4a42" : "#ffd700";
-  let hash = 0;
-  for (let i = 0; i < text.length; i++) {
-    hash = text.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const headColors = ["#5c4a42", "#2c3e50", "#34495e", "#7f8c8d", "#1e3d59"];
-  const neonColors = ["#ffd700", "#00ffcc", "#ff3366", "#3399ff", "#4ade80"];
-  const index = Math.abs(hash);
-  return type === "head"
-    ? headColors[index % headColors.length]
-    : neonColors[index % neonColors.length];
-};
-
-const headColor = computed(() => getUniqueColor(userStore.value.name, "head"));
-const neonColor = computed(() => getUniqueColor(userStore.value.name, "neon"));
 const idCode = computed(() => "2997671");
 
-const particleStyle = (n) => {
-  const angle = (n / 12) * 360;
-  const r = 45 + (n % 3) * 15;
-  return {
-    left: `${50 + r * Math.cos((angle * Math.PI) / 180)}%`,
-    top: `${50 + r * Math.sin((angle * Math.PI) / 180)}%`,
-    animationDelay: `${n * 0.4}s`,
-    width: `${4 + (n % 3) * 3}px`,
-    height: `${4 + (n % 3) * 3}px`,
-    opacity: 0.12 + (n % 4) * 0.04,
-  };
-};
+onUnmounted(() => {
+  clearOtpTimer();
+});
 
+// --- LÓGICA DE CONTROL DEL CARNET ---
 const showStatus = (msg, type = "info", duration = 3000) => {
   statusMsg.value = msg;
   statusType.value = type;
@@ -397,7 +245,6 @@ const generateOtp = async () => {
   }, 800);
 };
 
-// ── SIMULACIÓN DE EMISIÓN NFC DE HARDWARE ──
 const triggerNfcTransmission = () => {
   isNfcTransmitting.value = true;
   clearOtpTimer();
@@ -422,14 +269,14 @@ const handleExitCard = () => {
     router.push("/");
   }, 1000);
 };
-
-onUnmounted(() => {
-  clearOtpTimer();
-});
 </script>
 
 <style scoped>
-/* Se mantienen todas tus directivas de diseño base intactas */
+/* ==========================================================================
+   INTERFAZ ADAPTADA AL MANUAL DE IDENTIDAD VISUAL SENA 2024 (CASO 1: BLANCO)
+   CON VARIABLES CSS GLOBALES
+   ========================================================================== */
+
 .carnet-shell {
   min-height: 100vh;
   display: flex;
@@ -438,108 +285,57 @@ onUnmounted(() => {
   justify-content: center;
   gap: 24px;
   padding: 32px 16px;
-  background: #050d14;
-  background-image:
-    radial-gradient(
-      circle at 50% 10%,
-      rgba(0, 77, 115, 0.45) 0%,
-      transparent 60%
-    ),
-    radial-gradient(
-      circle at 80% 90%,
-      rgba(57, 169, 0, 0.05) 0%,
-      transparent 50%
-    ),
-    linear-gradient(to bottom, #050d14, #02060a);
+  background: var(--sena-gris-claro);
   position: relative;
   overflow: hidden;
-  font-family: var(--fuente-principal, "Inter", sans-serif);
-}
-
-.bg-particles {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-.particle {
-  position: absolute;
-  border-radius: 50%;
-  background: #39a900;
-  box-shadow: 0 0 10px rgba(57, 169, 0, 0.6);
-  animation: float-advanced 6s ease-in-out infinite alternate;
-}
-
-@keyframes float-advanced {
-  0% {
-    transform: translateY(0) rotate(0deg) scale(1);
-    opacity: 0.3;
-  }
-  100% {
-    transform: translateY(-25px) rotate(180deg) scale(1.3);
-    opacity: 0.8;
-  }
+  font-family: var(--fuente-principal);
 }
 
 .carnet {
   width: 100%;
-  max-width: 365px;
-  background: linear-gradient(
-    160deg,
-    rgba(13, 34, 51, 0.85) 0%,
-    rgba(7, 18, 26, 0.95) 50%,
-    rgba(10, 42, 24, 0.6) 100%
-  );
-  border-radius: 32px;
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  max-width: 375px;
+  background: var(--sena-blanco);
+  border-radius: 24px;
+  border: 1px solid var(--borde);
   box-shadow:
-    0 40px 80px rgba(0, 0, 0, 0.7),
-    0 0 40px rgba(0, 0, 0, 0.3),
-    inset 0 1px 1px rgba(255, 255, 255, 0.15);
+    0 20px 40px rgba(0, 48, 64, 0.08),
+    /* Transparencia manual basada en azul oscuro */ 0 1px 3px
+      rgba(0, 0, 0, 0.05); /* Sombra genérica base */
   position: relative;
   overflow: hidden;
-  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  transition:
+    max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    border-color 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 1;
 }
 
 .carnet.is-validated {
-  border-color: rgba(57, 169, 0, 0.35);
+  border-color: var(--sena-verde);
   box-shadow:
-    0 40px 80px rgba(0, 0, 0, 0.7),
-    0 0 40px rgba(57, 169, 0, 0.15),
-    inset 0 1px 2px rgba(57, 169, 0, 0.3);
+    0 20px 40px rgba(57, 169, 0, 0.12),
+    0 0 0 1px var(--sena-verde);
+  max-width: 390px;
+  transform: scale(1.015);
+  transform-origin: left center;
 }
 
-.holo-overlay {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.03) 25%,
-    rgba(57, 169, 0, 0.04) 45%,
-    rgba(0, 255, 204, 0.03) 55%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  pointer-events: none;
-  z-index: 3;
-}
 .laser-scanner {
   position: absolute;
   top: -100%;
   left: 0;
   width: 100%;
-  height: 4px;
+  height: 3px;
   background: linear-gradient(
     90deg,
     transparent,
-    rgba(57, 169, 0, 0.5),
+    var(--sena-verde),
     transparent
   );
-  box-shadow: 0 0 12px #39a900;
   animation: scan-action 4s linear infinite;
   z-index: 4;
-  opacity: 0.3;
+  opacity: 0.4;
 }
 
 @keyframes scan-action {
@@ -558,525 +354,390 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 22px 24px 18px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-  background: linear-gradient(
-    180deg,
-    rgba(0, 50, 77, 0.3) 0%,
-    rgba(5, 13, 20, 0) 100%
-  );
-  position: relative;
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--sena-gris-claro);
+  background: var(--sena-blanco);
 }
+
 .logo-container {
-  background: radial-gradient(
-    circle at center,
-    rgba(255, 255, 255, 0.04) 0%,
-    rgba(255, 255, 255, 0.01) 100%
-  );
-  padding: 8px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 6px;
+  border-radius: 10px;
+  border: 1px solid var(--borde);
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
-  overflow: hidden;
-  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.1);
-}
-.logo-shine {
-  position: absolute;
-  top: -50%;
-  left: -60%;
-  width: 30%;
-  height: 200%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.15),
-    transparent
-  );
-  transform: rotate(35deg);
-  animation: logo-flash 6s ease-in-out infinite;
+  background: var(--sena-blanco);
 }
 
-@keyframes logo-flash {
-  0%,
-  80% {
-    left: -60%;
-  }
-  90%,
-  100% {
-    left: 140%;
-  }
-}
 .carnet-logo {
-  height: 32px;
+  height: 36px;
   width: auto;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
+
 .carnet-header-left {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
+
 .carnet-brand {
   display: flex;
   flex-direction: column;
-  gap: 2px;
 }
+
 .brand-title-group {
   display: flex;
   align-items: center;
   gap: 6px;
 }
+
 .brand-name {
-  font-size: 0.95rem;
-  font-weight: 900;
-  color: #ffffff;
-  letter-spacing: 0.04em;
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--sena-azul-oscuro);
+  letter-spacing: 0.02em;
 }
+
 .brand-divider {
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  transition: background-color 0.3s ease;
+  background-color: var(--sena-verde);
 }
+
 .brand-project {
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.85);
-  letter-spacing: 0.02em;
+  color: var(--texto-secundario);
 }
+
 .brand-sub {
   font-size: 0.65rem;
-  color: rgba(255, 255, 255, 0.4);
-  letter-spacing: 0.01em;
+  color: var(--texto-secundario);
   font-weight: 500;
+  opacity: 0.8;
 }
 
 .carnet-badge {
   display: flex;
   align-items: center;
-  gap: 7px;
-  background: rgba(4, 10, 15, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  gap: 6px;
+  background: var(--sena-gris-claro);
+  border: 1px solid var(--borde);
   border-radius: 30px;
-  padding: 6px 14px 6px 10px;
+  padding: 6px 12px;
   font-size: 0.68rem;
-  font-weight: 800;
-  color: rgba(255, 255, 255, 0.45);
-  letter-spacing: 0.06em;
-  box-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.3),
-    inset 0 1px 0 rgba(255, 255, 255, 0.05);
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  font-weight: 700;
+  color: var(--texto-secundario);
+  letter-spacing: 0.02em;
 }
+
 .badge-icon {
-  font-size: 0.78rem;
-  opacity: 0.6;
-  transition: transform 0.3s ease;
+  font-size: 0.75rem;
 }
+
 .badge-led {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  transition: all 0.4s ease;
+  background-color: var(--sena-amarillo);
 }
+
 .carnet-badge.is-active {
-  background: rgba(57, 169, 0, 0.08);
-  border-color: rgba(57, 169, 0, 0.4);
-  color: #4ade80;
-  box-shadow:
-    0 0 15px rgba(57, 169, 0, 0.15),
-    inset 0 1px 0 rgba(57, 169, 0, 0.2);
+  background: rgba(57, 169, 0, 0.08); /* Fondo verde transparente */
+  border-color: rgba(57, 169, 0, 0.3); /* Borde verde semi-transparente */
+  color: var(--sena-verde-oscuro);
+  margin-left: 8px;
 }
-.carnet-badge.is-active .badge-icon {
-  opacity: 1;
-  transform: scale(1.1);
-  color: #39a900;
+
+.carnet-badge.is-active .badge-led {
+  background-color: var(--sena-verde);
 }
 
 .carnet-identity {
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 24px 24px 18px;
-}
-.avatar-ring {
-  position: relative;
-  flex-shrink: 0;
-  width: 78px;
-  height: 78px;
-  border-radius: 50%;
-  background: linear-gradient(
-    145deg,
-    rgba(0, 50, 77, 0.3),
-    rgba(0, 10, 15, 0.8)
-  );
-  border: 2px solid var(--neon-dynamic, rgba(255, 255, 255, 0.1));
-  box-shadow: 0 0 14px var(--neon-dynamic);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.4s ease;
-}
-.avatar-inner {
-  width: 62px;
-  height: 62px;
-  border-radius: 50%;
-  background: rgba(5, 13, 20, 0.8);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-.avatar-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-.avatar-robot-fallback {
-  background: radial-gradient(circle at center, #11151d 0%, #05070a 100%);
-  width: 100%;
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.robot-svg {
-  width: 82%;
-  height: 82%;
-}
-.eye-glow {
-  filter: drop-shadow(0 0 3px currentColor);
+  gap: 18px;
+  padding: 24px;
 }
 
 .user-name {
-  font-size: 1.15rem;
-  font-weight: 800;
-  color: #ffffff;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--sena-azul-oscuro);
   margin: 0 0 2px;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
 }
+
 .user-email {
-  font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.35);
-  margin: 0 0 12px;
+  font-size: 0.78rem;
+  color: var(--texto-secundario);
+  margin: 0 0 10px;
 }
+
 .user-meta {
   display: flex;
-  flex-wrap: wrap;
   gap: 8px;
 }
+
 .meta-tag {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 5px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 14px;
+  background: var(--sena-gris-claro);
+  border: 1px solid var(--borde);
+  border-radius: 8px;
   padding: 4px 10px;
-  font-size: 0.65rem;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 0.68rem;
+  color: var(--texto-secundario);
   font-weight: 600;
-}
-.meta-tag svg {
-  color: rgba(255, 255, 255, 0.35);
 }
 
 .carnet-scan-zone {
-  padding: 0 24px 22px;
+  padding: 0 24px 24px;
 }
+
 .otp-preview {
-  position: relative;
-  padding: 24px;
-  border-radius: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  background: rgba(4, 10, 15, 0.85);
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid var(--borde);
+  background: var(--sena-gris-claro);
   text-align: center;
-  overflow: hidden;
-  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.8);
-  transition: all 0.4s ease;
 }
-.otp-glow-bg {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
-  filter: blur(45px);
-  opacity: 0.04;
-  pointer-events: none;
-  transition: opacity 0.4s ease;
-}
-.otp-preview.otp-active .otp-glow-bg {
-  opacity: 0.15;
-}
+
 .otp-title {
-  text-transform: uppercase;
-  font-size: 0.72rem;
-  letter-spacing: 0.25em;
-  color: rgba(255, 255, 255, 0.4);
+  font-size: 0.7rem;
+  letter-spacing: 0.15em;
+  color: var(--texto-secundario);
   font-weight: 700;
 }
+
 .otp-value {
-  font-size: 2.8rem;
-  font-weight: 900;
-  color: #ffffff;
-  letter-spacing: 0.15em;
-  margin: 10px 0;
-  text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
-  font-variant-numeric: tabular-nums;
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--sena-azul-oscuro);
+  letter-spacing: 0.1em;
+  margin: 8px 0;
 }
+
 .otp-preview.otp-active .otp-value {
-  color: #c6ff9e;
-  text-shadow: 0 0 15px rgba(198, 255, 158, 0.4);
+  color: var(--sena-verde);
 }
-.otp-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
+
 .otp-timer-badge {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
-  align-self: center;
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 10px;
-  padding: 2px 10px;
-  font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.6);
+  gap: 4px;
+  background: var(--borde);
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  color: var(--texto-secundario);
+  margin-bottom: 4px;
 }
+
 .otp-status-text {
   font-size: 0.75rem;
-  color: rgba(255, 255, 255, 0.35);
+  color: var(--texto-secundario);
 }
 
 .carnet-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 14px 24px 22px;
-  border-top: 1px solid rgba(255, 255, 255, 0.04);
+  padding: 16px 24px;
+  border-top: 1px solid var(--sena-gris-claro);
+  background: var(--sena-blanco);
 }
+
 .carnet-id-number {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.35);
-  font-family: "Courier New", Courier, monospace;
+  font-size: 0.75rem;
+  color: var(--texto-secundario);
+  font-family: monospace;
   font-weight: 700;
 }
-.icon-glow-tech {
-  color: #00ffcc;
-  filter: drop-shadow(0 0 4px rgba(0, 255, 204, 0.6));
+
+.icon-brand-tech {
+  color: var(--sena-azul-oscuro);
 }
+
 .carnet-validity {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-size: 0.72rem;
-  color: #39a900;
+  color: var(--sena-verde-oscuro);
   font-weight: 700;
-  letter-spacing: 0.02em;
 }
+
 .live-dot {
   width: 6px;
   height: 6px;
-  background-color: #39a900;
+  background-color: var(--sena-verde);
   border-radius: 50%;
-  box-shadow: 0 0 8px #39a900;
   animation: pulse-dot 2s infinite alternate;
 }
 
 @keyframes pulse-dot {
   0% {
     transform: scale(0.9);
-    opacity: 0.5;
-    box-shadow: 0 0 2px #39a900;
+    opacity: 0.6;
   }
   100% {
     transform: scale(1.2);
     opacity: 1;
-    box-shadow: 0 0 10px #39a900;
   }
 }
 
 /* ==========================================================================
-   NUEVA ARQUITECTURA DISTRIBUIDA DE ACCIONES (ZONA NFC INCLUIDA)
+   PANEL DE BOTONES
    ========================================================================== */
 .action-panel {
   display: flex;
   gap: 10px;
   width: 100%;
   max-width: 365px;
+  z-index: 1;
 }
 
 .btn-scan,
 .btn-nfc,
 .btn-exit {
   border: none;
-  border-radius: 16px;
+  border-radius: 12px;
   padding: 14px 8px;
   font-size: 0.8rem;
-  font-weight: 800;
+  font-weight: 700;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   cursor: pointer;
-  position: relative;
-  overflow: hidden;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s ease;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
 }
 
-/* Botón de PIN Tradicional */
 .btn-scan {
   flex: 1.2;
-  background: linear-gradient(135deg, #004d73 0%, #002b40 100%);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
-}
-.btn-scan:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 24px rgba(0, 77, 115, 0.4);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: var(--sena-azul-oscuro);
+  color: var(--sena-blanco);
 }
 
-/* 📡 NUEVO BOTÓN DE HARDWARE NFC CON EFECTO FLUORESCENTE */
+.btn-scan:hover:not(:disabled) {
+  background: #001f2a; /* Azul más oscuro para hover manual */
+  transform: translateY(-1px);
+}
+
 .btn-nfc {
   flex: 1.2;
-  background: linear-gradient(135deg, #112423 0%, #081212 100%);
-  color: #00ffcc;
-  border: 1px solid rgba(0, 255, 204, 0.2);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  background: var(--sena-verde);
+  color: var(--sena-blanco);
+  position: relative;
 }
 
 .btn-nfc:hover:not(:disabled) {
-  transform: translateY(-2px);
-  background: linear-gradient(135deg, #163533 0%, #0c1c1b 100%);
-  border-color: rgba(0, 255, 204, 0.5);
-  box-shadow: 0 12px 24px rgba(0, 255, 204, 0.15);
-  color: #ffffff;
+  background: var(--sena-verde-oscuro);
+  transform: translateY(-1px);
 }
 
-.btn-nfc:disabled {
-  border-color: rgba(0, 255, 204, 0.1);
-  color: rgba(0, 255, 204, 0.4);
-  cursor: not-allowed;
-}
-
-/* Ondas electromagnéticas de radiofrecuencia (NFC Rings) */
 .nfc-pulse-ring {
   position: absolute;
   inset: 0;
-  border: 2px solid #00ffcc;
-  border-radius: 16px;
+  border: 2px solid var(--sena-verde);
+  border-radius: 12px;
   animation: nfc-wave 1.2s cubic-bezier(0.24, 0, 0.38, 1) infinite;
 }
 
 @keyframes nfc-wave {
   0% {
     transform: scale(1);
-    opacity: 0.8;
+    opacity: 0.5;
   }
   100% {
-    transform: scale(1.15, 1.3);
+    transform: scale(1.1, 1.2);
     opacity: 0;
   }
 }
 
-.icon-broadcast {
-  animation: pulse-icon 0.6s ease-in-out infinite alternate;
-}
-
-/* Botón Salir */
 .btn-exit {
   flex: 1;
-  background: rgba(255, 255, 255, 0.03);
-  color: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--borde);
+  color: var(--texto-secundario);
 }
+
 .btn-exit:hover:not(:disabled) {
-  transform: translateY(-2px);
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-  border-color: rgba(255, 255, 255, 0.15);
+  background: #cbd5e0; /* Gris más oscuro para hover manual */
+  color: var(--sena-negro);
 }
 
 .btn-scan:disabled,
+.btn-nfc:disabled,
 .btn-exit:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   transform: none !important;
 }
 
-/* Toasts */
 .status-strip {
   position: fixed;
   bottom: 28px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(5, 13, 20, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
+  background: var(--sena-blanco);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
   padding: 12px 24px;
   font-size: 0.85rem;
   font-weight: 600;
   display: flex;
   align-items: center;
-  gap: 10px;
-  backdrop-filter: blur(16px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  gap: 8px;
+  box-shadow: 0 10px 25px rgba(0, 48, 64, 0.1);
   z-index: 100;
 }
+
 .status-strip.success {
-  border-color: rgba(57, 169, 0, 0.5);
-  color: #4ade80;
+  border-color: var(--sena-verde);
+  color: var(--sena-verde-oscuro);
 }
+
 .status-strip.info {
-  border-color: rgba(0, 255, 204, 0.3);
-  color: #00ffcc;
+  border-color: var(--sena-azul-oscuro);
+  color: var(--sena-azul-oscuro);
 }
 
 .status-slide-enter-active,
 .status-slide-leave-active {
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.3s ease;
 }
+
 .status-slide-enter-from,
 .status-slide-leave-to {
   opacity: 0;
-  transform: translateX(-50%) translateY(20px);
+  transform: translateX(-50%) translateY(15px);
 }
 
 .voltmind-watermark {
   position: absolute;
-  bottom: 16px;
+  bottom: 12px;
   font-size: 0.65rem;
-  color: rgba(255, 255, 255, 0.03);
-  letter-spacing: 0.3em;
+  color: var(--borde);
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   user-select: none;
 }
+
 .icon-pulse {
-  animation: pulse-icon 2s infinite;
+  animation: pulse-icon 1.5s infinite alternate;
 }
 
 @keyframes pulse-icon {
-  0%,
-  100% {
-    opacity: 0.6;
+  0% {
+    opacity: 0.5;
   }
-  50% {
+  100% {
     opacity: 1;
   }
 }
