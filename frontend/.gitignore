@@ -19,6 +19,8 @@ pnpm-debug.log*
 
 # --- Archivos de Sistema y Editores ---
 .vscode/*
+.vscode/
+.vscode/launch.json
 !.vscode/extensions.json
 .idea/
 .DS_Store
@@ -29,13 +31,25 @@ pnpm-debug.log*
 *.sw?
 
 # --- Capacitor y Android/iOS ---
-# Solo ignoramos los archivos de compilación, NO la carpeta android/ completa
-# a menos que prefieras generarla siempre desde cero.
-/andoid
+# Si decides mantener la carpeta android bajo control de versiones, borra la línea "/android"
+# Si prefieres generarla desde cero (Recomendado), mantenla como está.
+/android
 /ios
+
+# Archivos de configuración local (CRÍTICO)
+local.properties
 .gradle/
 .idea/
+# Ignorar binarios de compilación
 build/
+app/build/
 
 # --- Archivos temporales de Vite ---
 .vite/
+
+# --- Archivos de sistema ---
+# Agrega estos para evitar subir basura de Windows o macOS
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
