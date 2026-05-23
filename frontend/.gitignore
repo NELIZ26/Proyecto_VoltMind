@@ -31,11 +31,11 @@ pnpm-debug.log*
 # --- Capacitor y Android/iOS ---
 # Solo ignoramos los archivos de compilación, NO la carpeta android/ completa
 # a menos que prefieras generarla siempre desde cero.
-/android/app/build/
-/android/.gradle/
-/android/local.properties
-/ios/App/build/
-/ios/App/Pods/
+/andoid
+/ios
+.gradle/
+.idea/
+build/
 
 # --- Archivos temporales de Vite ---
 .vite/
