@@ -86,8 +86,7 @@ const seleccionarFicha = (ficha) => {
 
       <footer class="select-footer">
         <button class="btn-back" @click="router.push('/route-selector')">
-          <font-awesome-icon icon="fa-solid fa-arrow-left" /> REGRESAR AL
-          SELECTOR
+          <font-awesome-icon icon="fa-solid fa-arrow-left" /> REGRESAR AL SELECTOR
         </button>
       </footer>
     </div>
@@ -96,21 +95,39 @@ const seleccionarFicha = (ficha) => {
 
 <style scoped>
 /* ==========================================================================
-   CONSOLA DE SELECCIÓN DE FICHA (VoltMind Access Premium UI)
+   CONSOLA DE SELECCIÓN DE FICHA (SENA 2024 - Caso 1 Blanco Predominante)
    ========================================================================== */
 .select-shell {
   min-height: 100vh;
-  background: var(--sena-gris-fondo);
+  background: var(--fondo-app);
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 3rem 1.5rem;
   font-family: var(--fuente-principal);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Fondo con cuadrícula tecnológica sutil (SENA Azul Oscuro con baja opacidad) */
+.select-shell::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(0, 48, 64, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 48, 64, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse at center, black, transparent 80%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .select-container {
   width: 100%;
   max-width: 1100px;
+  position: relative;
+  z-index: 1;
 }
 
 /* Encabezado de la Consola */
@@ -134,13 +151,13 @@ const seleccionarFicha = (ficha) => {
 .logo-voltmind {
   height: 38px;
   width: auto;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+  filter: drop-shadow(0 2px 4px rgba(0, 48, 64, 0.08));
 }
 
 .logo-sena {
   height: 42px;
   width: auto;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+  filter: drop-shadow(0 2px 4px rgba(0, 48, 64, 0.08));
 }
 
 .brand-divider {
@@ -153,11 +170,11 @@ const seleccionarFicha = (ficha) => {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--borde);
+  background: rgba(57, 169, 0, 0.08); /* Verde con opacidad */
+  border: 1px solid rgba(57, 169, 0, 0.2);
   padding: 6px 14px;
-  border-radius: 6px;
-  color: var(--sena-verde);
+  border-radius: 8px;
+  color: var(--sena-verde-oscuro);
   font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0.05em;
@@ -167,27 +184,27 @@ const seleccionarFicha = (ficha) => {
 .select-header h1 {
   font-size: 1.8rem;
   font-weight: 900;
-  color: var(--texto-principal);
+  color: var(--sena-azul-oscuro);
   letter-spacing: -0.02em;
   margin: 0 0 0.5rem 0;
 }
 
 .instruction {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   color: var(--texto-secundario);
-  opacity: 0.7;
+  font-weight: 500;
 }
 
-/* Grilla de Tarjetas */
+/* Grilla de Tarjetas (Responsive nativo mantenido) */
 .fichas-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 1.5rem;
 }
 
-/* Estilo Premium de la Tarjeta */
+/* Estilo Institucional de la Tarjeta */
 .ficha-card {
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--fondo-tarjetas);
   border: 1px solid var(--borde);
   border-radius: 16px;
   padding: 1.75rem;
@@ -195,43 +212,47 @@ const seleccionarFicha = (ficha) => {
   cursor: pointer;
   position: relative;
   overflow: hidden;
-  transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+  transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   min-height: 240px;
+  box-shadow: 0 4px 12px rgba(0, 48, 64, 0.03); /* Sombra sutil y limpia */
 }
 
 .ficha-card:hover {
-  transform: translateY(-8px);
-  background: rgba(255, 255, 255, 0.05);
+  transform: translateY(-6px);
+  background: var(--sena-blanco);
   border-color: var(--sena-verde);
-  box-shadow: 0 20px 40px -15px rgba(57, 169, 0, 0.25);
+  box-shadow: 0 12px 24px rgba(0, 48, 64, 0.08), 0 0 0 1px var(--sena-verde);
 }
 
-/* Micro-Indicador de Estado */
+/* Etiqueta de Estado */
 .card-status {
   position: absolute;
-  top: 15px;
-  right: 15px;
+  top: 16px;
+  right: 16px;
   font-size: 0.6rem;
-  font-weight: 900;
-  color: var(--sena-verde);
-  opacity: 0.5;
-  letter-spacing: 0.1em;
+  font-weight: 800;
+  color: var(--sena-verde-oscuro);
+  background: rgba(57, 169, 0, 0.1);
+  padding: 4px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.08em;
 }
 
+/* Icono de la Tarjeta */
 .card-icon {
   width: 48px;
   height: 48px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--fondo-app);
   border: 1px solid var(--borde);
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.25rem;
-  color: var(--texto-secundario);
+  color: var(--sena-azul-oscuro);
   margin-bottom: 1.5rem;
   transition: all 0.3s ease;
 }
@@ -240,12 +261,13 @@ const seleccionarFicha = (ficha) => {
   background: var(--sena-verde);
   color: var(--sena-blanco);
   border-color: var(--sena-verde);
-  box-shadow: 0 0 15px rgba(57, 169, 0, 0.3);
+  box-shadow: 0 4px 12px rgba(57, 169, 0, 0.3);
 }
 
+/* Información Central */
 .label {
   display: block;
-  font-size: 0.6rem;
+  font-size: 0.65rem;
   font-weight: 700;
   color: var(--texto-secundario);
   letter-spacing: 0.05em;
@@ -253,9 +275,9 @@ const seleccionarFicha = (ficha) => {
 }
 
 .ficha-number {
-  font-size: 1.6rem;
+  font-size: 1.8rem;
   font-weight: 800;
-  color: var(--texto-principal);
+  color: var(--sena-azul-oscuro);
   margin: 0 0 8px 0;
   letter-spacing: -0.02em;
 }
@@ -265,7 +287,7 @@ const seleccionarFicha = (ficha) => {
   color: var(--texto-secundario);
   line-height: 1.4;
   margin: 0;
-  opacity: 0.8;
+  font-weight: 500;
 }
 
 /* Footer de la Tarjeta */
@@ -274,21 +296,21 @@ const seleccionarFicha = (ficha) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-top: 1px solid var(--borde);
+  border-top: 1px solid var(--fondo-app);
   padding-top: 1rem;
 }
 
 .jornada-tag {
   font-size: 0.65rem;
   font-weight: 700;
-  color: var(--sena-verde-claro);
+  color: var(--sena-verde-oscuro);
   text-transform: uppercase;
 }
 
 .arrow {
-  font-size: 0.8rem;
-  color: var(--texto-secundario);
-  transition: transform 0.3s ease;
+  font-size: 0.9rem;
+  color: var(--borde);
+  transition: all 0.3s ease;
 }
 
 .ficha-card:hover .arrow {
@@ -296,30 +318,33 @@ const seleccionarFicha = (ficha) => {
   transform: translateX(5px);
 }
 
-/* Botón de Regreso */
+/* Botón de Regreso Institucional */
 .select-footer {
   margin-top: 4rem;
   text-align: center;
 }
 
 .btn-back {
-  background: transparent;
+  background: var(--fondo-tarjetas);
   border: 1px solid var(--borde);
   color: var(--texto-secundario);
   padding: 12px 24px;
   border-radius: 8px;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 700;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 10px;
   transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 48, 64, 0.03);
 }
 
 .btn-back:hover {
-  border-color: rgba(255, 255, 255, 0.2);
-  color: var(--texto-principal);
-  background: rgba(255, 255, 255, 0.02);
+  border-color: var(--sena-azul-oscuro);
+  color: var(--sena-blanco);
+  background: var(--sena-azul-oscuro);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 48, 64, 0.15);
 }
 </style>
