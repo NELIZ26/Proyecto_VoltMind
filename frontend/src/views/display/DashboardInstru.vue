@@ -1,29 +1,44 @@
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
+import QrcodeVue from "qrcode.vue";
 
-// IMPORTACIÓN DE LOS COMPONENTES DE MODAL EXTRAÍDOS
+// IMPORTACIÓN DE COMPONENTES DEL SUBSISTEMA
 import ProfileModal from "@/components/profileModal.vue";
 import AttendanceModal from "@/components/attendanceModal.vue";
 import ExitModal from "@/components/exitModal.vue";
+import AlertPanel from "@/components/AlertPanel.vue";
+import { useRole } from "@/composables/useRole";
 
 const toast = useToast();
+const router = useRouter();
+const { hasRole, hasPermission } = useRole();
 
 // --- ESTADOS REACTIVOS PRINCIPALES ---
 const isPowerOn = ref(false);
 const nfcScanning = ref(false);
 const qrProjected = ref(false);
 const currentTime = ref(new Date().toLocaleTimeString());
+const dynamicToken = ref("");
+let qrInterval = null;
 
-// --- MANEJO DE MODALES ---
-const activeModal = ref(null); // 'profile' | 'attendance' | 'exit'
+// Datos de la Ficha (Dinámicos desde localStorage con fallback de desarrollo)
+const activeFicha = ref({
+  numero: "2997671",
+  programa: "Análisis y Desarrollo de Software",
+  jornada: "Mañana",
+});
+
+// --- MANEJO DE VENTANAS MODALES ---
+const activeModal = ref(null);
 const selectedApprentice = ref(null);
 
-// --- MOCK DATA ---
+// --- MOCK DATA INSTITUCIONAL ---
 const meters = ref([
   { id: 1, label: "Iluminación Aula", value: 120 },
   { id: 2, label: "Bancos de Cómputo", value: 850 },
-  { id: 3, label: "Rack de Comunicaciones", value: 450 },
+  { id: 3, label: "Rack Comunicaciones", value: 450 },
 ]);
 
 const roomNodes = ref(
@@ -42,9 +57,6 @@ const apprentices = ref([
     lastSeen: "08:05 AM",
     absences: 0,
     doc: "10234567",
-    email: "carlos.ruiz@misena.edu.co",
-    enum: "3001234567",
-    history: ["02/05 (P)", "03/05 (P)", "04/05 (P)"],
   },
   {
     id: "002",
@@ -53,9 +65,6 @@ const apprentices = ref([
     lastSeen: "Ayer",
     absences: 4,
     doc: "11934568",
-    email: "ana.beltran@misena.edu.co",
-    enum: "3007654321",
-    history: ["02/05 (F)", "03/05 (F)", "04/05 (F)"],
   },
   {
     id: "003",
@@ -64,9 +73,6 @@ const apprentices = ref([
     lastSeen: "08:12 AM",
     absences: 1,
     doc: "10056789",
-    email: "jorge.lopez@misena.edu.co",
-    enum: "3009876543",
-    history: ["02/05 (P)", "03/05 (F)", "04/05 (P)"],
   },
   {
     id: "004",
@@ -75,12 +81,49 @@ const apprentices = ref([
     lastSeen: "Hace 3 días",
     absences: 3,
     doc: "10876543",
-    email: "elena.paz@misena.edu.co",
-    enum: "3001928374",
-    history: ["02/05 (F)", "03/05 (F)", "04/05 (F)"],
   },
 ]);
 
+const systemAlerts = ref([
+  {
+    id: 1,
+    severity: "warning",
+    message: "Alerta de Deserción: Ana Sofía Beltrán.",
+    source: "Asistencia",
+    timestamp: "Ayer",
+  },
+]);
+
+// --- PAYLOAD DEL QR DINÁMICO (MUTABLE) ---
+const qrPayload = computed(() => {
+  return JSON.stringify({
+    ambiente: "402",
+    ficha: activeFicha.value.numero,
+    token: dynamicToken.value,
+  });
+});
+
+// --- GESTIÓN DE CONTROL QR ANTIFRAUDE ---
+const openQrModal = () => {
+  qrProjected.value = true;
+  // Generar primer token inmediatamente
+  dynamicToken.value = `VM-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+
+  // Rotación del token cada 5 segundos de forma ininterrumpida
+  qrInterval = setInterval(() => {
+    dynamicToken.value = `VM-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+  }, 5000);
+};
+
+const closeQrModal = () => {
+  qrProjected.value = false;
+  if (qrInterval) {
+    clearInterval(qrInterval);
+    qrInterval = null;
+  }
+};
+
+// --- OPERACIONES IOT (CONMUTACIÓN DE RED) ---
 const toggleMasterPower = () => {
   isPowerOn.value = !isPowerOn.value;
   roomNodes.value.forEach((node) => {
@@ -93,14 +136,22 @@ const toggleMasterPower = () => {
 
 const toggleNodePower = (node) => {
   node.energized = !node.energized;
-  if (!node.energized) {
-    if (!roomNodes.value.some((n) => n.energized)) isPowerOn.value = false;
+  if (!node.energized && !roomNodes.value.some((n) => n.energized)) {
+    isPowerOn.value = false;
   } else {
     isPowerOn.value = true;
   }
 };
 
-// --- ACCIONES DE DISPARO ---
+// --- SUBSISTEMA DE ALERTAS LOCALES ---
+const handleAlertResolution = (alertId) => {
+  systemAlerts.value = systemAlerts.value.filter(
+    (alert) => alert.id !== alertId,
+  );
+  toast.success("Alerta resuelta exitosamente.");
+};
+
+// --- CONTROL DE ACCIONES DE FILA ---
 const openModal = (type, apprentice) => {
   selectedApprentice.value = apprentice;
   activeModal.value = type;
@@ -115,15 +166,29 @@ const handleExitConfirm = (reason) => {
   if (selectedApprentice.value) {
     selectedApprentice.value.status = "absent";
     selectedApprentice.value.lastSeen = "Salida Inesperada";
-    toast.warning(`Salida anticipada registrada. Motivo: ${reason}`);
+    toast.warning(`Salida anticipada registrada: ${reason}`);
   }
   closeModal();
 };
 
 onMounted(() => {
+  if (!hasRole(["instructor", "dinamizador"])) {
+    toast.error("Acceso denegado. Se requiere perfil de Instructor.");
+    router.push("/route-selector");
+  }
+
+  const storedFicha = localStorage.getItem("active_ficha");
+  if (storedFicha) {
+    activeFicha.value = JSON.parse(storedFicha);
+  }
+
   setInterval(() => {
     currentTime.value = new Date().toLocaleTimeString();
   }, 1000);
+});
+
+onUnmounted(() => {
+  clearInterval(qrInterval);
 });
 </script>
 
@@ -143,13 +208,13 @@ onMounted(() => {
         <div class="environment-badge">
           <h1>AMBIENTE 402</h1>
           <p class="header-meta">
-            Ficha: 2997671 | Instructor: Diego Tobar |
+            Ficha: {{ activeFicha.numero }} | {{ activeFicha.programa }} |
             <span>{{ currentTime }}</span>
           </p>
         </div>
       </div>
 
-      <div class="power-master-box">
+      <div class="power-master-box" v-if="hasPermission('gestionar_aula')">
         <span class="power-label">{{
           isPowerOn ? "AULA ENERGIZADA" : "AULA APAGADA"
         }}</span>
@@ -167,7 +232,8 @@ onMounted(() => {
       <section class="dash-col energy-section">
         <div class="module-card">
           <h2 class="module-title">
-            <font-awesome-icon icon="fa-solid fa-microchip" /> TELEMETRÍA DE CONSUMO
+            <font-awesome-icon icon="fa-solid fa-microchip" /> TELEMETRÍA DE
+            CONSUMO
           </h2>
           <div class="meters-grid">
             <div v-for="m in meters" :key="m.id" class="meter-pill">
@@ -187,30 +253,39 @@ onMounted(() => {
 
         <div class="module-card map-card">
           <h2 class="module-title">
-            <font-awesome-icon icon="fa-solid fa-plug" /> CONTROL DE ENERGÍA POR ESTACIÓN
+            <font-awesome-icon icon="fa-solid fa-plug" /> CONTROL DE ENERGÍA POR
+            ESTACIÓN
           </h2>
           <p class="map-instruction">
-            Haz clic sobre un puesto para conmutar su flujo eléctrico de forma independiente.
+            Haz clic sobre un puesto para conmutar su flujo eléctrico de forma
+            independiente.
           </p>
-          <div class="room-map">
-            <button
-              v-for="node in roomNodes"
-              :key="node.id"
-              class="map-node"
-              :class="{ 'node-on': node.energized }"
-              @click="toggleNodePower(node)"
-            >
-              <small>PUESTO {{ node.id }}</small>
-              <font-awesome-icon icon="fa-solid fa-bolt" class="node-bolt" />
-              <span v-if="node.energized" class="node-watts">{{ node.load }}W</span>
-              <span v-else class="node-watts">OFF</span>
-            </button>
+
+          <div class="room-map-wrapper">
+            <div class="room-map">
+              <button
+                v-for="node in roomNodes"
+                :key="node.id"
+                class="map-node"
+                :class="{ 'node-on': node.energized }"
+                @click="
+                  hasPermission('gestionar_aula') ? toggleNodePower(node) : null
+                "
+                :disabled="!hasPermission('gestionar_aula')"
+              >
+                <small>P{{ node.id }}</small>
+                <font-awesome-icon icon="fa-solid fa-bolt" class="node-bolt" />
+                <span class="node-watts">{{
+                  node.energized ? node.load + "W" : "OFF"
+                }}</span>
+              </button>
+            </div>
           </div>
         </div>
       </section>
 
       <section class="dash-col attendance-section">
-        <div class="actions-group">
+        <div class="actions-group" v-if="hasPermission('gestionar_aula')">
           <button
             class="btn-action nfc"
             :class="{ 'btn-active': nfcScanning }"
@@ -222,34 +297,29 @@ onMounted(() => {
           <button
             class="btn-action qr"
             :class="{ 'btn-active': qrProjected }"
-            @click="qrProjected = !qrProjected"
+            @click="qrProjected ? closeQrModal() : openQrModal()"
           >
             <font-awesome-icon icon="fa-solid fa-qrcode" />
             <span>{{ qrProjected ? "OCULTAR QR" : "PROYECTAR QR" }}</span>
           </button>
         </div>
 
-        <div class="module-card alert-card">
-          <h2 class="module-title text-alert">
-            <font-awesome-icon icon="fa-solid fa-triangle-exclamation" /> ALERTA DE DESERCIÓN (>3 INASISTENCIAS)
-          </h2>
-          <div class="alert-list">
-            <div
-              v-for="a in apprentices.filter((x) => x.absences >= 3)"
-              :key="a.id"
-              class="alert-item"
-            >
-              <span class="alert-name">{{ a.name }}</span>
-              <span class="badge-alert">{{ a.absences }} FALLAS</span>
-            </div>
-          </div>
-        </div>
+        <AlertPanel
+          title="ALERTAS DEL AMBIENTE"
+          icon="fa-solid fa-triangle-exclamation"
+          :alerts="systemAlerts"
+          @resolve="handleAlertResolution"
+        />
       </section>
 
-      <section class="dash-footer-table">
+      <section
+        class="dash-footer-table"
+        v-if="hasRole(['instructor', 'dinamizador'])"
+      >
         <div class="module-card table-card">
           <h2 class="module-title">
-            <font-awesome-icon icon="fa-solid fa-users" /> LISTADO OPERATIVO DE APRENDICES
+            <font-awesome-icon icon="fa-solid fa-users" /> LISTADO OPERATIVO DE
+            APRENDICES
           </h2>
           <div class="table-responsive-wrapper">
             <table class="apprentices-table">
@@ -270,7 +340,11 @@ onMounted(() => {
                     </div>
                   </td>
                   <td>
-                    <span :class="a.status === 'present' ? 'status-green' : 'status-gray'">
+                    <span
+                      :class="
+                        a.status === 'present' ? 'status-green' : 'status-gray'
+                      "
+                    >
                       {{ a.status === "present" ? "EN CLASE" : "AUSENTE" }}
                     </span>
                   </td>
@@ -281,7 +355,7 @@ onMounted(() => {
                     <div class="actions-cell">
                       <button
                         class="btn-table action-view"
-                        title="Ver Datos"
+                        title="Ver Perfil"
                         @click="openModal('profile', a)"
                       >
                         <font-awesome-icon icon="fa-solid fa-user" />
@@ -294,12 +368,17 @@ onMounted(() => {
                         <font-awesome-icon icon="fa-solid fa-calendar-days" />
                       </button>
                       <button
-                        v-if="a.status === 'present'"
+                        v-if="
+                          a.status === 'present' &&
+                          hasPermission('gestionar_aula')
+                        "
                         class="btn-table action-exit"
                         title="Salida Inesperada"
                         @click="openModal('exit', a)"
                       >
-                        <font-awesome-icon icon="fa-solid fa-right-from-bracket" />
+                        <font-awesome-icon
+                          icon="fa-solid fa-right-from-bracket"
+                        />
                       </button>
                     </div>
                   </td>
@@ -311,31 +390,36 @@ onMounted(() => {
       </section>
     </main>
 
-    <div v-if="qrProjected" class="qr-overlay" @click="qrProjected = false">
+    <div v-if="qrProjected" class="qr-overlay" @click="closeQrModal">
       <div class="qr-modal" @click.stop>
         <h3>CÓDIGO QR DE ASISTENCIA AMBIENTE 402</h3>
-        <font-awesome-icon icon="fa-solid fa-qrcode" class="big-qr" />
-        <p>Abre VoltMind Access en tu teléfono y escanea la pantalla para validar tu ingreso.</p>
-        <button class="btn-close-overlay" @click="qrProjected = false">
+
+        <div class="qr-container-proyector">
+          <qrcode-vue :value="qrPayload" :size="220" level="M" />
+        </div>
+
+        <p>
+          Abre VoltMind Access en tu teléfono, selecciona "ESCANEAR" y apunta a
+          la pantalla para registrar tu asistencia.
+        </p>
+        <button class="btn-close-overlay" @click="closeQrModal">
           CERRAR PANTALLA COMPARTIDA
         </button>
       </div>
     </div>
 
     <ProfileModal
-      v-if="activeModal === 'profile' && selectedApprentice"
+      v-if="activeModal === 'profile'"
       :apprentice="selectedApprentice"
       @close="closeModal"
     />
-
     <AttendanceModal
-      v-if="activeModal === 'attendance' && selectedApprentice"
+      v-if="activeModal === 'attendance'"
       :apprentice="selectedApprentice"
       @close="closeModal"
     />
-
     <ExitModal
-      v-if="activeModal === 'exit' && selectedApprentice"
+      v-if="activeModal === 'exit'"
       :apprentice="selectedApprentice"
       @close="closeModal"
       @confirm="handleExitConfirm"
@@ -345,75 +429,63 @@ onMounted(() => {
 
 <style scoped>
 /* ==========================================================================
-   DASHBOARD PRINCIPAL - ESTÉTICA MINIMALISTA Y LIMPIA (SENA 2024)
+   ESTILO ESTRUCTURAL E INSTITUCIONAL (SENA 2024 - CASO BLANCO MÁXIMO)
    ========================================================================== */
-
 .dashboard-shell {
   font-family: var(--fuente-principal);
   min-height: 100vh;
-  background-color: var(--fondo-app); /* Gris claro de fondo */
+  background-color: var(--fondo-app);
   color: var(--texto-principal);
-  padding: 1.5rem;
+  padding: 1rem;
   box-sizing: border-box;
 }
 
-/* --- HEADER --- */
 .dash-header {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
-  background: var(--fondo-tarjetas); /* Blanco */
-  padding: 1.5rem;
+  gap: 1rem;
+  background: var(--fondo-tarjetas);
+  padding: 1.25rem;
   border-radius: 16px;
   border: 1px solid var(--borde);
   margin-bottom: 1.5rem;
-  box-shadow: 0 4px 12px rgba(0, 48, 64, 0.03); /* Sombra muy sutil */
+  box-shadow: 0 4px 12px rgba(0, 48, 64, 0.03);
 }
 
 .header-left {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
 }
-
 .logo-duo {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
-
 .logo-sena {
-  height: 38px;
+  height: 32px;
   width: auto;
-  object-fit: contain;
 }
-
 .logo-volt {
-  height: 34px;
+  height: 28px;
   width: auto;
-  object-fit: contain;
 }
-
 .logo-divider {
   width: 1px;
-  height: 28px;
+  height: 24px;
   background: var(--borde);
 }
-
 .environment-badge h1 {
-  font-size: 1.3rem;
+  font-size: 1.15rem;
   font-weight: 800;
   color: var(--sena-azul-oscuro);
   margin: 0;
-  letter-spacing: -0.02em;
 }
-
 .header-meta {
   margin-top: 4px;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--texto-secundario);
 }
-
 .header-meta span {
   color: var(--sena-azul-oscuro);
   font-family: monospace;
@@ -426,32 +498,27 @@ onMounted(() => {
   justify-content: space-between;
   background: var(--fondo-app);
   border: 1px solid var(--borde);
-  padding: 0.75rem 1.25rem;
+  padding: 0.5rem 1rem;
   border-radius: 12px;
 }
-
 .power-label {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 700;
   color: var(--texto-secundario);
-  letter-spacing: 0.08em;
 }
-
 .power-switch {
-  width: 44px;
-  height: 44px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   border: 2px solid var(--borde);
   background: var(--fondo-tarjetas);
   color: var(--texto-secundario);
-  font-size: 1.1rem;
+  font-size: 1rem;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
-
 .power-switch.power-active {
   background: var(--sena-verde);
   color: var(--sena-blanco);
@@ -459,7 +526,17 @@ onMounted(() => {
   box-shadow: 0 4px 12px rgba(57, 169, 0, 0.25);
 }
 
+.dash-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* REGLAS MULTICOLUMNA PARA PANTALLAS GRANDES Y TABLETS */
 @media (min-width: 992px) {
+  .dashboard-shell {
+    padding: 1.5rem;
+  }
   .dash-header {
     flex-direction: row;
     justify-content: space-between;
@@ -471,26 +548,24 @@ onMounted(() => {
     align-items: center;
     gap: 2.5rem;
   }
-  .logo-sena { height: 44px; }
-  .logo-volt { height: 40px; }
-  .environment-badge h1 { font-size: 1.4rem; }
+  .logo-sena {
+    height: 44px;
+  }
+  .logo-volt {
+    height: 40px;
+  }
+  .environment-badge h1 {
+    font-size: 1.4rem;
+  }
   .power-master-box {
     background: transparent;
     border: none;
     padding: 0;
     gap: 1.5rem;
   }
-}
-
-/* --- GRID PRINCIPAL --- */
-.dash-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.5rem;
-}
-@media (min-width: 992px) {
   .dash-grid {
     grid-template-columns: 1fr 380px;
+    display: grid;
   }
 }
 
@@ -499,135 +574,130 @@ onMounted(() => {
   flex-direction: column;
   gap: 1.5rem;
 }
-
-/* --- TARJETAS MODULARES (CLEAN DESIGN) --- */
 .module-card {
   background: var(--fondo-tarjetas);
   border: 1px solid var(--borde);
   border-radius: 16px;
-  padding: 1.5rem;
-  box-shadow: 0 4px 12px rgba(0, 48, 64, 0.02);
+  padding: 1.25rem;
 }
-
 .module-title {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 700;
   color: var(--sena-azul-oscuro);
-  margin: 0 0 1.25rem 0;
+  margin: 0 0 1rem 0;
   display: flex;
   align-items: center;
   gap: 8px;
-  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
-/* --- TELEMETRÍA --- */
 .meters-grid {
   display: grid;
-  grid-template-columns: 1fr;
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.75rem;
 }
-@media (min-width: 576px) {
-  .meters-grid { grid-template-columns: repeat(3, 1fr); }
-}
-
 .meter-pill {
   background: var(--fondo-app);
-  padding: 1rem;
+  padding: 0.85rem;
   border-radius: 12px;
   border: 1px solid var(--borde);
-  transition: transform 0.2s ease;
 }
-
-.meter-pill:hover {
-  transform: translateY(-2px);
-  border-color: var(--sena-verde);
-}
-
 .meter-label {
-  font-size: 0.65rem;
+  font-size: 0.6rem;
   color: var(--texto-secundario);
   font-weight: 600;
   display: block;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
 }
-
 .meter-val {
-  font-size: 1.35rem;
+  font-size: 1.2rem;
   font-weight: 800;
   color: var(--sena-azul-oscuro);
 }
-
 .meter-val small {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--sena-verde);
-  margin-left: 3px;
+  margin-left: 2px;
 }
-
 .meter-bar {
   height: 4px;
   background: var(--borde);
-  margin-top: 10px;
+  margin-top: 8px;
   border-radius: 2px;
   overflow: hidden;
 }
-
 .bar-fill {
   height: 100%;
   background: var(--sena-verde);
   transition: width 0.4s ease;
 }
 
-/* --- MAPA DE ENERGÍA --- */
+/* ==========================================================================
+   MAPA DE PUESTOS ELÉCTRICOS (REGLA DE 8 COLUMNAS AJUSTADAS)
+   ========================================================================== */
 .map-instruction {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: var(--texto-secundario);
-  margin: -0.5rem 0 1.25rem 0;
+  margin: -0.5rem 0 1rem 0;
+}
+.room-map-wrapper {
+  width: 100%;
+  overflow: hidden;
 }
 
 .room-map {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
 }
-@media (min-width: 400px) { .room-map { grid-template-columns: repeat(3, 1fr); } }
-@media (min-width: 576px) { .room-map { grid-template-columns: repeat(4, 1fr); } }
-@media (min-width: 1200px) { .room-map { grid-template-columns: repeat(8, 1fr); } }
+
+@media (min-width: 992px) {
+  .room-map {
+    grid-template-columns: repeat(
+      8,
+      1fr
+    ); /* Redimensionamiento estricto a 8 columnas */
+    max-width: 760px;
+  }
+}
 
 .map-node {
   aspect-ratio: 1 / 1;
+  max-width: 85px; /* Restricción perimetral para evitar distorsión en monitores anchos */
+  width: 100%;
   background: var(--fondo-app);
   border: 1px solid var(--borde);
-  border-radius: 12px;
+  border-radius: 8px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 4px;
+  padding: 0.25rem;
   cursor: pointer;
   color: var(--texto-secundario);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  padding: 0.5rem;
+  transition: all 0.2s ease;
+  font-family: inherit;
+  border-style: solid;
 }
-
-.map-node:hover {
+.map-node:hover:not(:disabled) {
   background: #ffffff;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
-
-.map-node small {
-  font-size: 0.55rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
+.map-node:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
-
+.map-node small {
+  font-size: 0.5rem;
+  font-weight: 700;
+}
 .node-bolt {
-  font-size: 1.2rem;
+  font-size: 1rem;
   opacity: 0.5;
 }
-
 .node-watts {
-  font-size: 0.7rem;
+  font-size: 0.6rem;
   font-weight: 700;
   font-family: monospace;
 }
@@ -642,202 +712,122 @@ onMounted(() => {
   opacity: 1;
 }
 
-/* --- BOTONES DE ACCIÓN LATERAL --- */
+/* COMPONENTES DE INFRAESTRUCTURA LATERAL */
 .actions-group {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1rem;
+  gap: 0.75rem;
 }
-
 .btn-action {
-  padding: 1.25rem 1rem;
-  border-radius: 14px;
+  padding: 1rem 0.5rem;
+  border-radius: 12px;
   border: 1px solid var(--borde);
   background: var(--fondo-tarjetas);
   color: var(--texto-secundario);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  cursor: pointer;
+  gap: 6px;
   font-weight: 700;
-  font-size: 0.7rem;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+  font-size: 0.65rem;
+  cursor: pointer;
+  border-style: solid;
 }
-
-.btn-action:hover {
-  background: var(--fondo-app);
-  color: var(--sena-azul-oscuro);
-}
-
 .btn-action.nfc.btn-active {
   background: var(--sena-azul-oscuro);
   color: var(--sena-blanco);
   border-color: var(--sena-azul-oscuro);
 }
-
 .btn-action.qr.btn-active {
   background: var(--sena-verde);
   color: var(--sena-blanco);
   border-color: var(--sena-verde-oscuro);
 }
 
-/* --- ALERTAS --- */
-.text-alert {
-  color: var(--sena-amarillo);
-}
-
-.alert-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.alert-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: var(--fondo-app);
-  border: 1px solid var(--borde);
-  padding: 10px 14px;
-  border-radius: 8px;
-}
-
-.alert-name {
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--sena-azul-oscuro);
-}
-
-.badge-alert {
-  background: rgba(253, 195, 0, 0.15); /* Fondo basado en el amarillo */
-  color: var(--sena-azul-oscuro);
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-weight: 800;
-  font-size: 0.65rem;
-}
-
-/* --- TABLA MINIMALISTA --- */
+/* TABLA GENERAL DE ALUMNOS */
 .dash-footer-table {
   grid-column: 1 / -1;
 }
-
 .table-responsive-wrapper {
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.5rem;
 }
-
 .apprentices-table {
   width: 100%;
   border-collapse: collapse;
-  text-align: left;
-  min-width: 500px;
+  min-width: 450px;
 }
-
 .apprentices-table th {
-  padding: 12px 10px;
+  padding: 10px 8px;
   border-bottom: 2px solid var(--fondo-app);
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   color: var(--texto-secundario);
   text-transform: uppercase;
-  font-weight: 700;
+  text-align: left;
 }
-
 .apprentices-table td {
-  padding: 14px 10px;
+  padding: 12px 8px;
   border-bottom: 1px solid var(--fondo-app);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   vertical-align: middle;
-}
-
-.table-user-info {
-  display: flex;
-  flex-direction: column;
 }
 .table-user-info strong {
   color: var(--sena-azul-oscuro);
   font-weight: 600;
+  display: block;
 }
 .table-user-info small {
   color: var(--texto-secundario);
   font-size: 0.65rem;
-  margin-top: 2px;
 }
-
 .status-green {
-  display: inline-block;
   color: var(--sena-verde-oscuro);
   background: rgba(57, 169, 0, 0.1);
-  padding: 4px 10px;
+  padding: 4px 8px;
   border-radius: 12px;
   font-weight: 700;
-  font-size: 0.65rem;
+  font-size: 0.6rem;
 }
-
 .status-gray {
-  display: inline-block;
   color: var(--texto-secundario);
   background: var(--fondo-app);
-  padding: 4px 10px;
+  padding: 4px 8px;
   border-radius: 12px;
   font-weight: 600;
-  font-size: 0.65rem;
+  font-size: 0.6rem;
 }
-
 .time-cell {
   font-family: monospace;
   color: var(--texto-secundario);
-  font-size: 0.8rem;
 }
 
-/* --- ACCIONES DE TABLA --- */
 .actions-cell {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
-
 .btn-table {
   border: 1px solid var(--borde);
-  padding: 6px 12px;
+  padding: 6px 10px;
   border-radius: 8px;
   cursor: pointer;
   background: var(--fondo-app);
   color: var(--texto-secundario);
-  font-size: 0.75rem;
-  transition: all 0.2s ease;
+  transition: all 0.2s;
 }
-
 .btn-table:hover {
   color: var(--sena-azul-oscuro);
   background: var(--borde);
 }
 
-.btn-table.action-view:hover {
-  border-color: var(--sena-azul-claro);
-  color: var(--sena-azul-oscuro);
-  background: rgba(80, 229, 249, 0.1);
-}
-
-.btn-table.action-chart:hover {
-  border-color: var(--sena-verde);
-  color: var(--sena-verde-oscuro);
-  background: rgba(57, 169, 0, 0.1);
-}
-
-.btn-table.action-exit:hover {
-  border-color: var(--sena-amarillo);
-  color: var(--sena-azul-oscuro);
-  background: rgba(253, 195, 0, 0.15);
-}
-
-/* --- OVERLAY QR --- */
+/* ==========================================================================
+   ZONA PROYECTOR DE QR (BLANCO INSTITUCIONAL Y ANTIFRAUDE)
+   ========================================================================== */
 .qr-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 48, 64, 0.6); /* Azul oscuro con transparencia */
+  background: rgba(0, 48, 64, 0.6);
   backdrop-filter: blur(8px);
   z-index: 1000;
   display: flex;
@@ -845,7 +835,6 @@ onMounted(() => {
   justify-content: center;
   padding: 1rem;
 }
-
 .qr-modal {
   background: var(--sena-blanco);
   color: var(--sena-azul-oscuro);
@@ -853,20 +842,23 @@ onMounted(() => {
   max-width: 400px;
   padding: 2rem;
   border-radius: 20px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
 }
-
 .qr-modal h3 {
   font-size: 1rem;
   font-weight: 800;
-  letter-spacing: -0.01em;
   margin: 0;
 }
 
-.big-qr {
-  font-size: 10rem;
-  margin: 2rem 0;
-  color: var(--sena-azul-oscuro);
+.qr-container-proyector {
+  background: #ffffff;
+  padding: 1.5rem;
+  border-radius: 16px;
+  display: inline-block;
+  margin: 1.5rem 0;
+  box-shadow: 0 8px 24px rgba(0, 48, 64, 0.1);
+  border: 1px solid var(--borde);
+  transition: transform 0.2s ease;
 }
 
 .qr-modal p {
@@ -875,7 +867,6 @@ onMounted(() => {
   line-height: 1.5;
   margin-bottom: 2rem;
 }
-
 .btn-close-overlay {
   background: var(--sena-azul-oscuro);
   color: var(--sena-blanco);
@@ -886,9 +877,7 @@ onMounted(() => {
   font-weight: 700;
   width: 100%;
   cursor: pointer;
-  transition: background 0.2s ease;
 }
-
 .btn-close-overlay:hover {
   background: var(--sena-verde-oscuro);
 }

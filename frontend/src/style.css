@@ -25,7 +25,7 @@
   --sena-negro: #000000;
   --sena-gris-claro: #F6F6F6;
 
-  /* 💡 PALETA DE INTERFAZ (Aplicada a componentes) */
+  /* PALETA DE INTERFAZ (Aplicada a componentes) */
   --fondo-app: var(--sena-gris-claro); 
   --fondo-tarjetas: var(--sena-blanco);
   --texto-principal: var(--sena-azul-oscuro); 
