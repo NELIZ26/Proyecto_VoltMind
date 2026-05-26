@@ -140,21 +140,37 @@ onMounted(() => {
   min-height: 100vh;
   background-color: var(--fondo-app);
   padding: 1.5rem;
+  box-sizing: border-box;
 }
 .dash-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 1rem;
   background: var(--fondo-tarjetas);
   padding: 1.25rem 2rem;
   border-radius: 16px;
   border: 1px solid var(--borde);
   margin-bottom: 1.5rem;
+  box-shadow: 0 4px 12px rgba(0, 48, 64, 0.03);
 }
 .header-left {
   display: flex;
-  align-items: center;
-  gap: 2.5rem;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+@media (min-width: 992px) {
+  .dash-header {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .header-left {
+    flex-direction: row;
+    gap: 2.5rem;
+  }
+  .environment-badge h1 {
+    font-size: 1.4rem;
+  }
 }
 .logo-duo {
   display: flex;
@@ -162,18 +178,18 @@ onMounted(() => {
   gap: 16px;
 }
 .logo-sena {
-  height: 44px;
+  height: 38px;
 }
 .logo-volt {
-  height: 40px;
+  height: 34px;
 }
 .logo-divider {
   width: 1px;
-  height: 28px;
+  height: 26px;
   background: var(--borde);
 }
 .environment-badge h1 {
-  font-size: 1.4rem;
+  font-size: 1.25rem;
   font-weight: 800;
   color: var(--sena-azul-oscuro);
   margin: 0;

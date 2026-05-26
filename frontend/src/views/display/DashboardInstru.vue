@@ -20,17 +20,24 @@ const isPowerOn = ref(false);
 const nfcScanning = ref(false);
 const qrProjected = ref(false);
 const currentTime = ref(new Date().toLocaleTimeString());
+
+// --- ESTADOS DEL QR DINÁMICO ---
 const dynamicToken = ref("");
 let qrInterval = null;
 
-// Datos de la Ficha (Dinámicos desde localStorage con fallback de desarrollo)
+// --- ESTADOS DEL TECLADO PIN ---
+const showPinModal = ref(false);
+const pinDigits = ref("");
+const isValidatingPin = ref(false);
+
+// Datos de la Ficha (Dinámicos desde localStorage con fallback)
 const activeFicha = ref({
   numero: "2997671",
   programa: "Análisis y Desarrollo de Software",
   jornada: "Mañana",
 });
 
-// --- MANEJO DE VENTANAS MODALES ---
+// --- MANEJO DE VENTANAS MODALES BÁSICAS ---
 const activeModal = ref(null);
 const selectedApprentice = ref(null);
 
@@ -94,7 +101,7 @@ const systemAlerts = ref([
   },
 ]);
 
-// --- PAYLOAD DEL QR DINÁMICO (MUTABLE) ---
+// --- PAYLOAD DEL QR DINÁMICO ---
 const qrPayload = computed(() => {
   return JSON.stringify({
     ambiente: "402",
@@ -106,10 +113,8 @@ const qrPayload = computed(() => {
 // --- GESTIÓN DE CONTROL QR ANTIFRAUDE ---
 const openQrModal = () => {
   qrProjected.value = true;
-  // Generar primer token inmediatamente
   dynamicToken.value = `VM-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
-  // Rotación del token cada 5 segundos de forma ininterrumpida
   qrInterval = setInterval(() => {
     dynamicToken.value = `VM-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
   }, 5000);
@@ -121,6 +126,34 @@ const closeQrModal = () => {
     clearInterval(qrInterval);
     qrInterval = null;
   }
+};
+
+// --- GESTIÓN DEL TECLADO PIN ---
+const pressKey = (num) => {
+  if (pinDigits.value.length < 4) pinDigits.value += num;
+};
+
+const clearPin = () => {
+  pinDigits.value = pinDigits.value.slice(0, -1);
+};
+
+const submitPin = () => {
+  if (pinDigits.value.length !== 4) {
+    toast.error("El PIN debe tener exactamente 4 dígitos.");
+    return;
+  }
+
+  isValidatingPin.value = true;
+
+  // Simulación de petición Axios a FastAPI
+  setTimeout(() => {
+    isValidatingPin.value = false;
+    toast.success(
+      `PIN ${pinDigits.value} validado en Dataverse. Asistencia registrada.`,
+    );
+    showPinModal.value = false;
+    pinDigits.value = "";
+  }, 1200);
 };
 
 // --- OPERACIONES IOT (CONMUTACIÓN DE RED) ---
@@ -143,7 +176,7 @@ const toggleNodePower = (node) => {
   }
 };
 
-// --- SUBSISTEMA DE ALERTAS LOCALES ---
+// --- SUBSISTEMA DE ALERTAS Y ACCIONES ---
 const handleAlertResolution = (alertId) => {
   systemAlerts.value = systemAlerts.value.filter(
     (alert) => alert.id !== alertId,
@@ -151,7 +184,6 @@ const handleAlertResolution = (alertId) => {
   toast.success("Alerta resuelta exitosamente.");
 };
 
-// --- CONTROL DE ACCIONES DE FILA ---
 const openModal = (type, apprentice) => {
   selectedApprentice.value = apprentice;
   activeModal.value = type;
@@ -292,15 +324,21 @@ onUnmounted(() => {
             @click="nfcScanning = !nfcScanning"
           >
             <font-awesome-icon icon="fa-solid fa-wifi" />
-            <span>{{ nfcScanning ? "NFC ESCANEANDO" : "ACTIVAR NFC" }}</span>
+            <span>{{ nfcScanning ? "ESCANEANDO" : "ACTIVAR NFC" }}</span>
           </button>
+
           <button
             class="btn-action qr"
             :class="{ 'btn-active': qrProjected }"
             @click="qrProjected ? closeQrModal() : openQrModal()"
           >
             <font-awesome-icon icon="fa-solid fa-qrcode" />
-            <span>{{ qrProjected ? "OCULTAR QR" : "PROYECTAR QR" }}</span>
+            <span>{{ qrProjected ? "OCULTAR QR" : "MOSTRAR QR" }}</span>
+          </button>
+
+          <button class="btn-action pin" @click="showPinModal = true">
+            <font-awesome-icon icon="fa-solid fa-lock" />
+            <span>DIGITAR PIN</span>
           </button>
         </div>
 
@@ -404,6 +442,50 @@ onUnmounted(() => {
         </p>
         <button class="btn-close-overlay" @click="closeQrModal">
           CERRAR PANTALLA COMPARTIDA
+        </button>
+      </div>
+    </div>
+
+    <div v-if="showPinModal" class="qr-overlay" @click="showPinModal = false">
+      <div class="qr-modal pin-modal" @click.stop>
+        <h3>VALIDACIÓN POR PIN DINÁMICO</h3>
+        <p class="pin-instruction">
+          Digite el código generado por el dispositivo del aprendiz.
+        </p>
+
+        <div class="pin-display" :class="{ 'is-loading': isValidatingPin }">
+          {{
+            isValidatingPin
+              ? "Sincronizando..."
+              : pinDigits.padEnd(4, "•").split("").join(" ")
+          }}
+        </div>
+
+        <div
+          class="keypad"
+          :style="{
+            pointerEvents: isValidatingPin ? 'none' : 'auto',
+            opacity: isValidatingPin ? 0.5 : 1,
+          }"
+        >
+          <button v-for="n in 9" :key="n" class="btn-key" @click="pressKey(n)">
+            {{ n }}
+          </button>
+          <button class="btn-key action-key" @click="clearPin">
+            <font-awesome-icon icon="fa-solid fa-arrow-left" />
+          </button>
+          <button class="btn-key" @click="pressKey(0)">0</button>
+          <button
+            class="btn-key submit-key"
+            @click="submitPin"
+            :disabled="pinDigits.length !== 4"
+          >
+            <font-awesome-icon icon="fa-solid fa-check" />
+          </button>
+        </div>
+
+        <button class="btn-close-overlay" @click="showPinModal = false">
+          CANCELAR
         </button>
       </div>
     </div>
@@ -712,10 +794,10 @@ onUnmounted(() => {
   opacity: 1;
 }
 
-/* COMPONENTES DE INFRAESTRUCTURA LATERAL */
+/* COMPONENTES DE INFRAESTRUCTURA LATERAL Y BOTONERA A 3 COLUMNAS */
 .actions-group {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 0.75rem;
 }
 .btn-action {
@@ -732,6 +814,10 @@ onUnmounted(() => {
   font-size: 0.65rem;
   cursor: pointer;
   border-style: solid;
+  transition: all 0.2s ease;
+}
+.btn-action:hover {
+  background: var(--fondo-app);
 }
 .btn-action.nfc.btn-active {
   background: var(--sena-azul-oscuro);
@@ -742,6 +828,11 @@ onUnmounted(() => {
   background: var(--sena-verde);
   color: var(--sena-blanco);
   border-color: var(--sena-verde-oscuro);
+}
+.btn-action.pin:hover {
+  border-color: var(--sena-amarillo);
+  color: var(--sena-azul-oscuro);
+  background: rgba(253, 195, 0, 0.1);
 }
 
 /* TABLA GENERAL DE ALUMNOS */
@@ -880,5 +971,106 @@ onUnmounted(() => {
 }
 .btn-close-overlay:hover {
   background: var(--sena-verde-oscuro);
+}
+
+/* ==========================================================================
+   ESTILOS DEL TECLADO NUMÉRICO (PIN MODAL)
+   ========================================================================== */
+.pin-modal {
+  max-width: 360px;
+  padding: 2rem 1.5rem;
+}
+.pin-instruction {
+  font-size: 0.8rem;
+  color: var(--texto-secundario);
+  margin: 0.5rem 0 1.5rem;
+  line-height: 1.4;
+}
+
+.pin-display {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--sena-azul-oscuro);
+  background: var(--fondo-app);
+  border: 1px solid var(--borde);
+  border-radius: 16px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  letter-spacing: 0.1em;
+  transition: all 0.3s ease;
+}
+
+.pin-display.is-loading {
+  font-size: 1rem;
+  letter-spacing: normal;
+  color: var(--sena-verde);
+  background: rgba(57, 169, 0, 0.1);
+  border-color: var(--sena-verde);
+}
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 1.5rem;
+  transition: opacity 0.3s ease;
+}
+
+.btn-key {
+  aspect-ratio: 1 / 1;
+  background: var(--fondo-app);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--sena-azul-oscuro);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-key:hover {
+  background: var(--sena-blanco);
+  border-color: var(--sena-verde);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0, 48, 64, 0.05);
+}
+
+.btn-key:active {
+  transform: translateY(0);
+}
+
+.action-key {
+  font-size: 1.1rem;
+  color: #e53e3e;
+  background: rgba(229, 62, 62, 0.05);
+  border-color: transparent;
+}
+.action-key:hover {
+  background: #e53e3e;
+  color: white;
+  border-color: #e53e3e;
+}
+
+.submit-key {
+  font-size: 1.2rem;
+  background: var(--sena-verde);
+  color: white;
+  border-color: var(--sena-verde-oscuro);
+}
+.submit-key:hover:not(:disabled) {
+  background: var(--sena-verde-oscuro);
+}
+.submit-key:disabled {
+  background: var(--borde);
+  border-color: var(--borde);
+  color: var(--texto-secundario);
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 </style>
