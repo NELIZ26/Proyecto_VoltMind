@@ -1,79 +1,106 @@
 <script setup>
-import { useRouter } from 'vue-router'
-import { useToast } from 'vue-toastification'
+import { useRouter } from "vue-router";
+import { useToast } from "vue-toastification";
 
-const router = useRouter()
-const toast = useToast()
+const router = useRouter();
+const toast = useToast();
 
-const routes = [
+// Mapeo de entornos de desarrollo con sus roles asociados
+const devLogins = [
   {
-    path: '/select-ficha',
-    name: 'Selección de Ficha',
-    desc: 'Panel para que el instructor elija el grupo y ambiente de formación.',
-    icon: 'fa-graduation-cap',
-    color: 'var(--sena-azul, #00324d)',
-    glow: 'rgba(0, 50, 77, 0.25)'
+    role: "dinamizador",
+    path: "/dashboard-admin",
+    name: "Dinamizador Energético",
+    desc: "Panel de Superadmin. Analítica macro, topología global y MongoDB.",
+    icon: "fa-globe",
+    color: "var(--sena-azul-oscuro, #003040)",
+    glow: "rgba(0, 48, 64, 0.25)",
   },
   {
-    path: '/dashboard',
-    name: 'Dashboard de la Tablet',
-    desc: 'Centro de control IoT, mapa de carga eléctrica y asistencia en vivo.',
-    icon: 'fa-microchip',
-    color: 'var(--sena-verde, #39a900)',
-    glow: 'rgba(57, 169, 0, 0.25)'
+    role: "instructor",
+    path: "/select-ficha", // El instructor primero elige el aula
+    name: "Instructor de Ambiente",
+    desc: "Gestión local de energía, puente IoT y control de asistencia.",
+    icon: "fa-chalkboard-user",
+    color: "var(--sena-verde, #39a900)",
+    glow: "rgba(57, 169, 0, 0.25)",
   },
   {
-    path: '/card',
-    name: 'Carnet de Aprendiz',
-    desc: 'Vista móvil del carnet digital con el código QR dinámico y token.',
-    icon: 'fa-address-card',
-    color: 'var(--sena-naranja, #FF6B00)',
-    glow: 'rgba(255, 107, 0, 0.25)'
-  }
-]
+    role: "celador",
+    path: "/dashboard-seguridad",
+    name: "Personal de Seguridad",
+    desc: "Panel simplificado de monitoreo periférico y alertas de contingencia.",
+    icon: "fa-shield-halved",
+    color: "var(--sena-amarillo, #FDC300)",
+    glow: "rgba(253, 195, 0, 0.25)",
+  },
+  {
+    role: "aprendiz",
+    path: "/card",
+    name: "Aprendiz (Cliente)",
+    desc: "Vista Mobile-first. Identidad virtual, emisión NFC y PIN dinámico.",
+    icon: "fa-address-card",
+    color: "var(--sena-naranja, #FF6B00)",
+    glow: "rgba(255, 107, 0, 0.25)",
+  },
+];
 
-const navigateTo = (path, name) => {
-  toast.info(`Navegando a: ${name}`)
-  router.push(path)
-}
+const simulateLogin = (devAccount) => {
+  // 1. Quemamos el rol temporalmente en el entorno local
+  localStorage.setItem("user_role", devAccount.role);
+
+  // 2. Notificación de éxito
+  toast.success(`Sesión de desarrollo: ${devAccount.name}`);
+
+  // 3. Redirección al flujo correspondiente
+  router.push(devAccount.path);
+};
 </script>
 
 <template>
   <div class="selector-shell">
     <div class="selector-container">
-      
       <header class="selector-header">
         <div class="brand-wrapper">
-          <img src="@/assets/VoltMindAccess.svg" alt="VoltMind" class="brand-logo" />
+          <img
+            src="@/assets/VoltMindAccess.svg"
+            alt="VoltMind"
+            class="brand-logo"
+          />
           <span class="badge-status-dev">SANDBOX v2.0</span>
         </div>
-        <h2>ENTORNO DE DESARROLLO</h2>
+        <h2>SIMULADOR DE ROLES</h2>
         <div class="status-message">
           <div class="pulse-dot"></div>
-          <p>Azure Control Mock exitoso. Selecciona la interfaz que deseas verificar:</p>
+          <p>Auth Mock Activo. Seleccione un perfil para inyectar permisos:</p>
         </div>
       </header>
 
       <div class="routes-grid">
-        <button 
-          v-for="route in routes" 
-          :key="route.path" 
+        <button
+          v-for="account in devLogins"
+          :key="account.role"
           class="route-card"
-          :style="{ '--card-color': route.color, '--card-glow': route.glow }"
-          @click="navigateTo(route.path, route.name)"
+          :style="{
+            '--card-color': account.color,
+            '--card-glow': account.glow,
+          }"
+          @click="simulateLogin(account)"
         >
           <div class="icon-wrap">
-            <font-awesome-icon :icon="['fas', route.icon]" />
+            <font-awesome-icon :icon="['fas', account.icon]" />
           </div>
-          
+
           <div class="card-text">
             <div class="card-title-row">
-              <h3>{{ route.name }}</h3>
-              <span class="path-label">{{ route.path }}</span>
+              <h3>{{ account.name }}</h3>
+              <span class="path-label"
+                >Rol: {{ account.role.toUpperCase() }}</span
+              >
             </div>
-            <p>{{ route.desc }}</p>
+            <p>{{ account.desc }}</p>
           </div>
-          
+
           <div class="arrow-indicator">
             <font-awesome-icon icon="fa-solid fa-arrow-right-to-bracket" />
           </div>
@@ -81,17 +108,14 @@ const navigateTo = (path, name) => {
       </div>
 
       <footer class="selector-footer-info">
-        <p>VoltMind Access Core • Entorno Local de Pruebas</p>
+        <p>VoltMind Access Core • Entorno Local de Pruebas (RBAC)</p>
       </footer>
-
     </div>
   </div>
 </template>
 
 <style scoped>
-/* ==========================================================================
-   ESTRUCTURA DE CONTEXTO PRINCIPAL (Caso 1: Blanco SENA 2024)
-   ========================================================================== */
+/* (Mantén el mismo CSS que ya tenías en tu archivo routeSelector original, es perfecto) */
 .selector-shell {
   min-height: 100vh;
   display: flex;
@@ -103,49 +127,39 @@ const navigateTo = (path, name) => {
   position: relative;
   overflow: hidden;
 }
-
-/* Líneas decorativas sutiles adaptadas al fondo claro usando el azul oscuro SENA */
 .selector-shell::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
-  background-image: 
+  background-image:
     linear-gradient(rgba(0, 48, 64, 0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(0, 48, 64, 0.03) 1px, transparent 1px);
   background-size: 40px 40px;
   mask-image: radial-gradient(ellipse at center, black, transparent 70%);
   pointer-events: none;
 }
-
 .selector-container {
   width: 100%;
   max-width: 680px;
   position: relative;
   z-index: 2;
 }
-
-/* ==========================================================================
-   SECCIÓN DE ENCABEZADO (TERMINAL HEADER)
-   ========================================================================== */
 .selector-header {
   margin-bottom: 3rem;
   display: flex;
   flex-direction: column;
   align-items: center;
 }
-
 .brand-wrapper {
   display: flex;
   align-items: center;
   gap: 12px;
   margin-bottom: 1.25rem;
 }
-
 .brand-logo {
   height: 38px;
-  filter: drop-shadow(0 2px 4px rgba(0, 48, 64, 0.1)); /* Sombra ajustada a claro */
+  filter: drop-shadow(0 2px 4px rgba(0, 48, 64, 0.1));
 }
-
 .badge-status-dev {
   background: var(--sena-blanco);
   border: 1px solid var(--borde);
@@ -157,7 +171,6 @@ const navigateTo = (path, name) => {
   font-weight: 700;
   letter-spacing: 0.05em;
 }
-
 .selector-header h2 {
   font-size: 1.35rem;
   font-weight: 900;
@@ -165,18 +178,15 @@ const navigateTo = (path, name) => {
   color: var(--texto-principal);
   margin: 0 0 0.75rem 0;
 }
-
-/* Barra de Estado Exitoso - Adaptada con el Verde Oficial */
 .status-message {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  background: rgba(57, 169, 0, 0.08); /* Verde con baja opacidad */
+  background: rgba(57, 169, 0, 0.08);
   border: 1px solid rgba(57, 169, 0, 0.2);
   padding: 6px 14px;
   border-radius: 20px;
 }
-
 .pulse-dot {
   width: 6px;
   height: 6px;
@@ -185,27 +195,23 @@ const navigateTo = (path, name) => {
   box-shadow: 0 0 8px var(--sena-verde);
   animation: telemetryPulse 1.8s infinite;
 }
-
 @keyframes telemetryPulse {
-  50% { opacity: 0.3; transform: scale(0.9); }
+  50% {
+    opacity: 0.3;
+    transform: scale(0.9);
+  }
 }
-
 .status-message p {
   color: var(--sena-verde-oscuro);
   font-size: 0.8rem;
   font-weight: 700;
   margin: 0;
 }
-
-/* ==========================================================================
-   CONSOLA DE BOTONES / TARJETAS (ROUTES GRID)
-   ========================================================================== */
 .routes-grid {
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
 }
-
 .route-card {
   background: var(--fondo-tarjetas);
   border: 1px solid var(--borde);
@@ -219,19 +225,16 @@ const navigateTo = (path, name) => {
   color: var(--texto-principal);
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
-  box-shadow: 0 4px 12px rgba(0, 48, 64, 0.03); /* Sombra sutil de profundidad */
+  box-shadow: 0 4px 12px rgba(0, 48, 64, 0.03);
 }
-
-/* Hover de la Tarjeta - Usando colores dinámicos si están definidos inline, si no, fallback al verde SENA */
 .route-card:hover {
   background: var(--sena-blanco);
   border-color: var(--card-color, var(--sena-verde));
   transform: translateY(-2px);
-  box-shadow: 0 12px 30px -10px var(--card-glow, rgba(57, 169, 0, 0.2)),
-              0 0 0 1px var(--card-color, var(--sena-verde));
+  box-shadow:
+    0 12px 30px -10px var(--card-glow, rgba(57, 169, 0, 0.2)),
+    0 0 0 1px var(--card-color, var(--sena-verde));
 }
-
-/* Envoltura del Icono */
 .icon-wrap {
   width: 46px;
   height: 46px;
@@ -247,18 +250,15 @@ const navigateTo = (path, name) => {
   color: var(--texto-secundario);
   transition: all 0.3s ease;
 }
-
 .route-card:hover .icon-wrap {
   color: var(--sena-blanco);
   background: var(--card-color, var(--sena-verde));
   border-color: var(--card-color, var(--sena-verde));
   box-shadow: 0 4px 12px var(--card-glow, rgba(57, 169, 0, 0.3));
 }
-
 .card-text {
   flex: 1;
 }
-
 .card-title-row {
   display: flex;
   align-items: baseline;
@@ -266,61 +266,46 @@ const navigateTo = (path, name) => {
   margin-bottom: 4px;
   flex-wrap: wrap;
 }
-
 .card-text h3 {
   font-size: 1rem;
   font-weight: 700;
   color: var(--texto-principal);
   margin: 0;
 }
-
-/* Indicador de Ruta Física */
 .path-label {
   font-family: monospace;
   font-size: 0.7rem;
   color: var(--texto-secundario);
   opacity: 0.7;
 }
-
 .route-card:hover .path-label {
   color: var(--card-color, var(--sena-verde));
   opacity: 1;
 }
-
 .card-text p {
   font-size: 0.8rem;
   color: var(--texto-secundario);
   margin: 0;
   line-height: 1.4;
 }
-
-/* Flecha de Navegación Derecha */
 .arrow-indicator {
   color: var(--borde);
   font-size: 1.05rem;
   transition: all 0.3s ease;
   margin-left: 1.25rem;
 }
-
 .route-card:hover .arrow-indicator {
   color: var(--card-color, var(--sena-verde));
   transform: translateX(5px);
 }
-
-/* Clic Activo Físico */
 .route-card:active {
   transform: translateY(0);
   box-shadow: 0 4px 12px -5px var(--card-glow, rgba(57, 169, 0, 0.1));
 }
-
-/* ==========================================================================
-   FOOTER INFORMATIVO SUTIL
-   ========================================================================== */
 .selector-footer-info {
   margin-top: 3rem;
   text-align: center;
 }
-
 .selector-footer-info p {
   font-size: 0.75rem;
   color: var(--texto-secundario);

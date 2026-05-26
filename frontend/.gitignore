@@ -21,6 +21,7 @@ pnpm-debug.log*
 .vscode/*
 .vscode/
 .vscode/launch.json
+.vscode/settings.json
 !.vscode/extensions.json
 .idea/
 .DS_Store

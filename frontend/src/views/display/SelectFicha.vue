@@ -1,9 +1,15 @@
 <script setup>
+import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
+import { useRole } from "@/composables/useRole";
 
 const router = useRouter();
 const toast = useToast();
+const { hasRole } = useRole();
+
+// Estado para la animación de carga
+const connectingId = ref(null);
 
 const fichas = [
   {
@@ -28,10 +34,27 @@ const fichas = [
 ];
 
 const seleccionarFicha = (ficha) => {
-  toast.success(`Ambiente Vinculado: Ficha ${ficha.numero}`);
-  // Simulación de carga de sesión en el ecosistema
-  router.push("/dashboard");
+  // 1. Activamos el estado de carga visual
+  connectingId.value = ficha.id;
+  toast.info(`Sincronizando Ambiente 402 con Ficha ${ficha.numero}...`);
+
+  // 2. Simulamos el tiempo de respuesta del Backend (FastAPI / Dataverse)
+  setTimeout(() => {
+    // 3. Guardamos la ficha en la sesión local para que el Dashboard la lea
+    localStorage.setItem("active_ficha", JSON.stringify(ficha));
+
+    toast.success("Conexión establecida. Iniciando telemetría.");
+    router.push("/dashboard");
+  }, 1200);
 };
+
+// Protección de la vista al cargar
+onMounted(() => {
+  if (!hasRole(["instructor", "dinamizador"])) {
+    toast.error("Acceso denegado. Se requiere credencial de Instructor.");
+    router.push("/route-selector");
+  }
+});
 </script>
 
 <template>
@@ -59,12 +82,23 @@ const seleccionarFicha = (ficha) => {
       </header>
 
       <div class="fichas-grid">
-        <div
+        <button
           v-for="ficha in fichas"
           :key="ficha.id"
           class="ficha-card"
+          :class="{ 'is-connecting': connectingId === ficha.id }"
+          :disabled="connectingId !== null"
           @click="seleccionarFicha(ficha)"
         >
+          <div v-if="connectingId === ficha.id" class="connecting-overlay">
+            <font-awesome-icon
+              icon="fa-solid fa-circle-notch"
+              spin
+              class="spinner-icon"
+            />
+            <span>Sincronizando...</span>
+          </div>
+
           <div class="card-status">READY</div>
 
           <div class="card-icon">
@@ -81,12 +115,13 @@ const seleccionarFicha = (ficha) => {
             <span class="jornada-tag">{{ ficha.jornada }}</span>
             <font-awesome-icon icon="fa-solid fa-chevron-right" class="arrow" />
           </div>
-        </div>
+        </button>
       </div>
 
       <footer class="select-footer">
         <button class="btn-back" @click="router.push('/route-selector')">
-          <font-awesome-icon icon="fa-solid fa-arrow-left" /> REGRESAR AL SELECTOR
+          <font-awesome-icon icon="fa-solid fa-arrow-left" /> REGRESAR AL
+          SELECTOR
         </button>
       </footer>
     </div>
@@ -94,9 +129,7 @@ const seleccionarFicha = (ficha) => {
 </template>
 
 <style scoped>
-/* ==========================================================================
-   CONSOLA DE SELECCIÓN DE FICHA (SENA 2024 - Caso 1 Blanco Predominante)
-   ========================================================================== */
+/* (MANTÉN TU CSS ORIGINAL AQUÍ HASTA ".ficha-card:hover") */
 .select-shell {
   min-height: 100vh;
   background: var(--fondo-app);
@@ -108,13 +141,11 @@ const seleccionarFicha = (ficha) => {
   position: relative;
   overflow: hidden;
 }
-
-/* Fondo con cuadrícula tecnológica sutil (SENA Azul Oscuro con baja opacidad) */
 .select-shell::before {
-  content: '';
+  content: "";
   position: absolute;
   inset: 0;
-  background-image: 
+  background-image:
     linear-gradient(rgba(0, 48, 64, 0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(0, 48, 64, 0.03) 1px, transparent 1px);
   background-size: 40px 40px;
@@ -122,15 +153,12 @@ const seleccionarFicha = (ficha) => {
   pointer-events: none;
   z-index: 0;
 }
-
 .select-container {
   width: 100%;
   max-width: 1100px;
   position: relative;
   z-index: 1;
 }
-
-/* Encabezado de la Consola */
 .select-header {
   margin-bottom: 3.5rem;
   text-align: center;
@@ -138,8 +166,6 @@ const seleccionarFicha = (ficha) => {
   flex-direction: column;
   align-items: center;
 }
-
-/* ── ESTILOS PARA LA SECCIÓN DE LOGOS ── */
 .brand-assets-header {
   display: flex;
   align-items: center;
@@ -147,30 +173,26 @@ const seleccionarFicha = (ficha) => {
   gap: 18px;
   margin-bottom: 2rem;
 }
-
 .logo-voltmind {
   height: 38px;
   width: auto;
   filter: drop-shadow(0 2px 4px rgba(0, 48, 64, 0.08));
 }
-
 .logo-sena {
   height: 42px;
   width: auto;
   filter: drop-shadow(0 2px 4px rgba(0, 48, 64, 0.08));
 }
-
 .brand-divider {
   width: 1px;
   height: 28px;
   background: var(--borde);
 }
-
 .location-badge {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(57, 169, 0, 0.08); /* Verde con opacidad */
+  background: rgba(57, 169, 0, 0.08);
   border: 1px solid rgba(57, 169, 0, 0.2);
   padding: 6px 14px;
   border-radius: 8px;
@@ -180,7 +202,6 @@ const seleccionarFicha = (ficha) => {
   letter-spacing: 0.05em;
   margin-bottom: 1.25rem;
 }
-
 .select-header h1 {
   font-size: 1.8rem;
   font-weight: 900;
@@ -188,21 +209,18 @@ const seleccionarFicha = (ficha) => {
   letter-spacing: -0.02em;
   margin: 0 0 0.5rem 0;
 }
-
 .instruction {
   font-size: 0.95rem;
   color: var(--texto-secundario);
   font-weight: 500;
 }
-
-/* Grilla de Tarjetas (Responsive nativo mantenido) */
 .fichas-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 1.5rem;
 }
 
-/* Estilo Institucional de la Tarjeta */
+/* AJUSTES A LA TARJETA PARA SOPORTAR EL ESTADO DE CARGA */
 .ficha-card {
   background: var(--fondo-tarjetas);
   border: 1px solid var(--borde);
@@ -217,17 +235,52 @@ const seleccionarFicha = (ficha) => {
   flex-direction: column;
   justify-content: space-between;
   min-height: 240px;
-  box-shadow: 0 4px 12px rgba(0, 48, 64, 0.03); /* Sombra sutil y limpia */
+  box-shadow: 0 4px 12px rgba(0, 48, 64, 0.03);
+  font-family: inherit; /* Heredar fuente al ser un <button> ahora */
 }
 
-.ficha-card:hover {
+.ficha-card:hover:not(:disabled) {
   transform: translateY(-6px);
   background: var(--sena-blanco);
   border-color: var(--sena-verde);
-  box-shadow: 0 12px 24px rgba(0, 48, 64, 0.08), 0 0 0 1px var(--sena-verde);
+  box-shadow:
+    0 12px 24px rgba(0, 48, 64, 0.08),
+    0 0 0 1px var(--sena-verde);
 }
 
-/* Etiqueta de Estado */
+.ficha-card:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* --- OVERLAY DE CARGA (NUEVO) --- */
+.connecting-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(4px);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--sena-verde-oscuro);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.spinner-icon {
+  font-size: 2rem;
+  color: var(--sena-verde);
+}
+
+.is-connecting {
+  border-color: var(--sena-verde) !important;
+  transform: scale(0.98);
+}
+
+/* (RESTO DE TU CSS ORIGINAL) */
 .card-status {
   position: absolute;
   top: 16px;
@@ -240,8 +293,6 @@ const seleccionarFicha = (ficha) => {
   border-radius: 6px;
   letter-spacing: 0.08em;
 }
-
-/* Icono de la Tarjeta */
 .card-icon {
   width: 48px;
   height: 48px;
@@ -256,15 +307,12 @@ const seleccionarFicha = (ficha) => {
   margin-bottom: 1.5rem;
   transition: all 0.3s ease;
 }
-
-.ficha-card:hover .card-icon {
+.ficha-card:hover:not(:disabled) .card-icon {
   background: var(--sena-verde);
   color: var(--sena-blanco);
   border-color: var(--sena-verde);
   box-shadow: 0 4px 12px rgba(57, 169, 0, 0.3);
 }
-
-/* Información Central */
 .label {
   display: block;
   font-size: 0.65rem;
@@ -273,7 +321,6 @@ const seleccionarFicha = (ficha) => {
   letter-spacing: 0.05em;
   margin-bottom: 4px;
 }
-
 .ficha-number {
   font-size: 1.8rem;
   font-weight: 800;
@@ -281,7 +328,6 @@ const seleccionarFicha = (ficha) => {
   margin: 0 0 8px 0;
   letter-spacing: -0.02em;
 }
-
 .program-name {
   font-size: 0.85rem;
   color: var(--texto-secundario);
@@ -289,8 +335,6 @@ const seleccionarFicha = (ficha) => {
   margin: 0;
   font-weight: 500;
 }
-
-/* Footer de la Tarjeta */
 .card-footer {
   margin-top: 1.5rem;
   display: flex;
@@ -298,32 +342,27 @@ const seleccionarFicha = (ficha) => {
   justify-content: space-between;
   border-top: 1px solid var(--fondo-app);
   padding-top: 1rem;
+  width: 100%;
 }
-
 .jornada-tag {
   font-size: 0.65rem;
   font-weight: 700;
   color: var(--sena-verde-oscuro);
   text-transform: uppercase;
 }
-
 .arrow {
   font-size: 0.9rem;
   color: var(--borde);
   transition: all 0.3s ease;
 }
-
-.ficha-card:hover .arrow {
+.ficha-card:hover:not(:disabled) .arrow {
   color: var(--sena-verde);
   transform: translateX(5px);
 }
-
-/* Botón de Regreso Institucional */
 .select-footer {
   margin-top: 4rem;
   text-align: center;
 }
-
 .btn-back {
   background: var(--fondo-tarjetas);
   border: 1px solid var(--borde);
@@ -339,7 +378,6 @@ const seleccionarFicha = (ficha) => {
   transition: all 0.3s ease;
   box-shadow: 0 2px 8px rgba(0, 48, 64, 0.03);
 }
-
 .btn-back:hover {
   border-color: var(--sena-azul-oscuro);
   color: var(--sena-blanco);
