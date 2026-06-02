@@ -21,18 +21,24 @@ const nfcScanning = ref(false);
 const qrProjected = ref(false);
 const currentTime = ref(new Date().toLocaleTimeString());
 
-// --- ESTADOS DE DATOS REALES (Tu conexión) ---
+// --- ESTADOS DE DATOS REALES (Tu conexión restaurada) ---
 const fichaActiva = ref(""); 
 const apprentices = ref([]); 
 const isLoading = ref(true); 
 const nombrePrograma = ref("");
 const nombreInstructor = ref("");
 
-// --- ESTADOS DEL QR DINÁMICO (Del Equipo) ---
+// --- ESTADOS DEL QR DINÁMICO (Lógica del Equipo) ---
 const dynamicToken = ref("GENERANDO...");
 let qrInterval = null;
-// El Payload del QR debe existir para que la librería qrcode.vue no falle
-const qrPayload = computed(() => JSON.stringify({ token: dynamicToken.value, ficha: fichaActiva.value }));
+
+const qrPayload = computed(() => {
+  return JSON.stringify({
+    ambiente: "402",
+    ficha: fichaActiva.value,
+    token: dynamicToken.value,
+  });
+});
 
 // --- ESTADOS DEL TECLADO PIN ---
 const showPinModal = ref(false);
@@ -40,9 +46,17 @@ const pinDigits = ref("");
 const isValidatingPin = ref(false);
 
 // --- ESTADOS DE ALERTAS ---
-const systemAlerts = ref([]); 
+const systemAlerts = ref([
+  {
+    id: 1,
+    severity: "warning",
+    message: "Alerta de Deserción: Validación Dataverse pendiente.",
+    source: "Asistencia",
+    timestamp: "Hoy",
+  },
+]);
 
-// --- MANEJO DE VENTANAS MODALES BÁSICAS ---
+// --- MANEJO DE VENTANAS MODALES ---
 const activeModal = ref(null);
 const selectedApprentice = ref(null);
 
@@ -58,56 +72,121 @@ const roomNodes = ref(
     id: i + 1,
     energized: false,
     load: Math.floor(Math.random() * 90) + 10,
-  })),
+  }))
 );
 
-// --- FUNCIONES DE ENERGÍA Y MODALES (Restauradas) ---
-const toggleMasterPower = () => { isPowerOn.value = !isPowerOn.value; };
-const toggleNodePower = (node) => { node.energized = !node.energized; };
-const openModal = (type, apprentice) => { activeModal.value = type; selectedApprentice.value = apprentice; };
-const closeModal = () => { activeModal.value = null; selectedApprentice.value = null; };
-const handleExitConfirm = (reason) => { closeModal(); toast.info("Salida registrada."); };
+// --- GESTIÓN DE CONTROL QR ANTIFRAUDE (Del Equipo) ---
+const openQrModal = () => {
+  qrProjected.value = true;
+  dynamicToken.value = `VM-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
-// --- FUNCIONES DE INTERFAZ DEL EQUIPO (Para que no colapse el Template) ---
-const openQrModal = () => { qrProjected.value = true; };
-const closeQrModal = () => { qrProjected.value = false; };
-const handleAlertResolution = (id) => { console.log("Alerta resuelta", id); };
-
-// Lógica del PIN
-const pressKey = (n) => { if(pinDigits.value.length < 4) pinDigits.value += n.toString(); };
-const clearPin = () => { pinDigits.value = pinDigits.value.slice(0, -1); };
-const submitPin = () => {
-  isValidatingPin.value = true;
-  // Simulamos validación visual por ahora
-  setTimeout(() => { 
-    isValidatingPin.value = false; 
-    showPinModal.value = false; 
-    pinDigits.value = ""; 
-    toast.success("Asistencia por PIN registrada."); 
-  }, 1000);
+  qrInterval = setInterval(() => {
+    dynamicToken.value = `VM-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+  }, 5000);
 };
 
-// --- CICLO DE VIDA (Tu conexión a FastAPI) ---
+const closeQrModal = () => {
+  qrProjected.value = false;
+  if (qrInterval) {
+    clearInterval(qrInterval);
+    qrInterval = null;
+  }
+};
+
+// --- GESTIÓN DEL TECLADO PIN ---
+const pressKey = (num) => {
+  if (pinDigits.value.length < 4) pinDigits.value += num;
+};
+
+const clearPin = () => {
+  pinDigits.value = pinDigits.value.slice(0, -1);
+};
+
+const submitPin = () => {
+  if (pinDigits.value.length !== 4) {
+    toast.error("El PIN debe tener exactamente 4 dígitos.");
+    return;
+  }
+  isValidatingPin.value = true;
+  setTimeout(() => {
+    isValidatingPin.value = false;
+    toast.success(`PIN ${pinDigits.value} validado. Asistencia registrada.`);
+    showPinModal.value = false;
+    pinDigits.value = "";
+  }, 1200);
+};
+
+// --- OPERACIONES IOT (Lógica mejorada del Equipo) ---
+const toggleMasterPower = () => {
+  isPowerOn.value = !isPowerOn.value;
+  roomNodes.value.forEach((node) => {
+    node.energized = isPowerOn.value;
+  });
+  isPowerOn.value
+    ? toast.success("Aula completamente Energizada")
+    : toast.error("Cierre Maestro: Aula sin Energía");
+};
+
+const toggleNodePower = (node) => {
+  node.energized = !node.energized;
+  if (!node.energized && !roomNodes.value.some((n) => n.energized)) {
+    isPowerOn.value = false;
+  } else {
+    isPowerOn.value = true;
+  }
+};
+
+// --- SUBSISTEMA DE ALERTAS Y MODALES ---
+const handleAlertResolution = (alertId) => {
+  systemAlerts.value = systemAlerts.value.filter((alert) => alert.id !== alertId);
+  toast.success("Alerta resuelta exitosamente.");
+};
+
+const openModal = (type, apprentice) => {
+  selectedApprentice.value = apprentice;
+  activeModal.value = type;
+};
+
+const closeModal = () => {
+  activeModal.value = null;
+  selectedApprentice.value = null;
+};
+
+const handleExitConfirm = (reason) => {
+  if (selectedApprentice.value) {
+    selectedApprentice.value.status = "absent";
+    selectedApprentice.value.lastSeen = "Salida Inesperada";
+    toast.warning(`Salida anticipada registrada: ${reason}`);
+  }
+  closeModal();
+};
+
+// --- CICLO DE VIDA (Tu conexión real a FastAPI y Dataverse) ---
 onMounted(async () => {
-  fichaActiva.value = localStorage.getItem('fichaActiva') || "Sin Ficha";
-  nombrePrograma.value = localStorage.getItem('nombrePrograma') || "Programa no definido";
-  nombreInstructor.value = localStorage.getItem('nombreInstructor') || "Instructor";
-  
-  // Reloj
+  // 1. Guardián de Seguridad del Equipo
+  if (!hasRole(["instructor", "dinamizador"])) {
+    toast.error("Acceso denegado. Se requiere perfil de Instructor.");
+    router.push("/route-selector");
+    return;
+  }
+
+  // 2. Reloj
   setInterval(() => {
     currentTime.value = new Date().toLocaleTimeString();
   }, 1000);
 
-  // 1. Recuperar la ficha seleccionada
-  const fichaGuardada = localStorage.getItem('fichaActiva');
-  if (!fichaGuardada || fichaGuardada === "Sin Ficha") {
+  // 3. Tus variables reales de localStorage
+  fichaActiva.value = localStorage.getItem('fichaActiva') || "Sin Ficha";
+  nombrePrograma.value = localStorage.getItem('nombrePrograma') || "Programa no definido";
+  nombreInstructor.value = localStorage.getItem('nombreInstructor') || "Instructor";
+
+  if (fichaActiva.value === "Sin Ficha") {
     toast.error("No hay una ficha activa. Redirigiendo...");
     router.push("/route-selector");
     return;
   }
-  fichaActiva.value = fichaGuardada;
 
-  // 2. Traer los aprendices de Dataverse
+  // 4. Tu llamada a FastAPI
   try {
     const response = await fetch(`http://127.0.0.1:8000/api/fichas/${fichaActiva.value}/aprendices`);
     
@@ -117,7 +196,7 @@ onMounted(async () => {
 
     const data = await response.json();
     
-    // 3. Mapear los datos
+    // Mapeo real de datos
     apprentices.value = data.map((ap) => ({
       id: ap.documento,
       name: ap.nombre || 'Sin Nombre',
