@@ -5,32 +5,42 @@ import { useToast } from "vue-toastification";
 const router = useRouter();
 const toast = useToast();
 
-// Mapeo de entornos de desarrollo con sus roles asociados
+// Mapeo de entornos de desarrollo con sus roles asociados (Limpio y fusionado)
 const devLogins = [
   {
     role: "dinamizador",
     path: "/dashboard-admin",
     name: "Dinamizador Energético",
     desc: "Panel de Superadmin. Analítica macro, topología global y MongoDB.",
-    icon: "fa-globe",
+    icon: "globe",
     color: "var(--sena-azul-oscuro, #003040)",
     glow: "rgba(0, 48, 64, 0.25)",
   },
   {
     role: "instructor",
-    path: "/select-ficha", // El instructor primero elige el aula
+    path: "/select-ficha", 
     name: "Instructor de Ambiente",
     desc: "Gestión local de energía, puente IoT y control de asistencia.",
-    icon: "fa-chalkboard-user",
+    icon: "chalkboard-user",
     color: "var(--sena-verde, #39a900)",
     glow: "rgba(57, 169, 0, 0.25)",
+  },
+  {
+    // Tu acceso directo al Dashboard, ahora estructurado con un rol para que no colapse Vue
+    role: "instructor_directo",
+    path: "/dashboard",
+    name: "Dashboard (Acceso Directo)",
+    desc: "Centro de control IoT, mapa de carga eléctrica y asistencia en vivo.",
+    icon: "microchip",
+    color: "var(--sena-verde, #39a900)",
+    glow: "rgba(57, 169, 0, 0.25)"
   },
   {
     role: "celador",
     path: "/dashboard-seguridad",
     name: "Personal de Seguridad",
     desc: "Panel simplificado de monitoreo periférico y alertas de contingencia.",
-    icon: "fa-shield-halved",
+    icon: "shield-halved",
     color: "var(--sena-amarillo, #FDC300)",
     glow: "rgba(253, 195, 0, 0.25)",
   },
@@ -39,10 +49,10 @@ const devLogins = [
     path: "/card",
     name: "Aprendiz (Cliente)",
     desc: "Vista Mobile-first. Identidad virtual, emisión NFC y PIN dinámico.",
-    icon: "fa-address-card",
+    icon: "address-card",
     color: "var(--sena-naranja, #FF6B00)",
     glow: "rgba(255, 107, 0, 0.25)",
-  },
+  }
 ];
 
 const simulateLogin = (devAccount) => {

@@ -1,16 +1,102 @@
 <script setup>
+import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
+import { PublicClientApplication } from "@azure/msal-browser";
+import { useAuthStore } from "@/stores/auth";
 
 const router = useRouter();
 const toast = useToast();
+const authStore = useAuthStore();
+const isLoggingIn = ref(false);
 
-const handleAzureLogin = () => {
-  // 1. Simulación de respuesta exitosa del Active Directory de Azure
-  toast.success("Autenticación institucional exitosa con Microsoft");
+// 1. Configuración de MSAL
+const msalConfig = {
+  auth: {
+    clientId: "d5c704a2-4bd3-4675-9822-7bdf35edfec6", 
+    authority: "https://login.microsoftonline.com/organizations", 
+    redirectUri: window.location.origin, 
+    navigateToLoginRequestUrl: false, 
+  },
+  cache: {
+    cacheLocation: "sessionStorage", 
+    storeAuthStateInCookie: false,
+  }
+};
 
-  // 2. Despacho inmediato hacia el entorno de desarrollo / selector de interfaces
-  router.push("/route-selector");
+const msalInstance = new PublicClientApplication(msalConfig);
+
+// 2. FUNCIÓN CENTRALIZADA: Enrutamiento Inteligente (RBAC)
+// 2. FUNCIÓN CENTRALIZADA: Enrutamiento Inteligente (RBAC)
+const processLoginSuccess = (account) => {
+  const userName = account.name;
+  const userEmail = account.username;
+  
+  // Guardamos en el store de Pinia
+  authStore.setSession(userEmail, userName);
+  
+  // Extraemos el dominio del correo pasándolo todo a minúsculas
+  const domain = userEmail.split('@')[1]?.toLowerCase();
+
+  if (domain === 'soy.sena.edu.co') {
+    // RUTA DEL APRENDIZ
+    localStorage.setItem("user_role", "aprendiz");
+    toast.success(`Autenticado. Abriendo Sandbox para desarrollo...`);
+    
+    // 👇 TEMPORAL PARA EL EQUIPO (Cuando vayas a producción, cámbialo a "/card")
+    router.push("/route-selector"); 
+
+  } else if (domain === 'sena.edu.co' || domain === 'voltmind746.onmicrosoft.com') {
+    // RUTA DEL INSTRUCTOR (Acepta correos oficiales y tu entorno de desarrollo)
+    localStorage.setItem("user_role", "instructor");
+    localStorage.setItem("instructorEmail", userEmail); 
+    toast.success(`Autenticado. Abriendo Sandbox para desarrollo...`);
+    
+    // 👇 TEMPORAL PARA EL EQUIPO (Cuando vayas a producción, cámbialo a "/select-ficha")
+    router.push("/route-selector"); 
+
+  } else {
+    // SEGURIDAD: Bloquea correos de Gmail, Hotmail u otros dominios no autorizados
+    toast.error("Acceso denegado. Utilice un correo institucional del SENA.");
+  }
+};
+// 3. Procesar el regreso de la redirección de Microsoft
+onMounted(async () => {
+  try {
+    await msalInstance.initialize();
+    
+    const response = await msalInstance.handleRedirectPromise();
+    
+    if (response) {
+      processLoginSuccess(response.account);
+    } else {
+      const currentAccounts = msalInstance.getAllAccounts();
+      if (currentAccounts.length > 0) {
+        processLoginSuccess(currentAccounts[0]);
+      }
+    }
+  } catch (error) {
+    console.error("Error procesando el regreso de MSAL:", error);
+    toast.error("Error al validar credenciales institucionales.");
+  }
+});
+
+// 4. Función del botón para iniciar el flujo
+const handleAzureLogin = async () => {
+  if (isLoggingIn.value) return;
+  isLoggingIn.value = true;
+
+  try {
+    const loginRequest = {
+      scopes: ["User.Read", "profile", "email"]
+    };
+
+    await msalInstance.loginRedirect(loginRequest);
+
+  } catch (error) {
+    console.error("Error al iniciar redirección:", error);
+    isLoggingIn.value = false;
+  }
 };
 </script>
 

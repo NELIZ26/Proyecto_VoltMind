@@ -1,9 +1,9 @@
-import { createRouter, createWebHashHistory } from "vue-router";
+import { createRouter, createWebHistory } from "vue-router"; // <-- Cambiado aquí
 
 const routes = [
   {
     path: "/",
-    redirect: "/route-selector", // Apuntamos directo al Sandbox de desarrollo por ahora
+    redirect: "/login", // Apuntamos directo al login por ahora
   },
   {
     path: "/login",
@@ -69,12 +69,12 @@ const routes = [
   },
   {
     path: "/:pathMatch(.*)*",
-    redirect: "/route-selector",
+    redirect: "/login",
   },
 ];
 
 const router = createRouter({
-  history: createWebHashHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(import.meta.env.BASE_URL), // <-- Cambiado aquí también
   routes,
 });
 
@@ -92,7 +92,7 @@ router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth) {
     // Si no hay rol (nadie ha iniciado sesión o no pasaron por el selector)
     if (!userRole) {
-      return next("/route-selector"); // En producción, redirigirá a '/login'
+      return next("/login"); // En producción, redirigirá a '/login'
     }
 
     // Si el usuario tiene un rol, pero ese rol no está en la lista permitida de la ruta
@@ -100,7 +100,7 @@ router.beforeEach((to, from, next) => {
       console.warn(
         `Bloqueo de seguridad: El rol '${userRole}' intentó acceder a '${to.path}'`,
       );
-      return next("/route-selector"); // Rechazado. Lo devolvemos al Sandbox.
+      return next("/login"); // Rechazado. Lo devolvemos al login.
     }
   }
 

@@ -21,27 +21,32 @@ const nfcScanning = ref(false);
 const qrProjected = ref(false);
 const currentTime = ref(new Date().toLocaleTimeString());
 
-// --- ESTADOS DEL QR DINÁMICO ---
-const dynamicToken = ref("");
+// --- ESTADOS DE DATOS REALES (Tu conexión) ---
+const fichaActiva = ref(""); 
+const apprentices = ref([]); 
+const isLoading = ref(true); 
+const nombrePrograma = ref("");
+const nombreInstructor = ref("");
+
+// --- ESTADOS DEL QR DINÁMICO (Del Equipo) ---
+const dynamicToken = ref("GENERANDO...");
 let qrInterval = null;
+// El Payload del QR debe existir para que la librería qrcode.vue no falle
+const qrPayload = computed(() => JSON.stringify({ token: dynamicToken.value, ficha: fichaActiva.value }));
 
 // --- ESTADOS DEL TECLADO PIN ---
 const showPinModal = ref(false);
 const pinDigits = ref("");
 const isValidatingPin = ref(false);
 
-// Datos de la Ficha (Dinámicos desde localStorage con fallback)
-const activeFicha = ref({
-  numero: "2997671",
-  programa: "Análisis y Desarrollo de Software",
-  jornada: "Mañana",
-});
+// --- ESTADOS DE ALERTAS ---
+const systemAlerts = ref([]); 
 
 // --- MANEJO DE VENTANAS MODALES BÁSICAS ---
 const activeModal = ref(null);
 const selectedApprentice = ref(null);
 
-// --- MOCK DATA INSTITUCIONAL ---
+// --- MOCK DATA INSTITUCIONAL (Energía) ---
 const meters = ref([
   { id: 1, label: "Iluminación Aula", value: 120 },
   { id: 2, label: "Bancos de Cómputo", value: 850 },
@@ -56,171 +61,85 @@ const roomNodes = ref(
   })),
 );
 
-const apprentices = ref([
-  {
-    id: "001",
-    name: "Carlos Mario Ruiz",
-    status: "present",
-    lastSeen: "08:05 AM",
-    absences: 0,
-    doc: "10234567",
-  },
-  {
-    id: "002",
-    name: "Ana Sofía Beltrán",
-    status: "absent",
-    lastSeen: "Ayer",
-    absences: 4,
-    doc: "11934568",
-  },
-  {
-    id: "003",
-    name: "Jorge Iván López",
-    status: "present",
-    lastSeen: "08:12 AM",
-    absences: 1,
-    doc: "10056789",
-  },
-  {
-    id: "004",
-    name: "Elena Maria Paz",
-    status: "absent",
-    lastSeen: "Hace 3 días",
-    absences: 3,
-    doc: "10876543",
-  },
-]);
+// --- FUNCIONES DE ENERGÍA Y MODALES (Restauradas) ---
+const toggleMasterPower = () => { isPowerOn.value = !isPowerOn.value; };
+const toggleNodePower = (node) => { node.energized = !node.energized; };
+const openModal = (type, apprentice) => { activeModal.value = type; selectedApprentice.value = apprentice; };
+const closeModal = () => { activeModal.value = null; selectedApprentice.value = null; };
+const handleExitConfirm = (reason) => { closeModal(); toast.info("Salida registrada."); };
 
-const systemAlerts = ref([
-  {
-    id: 1,
-    severity: "warning",
-    message: "Alerta de Deserción: Ana Sofía Beltrán.",
-    source: "Asistencia",
-    timestamp: "Ayer",
-  },
-]);
+// --- FUNCIONES DE INTERFAZ DEL EQUIPO (Para que no colapse el Template) ---
+const openQrModal = () => { qrProjected.value = true; };
+const closeQrModal = () => { qrProjected.value = false; };
+const handleAlertResolution = (id) => { console.log("Alerta resuelta", id); };
 
-// --- PAYLOAD DEL QR DINÁMICO ---
-const qrPayload = computed(() => {
-  return JSON.stringify({
-    ambiente: "402",
-    ficha: activeFicha.value.numero,
-    token: dynamicToken.value,
-  });
-});
-
-// --- GESTIÓN DE CONTROL QR ANTIFRAUDE ---
-const openQrModal = () => {
-  qrProjected.value = true;
-  dynamicToken.value = `VM-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-
-  qrInterval = setInterval(() => {
-    dynamicToken.value = `VM-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-  }, 5000);
-};
-
-const closeQrModal = () => {
-  qrProjected.value = false;
-  if (qrInterval) {
-    clearInterval(qrInterval);
-    qrInterval = null;
-  }
-};
-
-// --- GESTIÓN DEL TECLADO PIN ---
-const pressKey = (num) => {
-  if (pinDigits.value.length < 4) pinDigits.value += num;
-};
-
-const clearPin = () => {
-  pinDigits.value = pinDigits.value.slice(0, -1);
-};
-
+// Lógica del PIN
+const pressKey = (n) => { if(pinDigits.value.length < 4) pinDigits.value += n.toString(); };
+const clearPin = () => { pinDigits.value = pinDigits.value.slice(0, -1); };
 const submitPin = () => {
-  if (pinDigits.value.length !== 4) {
-    toast.error("El PIN debe tener exactamente 4 dígitos.");
-    return;
-  }
-
   isValidatingPin.value = true;
-
-  // Simulación de petición Axios a FastAPI
-  setTimeout(() => {
-    isValidatingPin.value = false;
-    toast.success(
-      `PIN ${pinDigits.value} validado en Dataverse. Asistencia registrada.`,
-    );
-    showPinModal.value = false;
-    pinDigits.value = "";
-  }, 1200);
+  // Simulamos validación visual por ahora
+  setTimeout(() => { 
+    isValidatingPin.value = false; 
+    showPinModal.value = false; 
+    pinDigits.value = ""; 
+    toast.success("Asistencia por PIN registrada."); 
+  }, 1000);
 };
 
-// --- OPERACIONES IOT (CONMUTACIÓN DE RED) ---
-const toggleMasterPower = () => {
-  isPowerOn.value = !isPowerOn.value;
-  roomNodes.value.forEach((node) => {
-    node.energized = isPowerOn.value;
-  });
-  isPowerOn.value
-    ? toast.success("Aula completamente Energizada")
-    : toast.error("Cierre Maestro: Aula sin Energía");
-};
-
-const toggleNodePower = (node) => {
-  node.energized = !node.energized;
-  if (!node.energized && !roomNodes.value.some((n) => n.energized)) {
-    isPowerOn.value = false;
-  } else {
-    isPowerOn.value = true;
-  }
-};
-
-// --- SUBSISTEMA DE ALERTAS Y ACCIONES ---
-const handleAlertResolution = (alertId) => {
-  systemAlerts.value = systemAlerts.value.filter(
-    (alert) => alert.id !== alertId,
-  );
-  toast.success("Alerta resuelta exitosamente.");
-};
-
-const openModal = (type, apprentice) => {
-  selectedApprentice.value = apprentice;
-  activeModal.value = type;
-};
-
-const closeModal = () => {
-  activeModal.value = null;
-  selectedApprentice.value = null;
-};
-
-const handleExitConfirm = (reason) => {
-  if (selectedApprentice.value) {
-    selectedApprentice.value.status = "absent";
-    selectedApprentice.value.lastSeen = "Salida Inesperada";
-    toast.warning(`Salida anticipada registrada: ${reason}`);
-  }
-  closeModal();
-};
-
-onMounted(() => {
-  if (!hasRole(["instructor", "dinamizador"])) {
-    toast.error("Acceso denegado. Se requiere perfil de Instructor.");
-    router.push("/route-selector");
-  }
-
-  const storedFicha = localStorage.getItem("active_ficha");
-  if (storedFicha) {
-    activeFicha.value = JSON.parse(storedFicha);
-  }
-
+// --- CICLO DE VIDA (Tu conexión a FastAPI) ---
+onMounted(async () => {
+  fichaActiva.value = localStorage.getItem('fichaActiva') || "Sin Ficha";
+  nombrePrograma.value = localStorage.getItem('nombrePrograma') || "Programa no definido";
+  nombreInstructor.value = localStorage.getItem('nombreInstructor') || "Instructor";
+  
+  // Reloj
   setInterval(() => {
     currentTime.value = new Date().toLocaleTimeString();
   }, 1000);
+
+  // 1. Recuperar la ficha seleccionada
+  const fichaGuardada = localStorage.getItem('fichaActiva');
+  if (!fichaGuardada || fichaGuardada === "Sin Ficha") {
+    toast.error("No hay una ficha activa. Redirigiendo...");
+    router.push("/route-selector");
+    return;
+  }
+  fichaActiva.value = fichaGuardada;
+
+  // 2. Traer los aprendices de Dataverse
+  try {
+    const response = await fetch(`http://127.0.0.1:8000/api/fichas/${fichaActiva.value}/aprendices`);
+    
+    if (!response.ok) {
+      throw new Error("No se encontraron aprendices para esta ficha.");
+    }
+
+    const data = await response.json();
+    
+    // 3. Mapear los datos
+    apprentices.value = data.map((ap) => ({
+      id: ap.documento,
+      name: ap.nombre || 'Sin Nombre',
+      doc: ap.documento,
+      email: ap.correo,
+      status: "absent", 
+      lastSeen: "Esperando ingreso",
+      absences: 0,
+      enum: "N/A",
+      history: []
+    }));
+
+  } catch (error) {
+    console.error("Error consultando aprendices:", error);
+    toast.warning("El aula está lista, pero no hay aprendices registrados.");
+  } finally {
+    isLoading.value = false;
+  }
 });
 
 onUnmounted(() => {
-  clearInterval(qrInterval);
+  if(qrInterval) clearInterval(qrInterval);
 });
 </script>
 
@@ -240,8 +159,8 @@ onUnmounted(() => {
         <div class="environment-badge">
           <h1>AMBIENTE 402</h1>
           <p class="header-meta">
-            Ficha: {{ activeFicha.numero }} | {{ activeFicha.programa }} |
-            <span>{{ currentTime }}</span>
+            Ficha: {{ fichaActiva }} - {{ nombrePrograma }} | Instructor: {{ nombreInstructor }} |
+           <span>{{ currentTime }}</span>
           </p>
         </div>
       </div>

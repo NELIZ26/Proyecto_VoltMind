@@ -1,3 +1,7 @@
+**/.env
+**/venv/
+**/__pycache__/
+**/node_modules/
 # --- Dependencias de Node ---
 node_modules/
 dist/
