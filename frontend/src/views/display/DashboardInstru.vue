@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import QrcodeVue from "qrcode.vue";
 
+
 // IMPORTACIÓN DE COMPONENTES DEL SUBSISTEMA
 import ProfileModal from "@/components/profileModal.vue";
 import AttendanceModal from "@/components/attendanceModal.vue";
@@ -44,6 +45,12 @@ const qrPayload = computed(() => {
 const showPinModal = ref(false);
 const pinDigits = ref("");
 const isValidatingPin = ref(false);
+
+
+// Recuperamos la hora si el profe recarga la página, si no, mostramos "--:--"
+const horaInicio = ref(localStorage.getItem('horaInicio') || '--:--');
+const horaFin = ref('--:--');
+const tiempoExtra = ref('0 min'); // Más adelante le daremos lógica a esto
 
 // --- ESTADOS DE ALERTAS ---
 const systemAlerts = ref([
@@ -117,14 +124,94 @@ const submitPin = () => {
 };
 
 // --- OPERACIONES IOT (Lógica mejorada del Equipo) ---
-const toggleMasterPower = () => {
+const toggleMasterPower = async () => {
   isPowerOn.value = !isPowerOn.value;
+  
   roomNodes.value.forEach((node) => {
     node.energized = isPowerOn.value;
   });
-  isPowerOn.value
-    ? toast.success("Aula completamente Energizada")
-    : toast.error("Cierre Maestro: Aula sin Energía");
+
+  // ==========================================
+  // 🟢 LÓGICA DE ENCENDIDO
+  // ==========================================
+  if (isPowerOn.value) {
+    toast.info("Energizando aula y registrando inicio de clase...");
+    
+    try {
+      const emailInstructor = localStorage.getItem('instructorEmail') || "";
+      const responseSesion = await fetch(`http://127.0.0.1:8000/api/sesiones/iniciar?ficha=${fichaActiva.value}&email=${emailInstructor}`, {
+        method: "POST"
+      });
+
+      if (responseSesion.ok) {
+        const data = await responseSesion.json();
+        
+        // 1. Guardamos el ID único de ESTA sesión en el navegador
+        localStorage.setItem('sesionActivaId', data.sesion_id);
+        
+        // 2. Formatear y mostrar hora de inicio
+        const fechaEntrada = new Date(data.hora_entrada);
+        horaInicio.value = fechaEntrada.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+        localStorage.setItem('horaInicio', horaInicio.value); // Para que no se borre si recarga la página
+        horaFin.value = '--:--'; // Reseteamos la hora de fin por si había una anterior
+        
+        toast.success("¡Aula ENERGIZADA y sesión registrada con éxito!");
+      } else {
+        const errorData = await responseSesion.json();
+        console.error("Error del servidor:", errorData);
+        toast.error("Aula encendida, pero falló el registro en base de datos.");
+      }
+    } catch (error) {
+      console.error("Error de conexión:", error);
+      toast.error("Error de conexión con el servidor.");
+    }
+    
+  } 
+  // ==========================================
+  // 🔴 LÓGICA DE APAGADO
+  // ==========================================
+  else {
+    toast.info("Apagando aula y registrando salida...");
+    
+    try {
+      // Recuperamos el ID exacto que guardamos al encender
+      const sesionId = localStorage.getItem('sesionActivaId') || "";
+      
+      if (!sesionId) {
+        toast.warning("El aula se apagó, pero no se encontró una sesión activa para cerrar.");
+        return; 
+      }
+
+      const responseCierre = await fetch(`http://127.0.0.1:8000/api/sesiones/finalizar?sesion_id=${sesionId}`, {
+        method: "POST"
+      });
+
+      if (responseCierre.ok) {
+        const dataCierre = await responseCierre.json();
+        
+        // Limpiamos la memoria
+        localStorage.removeItem('sesionActivaId'); 
+        localStorage.removeItem('horaInicio'); 
+        
+        // Formatear hora de fin
+        const fechaSalida = new Date(dataCierre.hora_salida);
+        horaFin.value = fechaSalida.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+        
+        // 🟡 NUEVO: Actualizar la tarjeta amarilla
+        tiempoExtra.value = dataCierre.tiempo_extra;
+
+        toast.success("¡Aula APAGADA y sesión finalizada en Dataverse!");
+      }
+       else {
+        const errorData = await responseCierre.json();
+        console.error("Error del servidor al cerrar:", errorData);
+        toast.error("El aula se apagó, pero falló el registro de salida.");
+      }
+    } catch (error) {
+      console.error("Error de conexión:", error);
+      toast.error("Error de conexión con el servidor al cerrar.");
+    }
+  }
 };
 
 const toggleNodePower = (node) => {
@@ -257,6 +344,39 @@ onUnmounted(() => {
         </button>
       </div>
     </header>
+    <div class="time-cards-container">
+      
+      <div class="time-card start-card">
+        <div class="icon-box">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        </div>
+        <div class="info-box">
+          <p class="card-title">Hora de Inicio</p>
+          <p class="card-value">{{ horaInicio }}</p>
+        </div>
+      </div>
+
+      <div class="time-card end-card">
+        <div class="icon-box">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+        </div>
+        <div class="info-box">
+          <p class="card-title">Hora de Cierre</p>
+          <p class="card-value">{{ horaFin }}</p>
+        </div>
+      </div>
+
+      <div class="time-card extra-card">
+        <div class="icon-box">
+          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+        </div>
+        <div class="info-box">
+          <p class="card-title">Tiempo Extra</p>
+          <p class="card-value">{{ tiempoExtra }}</p>
+        </div>
+      </div>
+
+    </div>
 
     <main class="dash-grid">
       <section class="dash-col energy-section">
@@ -1070,5 +1190,77 @@ onUnmounted(() => {
   color: var(--texto-secundario);
   cursor: not-allowed;
   opacity: 0.5;
+}
+
+/* ==========================================
+   ESTILOS DE LAS TARJETAS DE TIEMPO
+   ========================================== */
+.time-cards-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin: 20px 0 30px 0;
+}
+
+.time-card {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  background-color: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  border-left: 5px solid #ccc;
+}
+
+/* Modificadores por color */
+.start-card { border-left-color: #10b981; }
+.end-card { border-left-color: #f43f5e; }
+.extra-card { border-left-color: #f59e0b; }
+
+.icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16px;
+  flex-shrink: 0;
+}
+
+/* AQUÍ DOMAMOS LOS TAMAÑOS DE LOS ÍCONOS */
+.icon-box svg {
+  width: 24px !important;
+  height: 24px !important;
+}
+
+/* Colores de fondo y texto de los íconos */
+.start-card .icon-box { background-color: #d1fae5; color: #059669; }
+.end-card .icon-box { background-color: #ffe4e6; color: #e11d48; }
+.extra-card .icon-box { background-color: #fef3c7; color: #d97706; }
+
+.info-box {
+  display: flex;
+  flex-direction: column;
+}
+
+.card-title {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin: 0 0 4px 0;
+  font-weight: 500;
+}
+
+.card-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+}
+
+/* Parche de seguridad para el botón de apagado gigante */
+.power-switch svg {
+  width: 1.5rem;
+  height: 1.5rem;
 }
 </style>

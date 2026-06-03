@@ -70,13 +70,22 @@ const seleccionarFicha = (ficha) => {
   // B) Preparamos TUS datos correctos para Dataverse
   const numeroAguardar = ficha.numero || "Sin Número";
   const programaAguardar = ficha.programa || "Programa no definido";
-  const instructorAguardar = ficha.instructor || localStorage.getItem('instructorEmail') || "Instructor SENA";
+  let instructorAguardar = ficha.instructor || localStorage.getItem('instructorEmail') || "Instructor SENA";
+
+  // 🥷 TRUCO NINJA FRONTEND: Transformamos el correo en Nombre Real
+  if (instructorAguardar.includes('@')) {
+    // 1. Cortamos todo lo que está después del @ (nos quedamos con "FerleyTobon")
+    let soloNombre = instructorAguardar.split('@')[0]; 
+    // 2. Le ponemos un espacio entre las mayúsculas (queda "Ferley Tobon")
+    instructorAguardar = soloNombre.replace(/([a-z])([A-Z])/g, '$1 $2'); 
+  }
 
   // C) Simulamos la carga y luego guardamos (Unimos ambos mundos)
   setTimeout(() => {
     // Guardamos tus variables limpias para el Dashboard
     localStorage.setItem('fichaActiva', numeroAguardar);
     localStorage.setItem('nombrePrograma', programaAguardar); 
+    // ¡Aquí ahora viaja el nombre limpio, sin el correo!
     localStorage.setItem('nombreInstructor', instructorAguardar); 
 
     toast.success("Conexión establecida. Iniciando telemetría.");
