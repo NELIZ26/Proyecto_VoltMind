@@ -26,41 +26,73 @@ const msalConfig = {
 
 const msalInstance = new PublicClientApplication(msalConfig);
 
-// 2. FUNCIÓN CENTRALIZADA: Enrutamiento Inteligente (RBAC)
-// 2. FUNCIÓN CENTRALIZADA: Enrutamiento Inteligente (RBAC)
-const processLoginSuccess = (account) => {
+// 2. FUNCIÓN CENTRALIZADA: Enrutamiento Inteligente con Enriquecimiento de Perfil (RBAC)
+const processLoginSuccess = async (account) => {
   const userName = account.name;
   const userEmail = account.username;
   
-  // Guardamos en el store de Pinia
+  // Guardamos inicialmente en el store de Pinia
   authStore.setSession(userEmail, userName);
   
   // Extraemos el dominio del correo pasándolo todo a minúsculas
   const domain = userEmail.split('@')[1]?.toLowerCase();
 
   if (domain === 'soy.sena.edu.co') {
-    // RUTA DEL APRENDIZ
-    localStorage.setItem("user_role", "aprendiz");
-    toast.success(`Autenticado. Abriendo Sandbox para desarrollo...`);
-    
-    // 👇 TEMPORAL PARA EL EQUIPO (Cuando vayas a producción, cámbialo a "/card")
-    router.push("/route-selector"); 
+    toast.info("Verificando registro académico en Dataverse...");
+
+    try {
+      // 🟢 CONSULTA AL BACKEND: Cruzamos el correo de Microsoft con Dataverse
+      const response = await fetch(`http://127.0.0.1:8000/api/usuarios/perfil?email=${userEmail}`);
+      
+      if (response.ok) {
+        const perfilCompleto = await response.json();
+
+        // Guardamos el objeto estructurado JSON (el que lee JSON.parse en el carnet)
+        localStorage.setItem("userData", JSON.stringify(perfilCompleto));
+        
+        // Guardamos las llaves individuales para asegurar compatibilidad total en el almacenamiento
+        localStorage.setItem("microsoft_user_name", perfilCompleto.full_name);
+        localStorage.setItem("microsoft_user_email", perfilCompleto.email);
+        localStorage.setItem("microsoft_user_doc", perfilCompleto.documento);
+        localStorage.setItem("microsoft_user_ficha", perfilCompleto.ficha);
+        localStorage.setItem("fichaActiva", perfilCompleto.ficha);
+        
+        localStorage.setItem("user_role", "aprendiz");
+        
+        toast.success(`¡Bienvenido, ${perfilCompleto.full_name}! Cargando carnet digital...`);
+        
+        // Redirección directa al carnet ahora que la memoria está llena y es dinámica
+        router.push("/card"); 
+
+      } else {
+        const err = await response.json();
+        console.error("Error de vinculación:", err.detail);
+        toast.error(err.detail || "Autenticado en Microsoft, pero no estás registrado en Dataverse.");
+      }
+    } catch (error) {
+      console.error("Error conectando con FastAPI:", error);
+      toast.error("Error de conexión con el servidor central al validar tu perfil.");
+    }
 
   } else if (domain === 'sena.edu.co' || domain === 'voltmind746.onmicrosoft.com') {
-    // RUTA DEL INSTRUCTOR (Acepta correos oficiales y tu entorno de desarrollo)
+    // RUTA DEL INSTRUCTOR
     localStorage.setItem("user_role", "instructor");
     localStorage.setItem("instructorEmail", userEmail); 
-    toast.success(`Autenticado. Abriendo Sandbox para desarrollo...`);
+    localStorage.setItem("instructorName", userName);
+    localStorage.setItem("nombreInstructor", userName.split(' ')[0]); // Primer nombre para el saludo corta
     
-    // 👇 TEMPORAL PARA EL EQUIPO (Cuando vayas a producción, cámbialo a "/select-ficha")
-    router.push("/route-selector"); 
+    toast.success(`Instructor Autenticado. Cargando panel operativo...`);
+    
+    // Cambiado directamente a la selección de ficha oficial
+    router.push("/select-ficha"); 
 
   } else {
-    // SEGURIDAD: Bloquea correos de Gmail, Hotmail u otros dominios no autorizados
-    toast.error("Acceso denegado. Utilice un correo institucional del SENA.");
+    // SEGURIDAD: Bloquea dominios externos no autorizados
+    toast.error("Acceso denegado. Utilice exclusivamente su correo institucional del SENA.");
   }
 };
-// 3. Procesar el regreso de la redirección de Microsoft
+
+// 3. Procesar el regreso de la redirección de Microsoft (Modificado para soportar la función async)
 onMounted(async () => {
   try {
     await msalInstance.initialize();
@@ -68,11 +100,11 @@ onMounted(async () => {
     const response = await msalInstance.handleRedirectPromise();
     
     if (response) {
-      processLoginSuccess(response.account);
+      await processLoginSuccess(response.account);
     } else {
       const currentAccounts = msalInstance.getAllAccounts();
       if (currentAccounts.length > 0) {
-        processLoginSuccess(currentAccounts[0]);
+        await processLoginSuccess(currentAccounts[0]);
       }
     }
   } catch (error) {
@@ -99,7 +131,6 @@ const handleAzureLogin = async () => {
   }
 };
 </script>
-
 <template>
   <div class="login-shell">
     <div class="login-card">

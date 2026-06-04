@@ -1,4 +1,5 @@
 <script setup>
+import FirmaModal from "@/components/FirmaModal.vue";
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
@@ -46,6 +47,9 @@ const showPinModal = ref(false);
 const pinDigits = ref("");
 const isValidatingPin = ref(false);
 
+// CONTROLADORES DE INTERCEPCIÓN PARA LA FIRMA
+const showFirmaModal = ref(false);
+const aprendizSeleccionadoParaFirmar = ref({ name: "", doc: "" });
 
 // Recuperamos la hora si el profe recarga la página, si no, mostramos "--:--"
 const horaInicio = ref(localStorage.getItem('horaInicio') || '--:--');
@@ -109,18 +113,122 @@ const clearPin = () => {
   pinDigits.value = pinDigits.value.slice(0, -1);
 };
 
-const submitPin = () => {
+const submitPin = async () => {
   if (pinDigits.value.length !== 4) {
     toast.error("El PIN debe tener exactamente 4 dígitos.");
     return;
   }
   isValidatingPin.value = true;
-  setTimeout(() => {
+  
+  try {
+    const sesionId = localStorage.getItem('sesionActivaId') || "";
+    const response = await fetch(`http://127.0.0.1:8000/api/asistencia/validar-pin`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        pin: pinDigits.value,
+        sesion_id: sesionId
+      })
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      
+      // Buscamos el documento retornado en nuestra lista local de la ficha
+      const aprendizEncontrado = apprentices.value.find(a => a.doc === data.documento_aprendiz);
+      
+      if (aprendizEncontrado) {
+        // Interceptamos el flujo: Cargamos los datos y abrimos la firma en la tablet
+        aprendizSeleccionadoParaFirmar.value = {
+          name: aprendizEncontrado.name,
+          doc: aprendizEncontrado.doc
+        };
+        showPinModal.value = false; // Cerramos el teclado
+        showFirmaModal.value = true; // 🖋️ Abrimos el lienzo de firmas
+      } else {
+        toast.warning("PIN válido, pero el aprendiz no pertenece a esta ficha operativa.");
+      }
+    } else {
+      toast.error("El código introducido es incorrecto o ya caducó.");
+    }
+  } catch (error) {
+    console.error("Error validando PIN:", error);
+    toast.error("Error de respuesta del nodo central.");
+  } finally {
     isValidatingPin.value = false;
-    toast.success(`PIN ${pinDigits.value} validado. Asistencia registrada.`);
-    showPinModal.value = false;
     pinDigits.value = "";
-  }, 1200);
+  }
+};
+
+const procesarRegistroFirmaAsistencia = async (base64Signature) => {
+  const sesionId = localStorage.getItem('sesionActivaId') || "";
+  
+  try {
+    const response = await fetch(`http://127.0.0.1:8000/api/asistencia/guardar-firma`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sesion_id: sesionId,
+        documento_aprendiz: aprendizSeleccionadoParaFirmar.value.doc,
+        nombre_aprendiz: aprendizSeleccionadoParaFirmar.value.name,
+        firma_base64: base64Signature
+      })
+    });
+
+    if (response.ok) {
+      // Buscamos al aprendiz y lo pasamos a "EN CLASE" con su hora estampada
+      const index = apprentices.value.findIndex(a => a.doc === aprendizSeleccionadoParaFirmar.value.doc);
+      if (index !== -1) {
+        apprentices.value[index].status = "present";
+        apprentices.value[index].lastSeen = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+      }
+      
+      toast.success(`¡Asistencia y firma registradas para ${aprendizSeleccionadoParaFirmar.value.name}!`);
+      showFirmaModal.value = false;
+    } else {
+      toast.error("Falló el empaquetado del registro en la memoria del servidor.");
+    }
+  } catch (error) {
+    console.error(error);
+    toast.error("Error de red al procesar la firma táctil.");
+  }
+};
+
+const solicitarReporteAsistenciaPDF = async (idDeSesionCerrada) => {
+  console.log("Ejecutando orden de PDF para la sesión:", idDeSesionCerrada);
+  toast.info("Ensamblando PDF con las firmas...");
+  
+  try {
+    // Tomamos todo del localStorage para evitar errores de variables no definidas en Vue
+    const correo = localStorage.getItem('instructorEmail') || "ferley_tobon@soy.sena.edu.co";
+    const ficha = localStorage.getItem('fichaActiva') || "3465773";
+    const programa = localStorage.getItem('nombrePrograma') || "Analisis y Desarrollo de Software";
+    const instructor = localStorage.getItem('instructorName') || "Ferley Tobon";
+
+    const response = await fetch(`http://127.0.0.1:8000/api/asistencia/generar-reporte`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sesion_id: idDeSesionCerrada,
+        numero_ficha: ficha,
+        nombre_programa: programa,
+        nombre_instructor: instructor,
+        correo_destino: correo
+      })
+    });
+
+    if (response.ok) {
+      toast.success("¡PDF generado en el servidor con éxito!");
+      console.log("¡Orden de PDF completada en Python!");
+    } else {
+      const err = await response.json();
+      console.error("Error del backend:", err);
+      toast.warning("Fallo al empaquetar el PDF.");
+    }
+  } catch (error) {
+    console.error("Error de conexión al pedir el PDF:", error);
+    toast.error("Fallo de red al solicitar el reporte final.");
+  }
 };
 
 // --- OPERACIONES IOT (Lógica mejorada del Equipo) ---
@@ -189,6 +297,10 @@ const toggleMasterPower = async () => {
       if (responseCierre.ok) {
         const dataCierre = await responseCierre.json();
         
+        // 🟢 ¡AQUÍ ESTÁ LA LÍNEA QUE FALTABA! Disparamos el PDF antes de limpiar la memoria
+        console.log("Enviando orden al backend para generar PDF...");
+        await solicitarReporteAsistenciaPDF(sesionId);
+
         // Limpiamos la memoria
         localStorage.removeItem('sesionActivaId'); 
         localStorage.removeItem('horaInicio'); 
@@ -607,6 +719,13 @@ onUnmounted(() => {
         </button>
       </div>
     </div>
+
+    <FirmaModal 
+      v-if="showFirmaModal"
+      :apprenticeName="aprendizSeleccionadoParaFirmar.name"
+      @close="showFirmaModal = false"
+      @save="procesarRegistroFirmaAsistencia"
+    />
 
     <ProfileModal
       v-if="activeModal === 'profile'"

@@ -46,3 +46,33 @@ async def cliente_dataverse() -> httpx.AsyncClient:
         "Prefer": 'odata.include-annotations="*"'
     }
     return httpx.AsyncClient(base_url=f"{DATAVERSE_URL}/api/data/v9.2/", headers=headers)
+
+
+async def consultar_dataverse(query: str) -> dict:
+    """
+    Ejecuta una consulta GET en Dataverse usando el query o endpoint especificado.
+    Retorna el resultado en formato de diccionario de Python (JSON).
+    """
+    async with await cliente_dataverse() as client:
+        try:
+            # Hacemos la petición GET a Dataverse
+            response = await client.get(query)
+            
+            # Si el código de estado no es 200 OK, lanza un error HTTPStatusError
+            response.raise_for_status() 
+            
+            # Devolvemos el cuerpo de la respuesta convertido a JSON
+            return response.json()
+            
+        except httpx.HTTPStatusError as exc:
+            print(f"Error HTTP de Dataverse al pedir {query}: {exc.response.text}")
+            raise HTTPException(
+                status_code=exc.response.status_code, 
+                detail="Fallo en la consulta a la base de datos de Dataverse."
+            )
+        except Exception as exc:
+            print(f"Error inesperado conectando con Dataverse: {exc}")
+            raise HTTPException(
+                status_code=500, 
+                detail="Error interno del servidor al conectar con Dataverse."
+            )

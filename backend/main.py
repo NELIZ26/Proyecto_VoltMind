@@ -1,7 +1,7 @@
 # main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import fichas, aprendices, sesiones
+from routers import fichas, aprendices, sesiones, asistencia, usuarios
 
 app = FastAPI(title="VoltMind API")
 
@@ -17,3 +17,5 @@ app.add_middleware(
 app.include_router(fichas.router)
 app.include_router(aprendices.router)
 app.include_router(sesiones.router)
+app.include_router(asistencia.router)
+app.include_router(usuarios.router)
