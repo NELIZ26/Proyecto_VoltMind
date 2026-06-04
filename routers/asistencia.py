@@ -150,9 +150,9 @@ Este es un mensaje automático, por favor no responda a esta dirección."""
         print(f"❌ Error enviando correo: {e}")
 
     # --- AUTODESTRUCCIÓN (Limpieza total) ---
-    # os.remove(ruta_pdf)
-    #for temp_img_path in archivos_temporales:
-    #    os.remove(temp_img_path)
+    os.remove(ruta_pdf)
+    for temp_img_path in archivos_temporales:
+        os.remove(temp_img_path)
 
 @router.post("/generar-reporte")
 async def generar_reporte_asistencia(datos: CierreSesion, background_tasks: BackgroundTasks):
