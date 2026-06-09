@@ -3,7 +3,9 @@ import { createApp } from "vue";
 import { createPinia } from "pinia";
 import router from "@/router"; // Mantiene tu importación limpia con alias
 import App from "@/App.vue";
-import "./style.css";
+
+// ── INYECCIÓN DE ESTILOS GLOBALES ──
+import "@/style.css"; // Sistema de estilos centralizado: variables, utilidades, animaciones
 
 // ── 1. CONFIGURACIÓN DE VUE-TOASTIFICATION ──
 import Toast from "vue-toastification";
@@ -76,6 +78,9 @@ import {
   faCircleNotch,
   faRefresh,
   faEye,
+  faTrash,
+  faSun,
+  faMoon,
   // Otros (Métricas, Educación, Tiempo)
   faClock,
   faGraduationCap,
@@ -127,6 +132,7 @@ library.add(
   faCircleNotch,
   faRefresh,
   faEye,
+  faTrash,
   faClock,
   faGraduationCap,
   faCalendarCheck,
@@ -137,6 +143,8 @@ library.add(
   faServer,
   faArrowTrendUp,
   faClipboardList,
+  faSun,
+  faMoon,
 );
 
 // ── 3. INICIALIZACIÓN DE LA INSTANCIA DE VUE ──

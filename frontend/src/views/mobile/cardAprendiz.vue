@@ -203,6 +203,7 @@
     </transition>
 
     <div class="voltmind-watermark">VoltMind Access</div>
+    <DarkModeToggle />
   </div>
 </template>
 
@@ -213,6 +214,7 @@ import { useToast } from "vue-toastification"; // 🟢 Agregado para alertas
 import { QrcodeStream } from "vue-qrcode-reader";
 import WaveTexture from "@/components/WaveTexture.vue";
 import UserAvatar from "@/components/UserAvatar.vue";
+import DarkModeToggle from "@/components/DarkModeToggle.vue";
 
 const router = useRouter();
 const toast = useToast();

@@ -3,6 +3,7 @@ import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import { useRole } from "@/composables/useRole";
+import DarkModeToggle from "@/components/DarkModeToggle.vue";
 
 const router = useRouter();
 const toast = useToast();
@@ -164,6 +165,7 @@ const seleccionarFicha = (ficha) => {
         </button>
       </footer>
     </div>
+    <DarkModeToggle />
   </div>
 </template>
 

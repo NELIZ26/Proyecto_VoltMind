@@ -1,6 +1,7 @@
 <script setup>
 import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
+import DarkModeToggle from "@/components/DarkModeToggle.vue";
 
 const router = useRouter();
 const toast = useToast();
@@ -121,6 +122,7 @@ const simulateLogin = (devAccount) => {
         <p>VoltMind Access Core • Entorno Local de Pruebas (RBAC)</p>
       </footer>
     </div>
+    <DarkModeToggle />
   </div>
 </template>
 

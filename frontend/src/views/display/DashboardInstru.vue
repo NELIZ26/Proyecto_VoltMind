@@ -1,12 +1,12 @@
 <script setup>
+import DarkModeToggle from '@/components/DarkModeToggle.vue';
 import FirmaModal from "@/components/FirmaModal.vue";
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
-import QrcodeVue from "qrcode.vue";
-
-
 // IMPORTACIÓN DE COMPONENTES DEL SUBSISTEMA
+import PinKeypadModal from "@/components/PinKeypadModal.vue";
+import QrModal from "@/components/QrModal.vue";
 import ProfileModal from "@/components/profileModal.vue";
 import AttendanceModal from "@/components/attendanceModal.vue";
 import ExitModal from "@/components/exitModal.vue";
@@ -30,21 +30,10 @@ const isLoading = ref(true);
 const nombrePrograma = ref("");
 const nombreInstructor = ref("");
 
-// --- ESTADOS DEL QR DINÁMICO (Lógica del Equipo) ---
-const dynamicToken = ref("GENERANDO...");
-let qrInterval = null;
 
-const qrPayload = computed(() => {
-  return JSON.stringify({
-    ambiente: "402",
-    ficha: fichaActiva.value,
-    token: dynamicToken.value,
-  });
-});
 
 // --- ESTADOS DEL TECLADO PIN ---
 const showPinModal = ref(false);
-const pinDigits = ref("");
 const isValidatingPin = ref(false);
 
 // CONTROLADORES DE INTERCEPCIÓN PARA LA FIRMA
@@ -86,35 +75,11 @@ const roomNodes = ref(
   }))
 );
 
-// --- GESTIÓN DE CONTROL QR ANTIFRAUDE (Del Equipo) ---
-const openQrModal = () => {
-  qrProjected.value = true;
-  dynamicToken.value = `VM-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
 
-  qrInterval = setInterval(() => {
-    dynamicToken.value = `VM-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-  }, 5000);
-};
-
-const closeQrModal = () => {
-  qrProjected.value = false;
-  if (qrInterval) {
-    clearInterval(qrInterval);
-    qrInterval = null;
-  }
-};
 
 // --- GESTIÓN DEL TECLADO PIN ---
-const pressKey = (num) => {
-  if (pinDigits.value.length < 4) pinDigits.value += num;
-};
-
-const clearPin = () => {
-  pinDigits.value = pinDigits.value.slice(0, -1);
-};
-
-const submitPin = async () => {
-  if (pinDigits.value.length !== 4) {
+const handlePinSubmit = async (pinValue) => {
+  if (pinValue.length !== 4) {
     toast.error("El PIN debe tener exactamente 4 dígitos.");
     return;
   }
@@ -126,7 +91,7 @@ const submitPin = async () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ 
-        pin: pinDigits.value,
+        pin: pinValue,
         sesion_id: sesionId
       })
     });
@@ -156,7 +121,6 @@ const submitPin = async () => {
     toast.error("Error de respuesta del nodo central.");
   } finally {
     isValidatingPin.value = false;
-    pinDigits.value = "";
   }
 };
 
@@ -416,9 +380,7 @@ onMounted(async () => {
   }
 });
 
-onUnmounted(() => {
-  if(qrInterval) clearInterval(qrInterval);
-});
+
 </script>
 
 <template>
@@ -460,7 +422,7 @@ onUnmounted(() => {
       
       <div class="time-card start-card">
         <div class="icon-box">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          <font-awesome-icon icon="fa-solid fa-clock" />
         </div>
         <div class="info-box">
           <p class="card-title">Hora de Inicio</p>
@@ -470,7 +432,7 @@ onUnmounted(() => {
 
       <div class="time-card end-card">
         <div class="icon-box">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+          <font-awesome-icon icon="fa-solid fa-trash" />
         </div>
         <div class="info-box">
           <p class="card-title">Hora de Cierre</p>
@@ -480,7 +442,7 @@ onUnmounted(() => {
 
       <div class="time-card extra-card">
         <div class="icon-box">
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+          <font-awesome-icon icon="fa-solid fa-triangle-exclamation" />
         </div>
         <div class="info-box">
           <p class="card-title">Tiempo Extra</p>
@@ -560,7 +522,7 @@ onUnmounted(() => {
           <button
             class="btn-action qr"
             :class="{ 'btn-active': qrProjected }"
-            @click="qrProjected ? closeQrModal() : openQrModal()"
+            @click="qrProjected = !qrProjected"
           >
             <font-awesome-icon icon="fa-solid fa-qrcode" />
             <span>{{ qrProjected ? "OCULTAR QR" : "MOSTRAR QR" }}</span>
@@ -658,67 +620,18 @@ onUnmounted(() => {
       </section>
     </main>
 
-    <div v-if="qrProjected" class="qr-overlay" @click="closeQrModal">
-      <div class="qr-modal" @click.stop>
-        <h3>CÓDIGO QR DE ASISTENCIA AMBIENTE 402</h3>
+    <QrModal
+      :show="qrProjected"
+      :fichaActiva="fichaActiva"
+      @close="qrProjected = false"
+    />
 
-        <div class="qr-container-proyector">
-          <qrcode-vue :value="qrPayload" :size="220" level="M" />
-        </div>
-
-        <p>
-          Abre VoltMind Access en tu teléfono, selecciona "ESCANEAR" y apunta a
-          la pantalla para registrar tu asistencia.
-        </p>
-        <button class="btn-close-overlay" @click="closeQrModal">
-          CERRAR PANTALLA COMPARTIDA
-        </button>
-      </div>
-    </div>
-
-    <div v-if="showPinModal" class="qr-overlay" @click="showPinModal = false">
-      <div class="qr-modal pin-modal" @click.stop>
-        <h3>VALIDACIÓN POR PIN DINÁMICO</h3>
-        <p class="pin-instruction">
-          Digite el código generado por el dispositivo del aprendiz.
-        </p>
-
-        <div class="pin-display" :class="{ 'is-loading': isValidatingPin }">
-          {{
-            isValidatingPin
-              ? "Sincronizando..."
-              : pinDigits.padEnd(4, "•").split("").join(" ")
-          }}
-        </div>
-
-        <div
-          class="keypad"
-          :style="{
-            pointerEvents: isValidatingPin ? 'none' : 'auto',
-            opacity: isValidatingPin ? 0.5 : 1,
-          }"
-        >
-          <button v-for="n in 9" :key="n" class="btn-key" @click="pressKey(n)">
-            {{ n }}
-          </button>
-          <button class="btn-key action-key" @click="clearPin">
-            <font-awesome-icon icon="fa-solid fa-arrow-left" />
-          </button>
-          <button class="btn-key" @click="pressKey(0)">0</button>
-          <button
-            class="btn-key submit-key"
-            @click="submitPin"
-            :disabled="pinDigits.length !== 4"
-          >
-            <font-awesome-icon icon="fa-solid fa-check" />
-          </button>
-        </div>
-
-        <button class="btn-close-overlay" @click="showPinModal = false">
-          CANCELAR
-        </button>
-      </div>
-    </div>
+    <PinKeypadModal 
+      :isLoading="isValidatingPin" 
+      :show="showPinModal" 
+      @close="showPinModal = false" 
+      @submit="handlePinSubmit"
+    />
 
     <FirmaModal 
       v-if="showFirmaModal"
@@ -743,6 +656,7 @@ onUnmounted(() => {
       @close="closeModal"
       @confirm="handleExitConfirm"
     />
+    <DarkModeToggle />
   </div>
 </template>
 
@@ -1000,7 +914,7 @@ onUnmounted(() => {
   border-style: solid;
 }
 .map-node:hover:not(:disabled) {
-  background: #ffffff;
+  background: var(--fondo-tarjetas);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 .map-node:disabled {
@@ -1065,6 +979,19 @@ onUnmounted(() => {
   background: var(--sena-verde);
   color: var(--sena-blanco);
   border-color: var(--sena-verde-oscuro);
+}
+.btn-action.qr:hover:not(.btn-active) {
+  border-color: var(--sena-verde);
+  color: var(--sena-verde);
+  background: rgba(57, 169, 0, 0.1);
+}
+.btn-action.nfc:hover:not(.btn-active) {
+  border-color: var(--sena-azul-oscuro);
+  color: var(--sena-azul-oscuro);
+  background: rgba(0, 48, 64, 0.05);
+}
+[data-theme="dark"] .btn-action.nfc:hover:not(.btn-active) {
+  background: rgba(80, 229, 249, 0.1);
 }
 .btn-action.pin:hover {
   border-color: var(--sena-amarillo);
@@ -1150,65 +1077,8 @@ onUnmounted(() => {
 }
 
 /* ==========================================================================
-   ZONA PROYECTOR DE QR (BLANCO INSTITUCIONAL Y ANTIFRAUDE)
+   ZONA PROYECTOR DE QR (ABS-EXTRACTED TO QrModal.vue)
    ========================================================================== */
-.qr-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 48, 64, 0.6);
-  backdrop-filter: blur(8px);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-}
-.qr-modal {
-  background: var(--sena-blanco);
-  color: var(--sena-azul-oscuro);
-  text-align: center;
-  max-width: 400px;
-  padding: 2rem;
-  border-radius: 20px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-}
-.qr-modal h3 {
-  font-size: 1rem;
-  font-weight: 800;
-  margin: 0;
-}
-
-.qr-container-proyector {
-  background: #ffffff;
-  padding: 1.5rem;
-  border-radius: 16px;
-  display: inline-block;
-  margin: 1.5rem 0;
-  box-shadow: 0 8px 24px rgba(0, 48, 64, 0.1);
-  border: 1px solid var(--borde);
-  transition: transform 0.2s ease;
-}
-
-.qr-modal p {
-  font-size: 0.85rem;
-  color: var(--texto-secundario);
-  line-height: 1.5;
-  margin-bottom: 2rem;
-}
-.btn-close-overlay {
-  background: var(--sena-azul-oscuro);
-  color: var(--sena-blanco);
-  border: none;
-  padding: 12px 16px;
-  border-radius: 10px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  width: 100%;
-  cursor: pointer;
-}
-.btn-close-overlay:hover {
-  background: var(--sena-verde-oscuro);
-}
 
 /* ==========================================================================
    ESTILOS DEL TECLADO NUMÉRICO (PIN MODAL)
@@ -1325,10 +1195,10 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   padding: 16px;
-  background-color: #ffffff;
+  background-color: var(--fondo-tarjetas);
   border-radius: 12px;
   box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-  border-left: 5px solid #ccc;
+  border-left: 5px solid var(--borde);
 }
 
 /* Modificadores por color */
@@ -1353,6 +1223,10 @@ onUnmounted(() => {
   height: 24px !important;
 }
 
+.icon-box font-awesome-icon {
+  font-size: 1.5rem;
+}
+
 /* Colores de fondo y texto de los íconos */
 .start-card .icon-box { background-color: #d1fae5; color: #059669; }
 .end-card .icon-box { background-color: #ffe4e6; color: #e11d48; }
@@ -1365,7 +1239,7 @@ onUnmounted(() => {
 
 .card-title {
   font-size: 0.85rem;
-  color: #6b7280;
+  color: var(--texto-secundario);
   margin: 0 0 4px 0;
   font-weight: 500;
 }
@@ -1373,7 +1247,7 @@ onUnmounted(() => {
 .card-value {
   font-size: 1.25rem;
   font-weight: 700;
-  color: #1f2937;
+  color: var(--texto-principal);
   margin: 0;
 }
 

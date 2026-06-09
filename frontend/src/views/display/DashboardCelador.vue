@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import AlertPanel from "@/components/AlertPanel.vue";
 import { useRole } from "@/composables/useRole";
+import DarkModeToggle from "@/components/DarkModeToggle.vue";
 
 const router = useRouter();
 const toast = useToast();
@@ -183,6 +184,7 @@ onMounted(() => {
         </div>
       </section>
     </main>
+    <DarkModeToggle />
   </div>
 </template>
 

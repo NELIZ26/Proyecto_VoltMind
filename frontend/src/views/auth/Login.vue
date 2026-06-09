@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import { PublicClientApplication } from "@azure/msal-browser";
 import { useAuthStore } from "@/stores/auth";
+import DarkModeToggle from "@/components/DarkModeToggle.vue";
 
 const router = useRouter();
 const toast = useToast();
@@ -190,6 +191,7 @@ const handleAzureLogin = async () => {
         </div>
       </footer>
     </div>
+    <DarkModeToggle />
   </div>
 </template>
 
@@ -216,6 +218,15 @@ const handleAzureLogin = async () => {
   background-image:
     linear-gradient(rgba(0, 48, 64, 0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(0, 48, 64, 0.03) 1px, transparent 1px);
+  background-size: 30px 30px;
+  mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
+  pointer-events: none;
+}
+
+[data-theme="dark"] .login-shell::before {
+  background-image:
+    linear-gradient(rgba(80, 229, 249, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(80, 229, 249, 0.04) 1px, transparent 1px);
   background-size: 30px 30px;
   mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
   pointer-events: none;
