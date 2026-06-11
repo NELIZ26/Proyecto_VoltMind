@@ -1,13 +1,13 @@
 from fastapi import APIRouter, HTTPException
-from services.dataverse import consultar_dataverse
+from services.dataverse import DATAVERSE_URL, consultar_dataverse, sanitizar_odata
 
 router = APIRouter(prefix="/api/usuarios", tags=["Usuarios"])
 
 @router.get("/perfil")
 async def obtener_perfil_por_correo(email: str):
-    # 🟢 1. Filtro corregido con el nombre real de la columna de correo
-    filtro = f"cr6a3_correo_electronico eq '{email}'"
-    url = f"cr6a3_aprendizes?$filter={filtro}"
+    email_seguro = sanitizar_odata(email)
+    # Ahora sí pasamos la variable limpia a la consulta
+    url = f"{DATAVERSE_URL}/api/data/v9.2/cr6a3_aprendizs?$filter=cr6a3_correo_electronico eq '{email_seguro}'"
     
     resultado = await consultar_dataverse(url)
     
@@ -32,6 +32,6 @@ async def obtener_perfil_por_correo(email: str):
         "id": aprendiz_data.get("cr6a3_aprendizid"), 
         "full_name": aprendiz_data.get("cr6a3_nombre_completo"),
         "email": aprendiz_data.get("cr6a3_correo_electronico"),
-        "documento": aprendiz_data.get("cr6a3_documento_de_identidad"), # 🟢 3. Columna corregida
+        "documento": aprendiz_data.get("cr6a3_documento_de_identidad"), 
         "ficha": str(ficha_formateada)
     }
