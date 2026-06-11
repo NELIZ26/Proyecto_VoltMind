@@ -1,4 +1,5 @@
 <script setup>
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
@@ -8,46 +9,59 @@ const router = useRouter();
 const toast = useToast();
 const { hasRole } = useRole();
 
-// Estado para la animación de carga
+// --- 1. ESTADOS REACTIVOS ---
 const connectingId = ref(null);
-
-// Variables reactivas
 const fichas = ref([]);
 const isLoading = ref(true);
 
-// 1. UNIFICAMOS EL CICLO DE VIDA (Protección + Consulta)
+// 🟢 NUEVOS ESTADOS PARA EL AMBIENTE
+const showAmbienteModal = ref(false);
+const ambientesDisponibles = ref([]);
+const ambienteSeleccionado = ref("");
+const fichaPendiente = ref(null);
+
+// --- 2. FUNCIONES DE CONEXIÓN A DATAVERSE ---
+const cargarAmbientes = async () => {
+  try {
+    const res = await fetch(`${BASE_URL}/api/sesiones/ambientes`);
+    if (res.ok) {
+      ambientesDisponibles.value = await res.json();
+    }
+  } catch (error) {
+    console.error("Error cargando ambientes físicos:", error);
+  }
+};
+
+// --- 3. CICLO DE VIDA (Protección + Consultas) ---
 onMounted(async () => {
-  // A) Primero protegemos la ruta (Lógica del equipo)
+  // A) Protección de ruta
   if (!hasRole(["instructor", "dinamizador"])) {
     toast.error("Acceso denegado. Se requiere credencial de Instructor.");
     router.push("/route-selector");
-    return; // Detenemos la ejecución si no tiene permiso
+    return; 
   }
 
-  // B) Luego hacemos tu consulta a la base de datos (Tu lógica)
   const correoInstructor = localStorage.getItem('instructorEmail');
-
   if (!correoInstructor) {
     toast.error("No se encontró la sesión del instructor. Volviendo al inicio.");
     router.push("/route-selector");
     return;
   }
 
+  // B) Cargar Fichas y Ambientes en paralelo
   try {
-    const response = await fetch(`http://127.0.0.1:8000/api/fichas/${correoInstructor}`);
-    
-    if (!response.ok) {
-      throw new Error("No se encontraron fichas para este instructor.");
-    }
+    await cargarAmbientes(); // 🟢 Descargamos los salones en segundo plano
+
+    const response = await fetch(`${BASE_URL}/api/fichas/${correoInstructor}`);
+    if (!response.ok) throw new Error("No se encontraron fichas para este instructor.");
     
     const data = await response.json();
     
-    // Mapeamos para el diseño
     fichas.value = data.map((ficha, index) => ({
       id: index + 1,
       numero: ficha.numero_ficha,
       programa: ficha.nombre_programa,
-      instructor: ficha.instructor, // Aseguramos traer al instructor del backend
+      instructor: ficha.instructor, 
       jornada: "Asignada"
     }));
 
@@ -59,38 +73,49 @@ onMounted(async () => {
   }
 });
 
-// 2. ARREGLAMOS LA FUNCIÓN DE SELECCIÓN (Animación + Guardado real)
+// --- 4. FLUJO DE SELECCIÓN ---
+// Paso 1: El instructor le da clic a la ficha
 const seleccionarFicha = (ficha) => {
-  console.log("Iniciando sincronización con ficha:", ficha); 
+  fichaPendiente.value = ficha; // Guardamos la ficha temporalmente
+  showAmbienteModal.value = true; // 🟢 Abrimos el modal del ambiente
+};
+
+// Paso 2: El instructor confirma el salón y entra al Dashboard
+const confirmarAmbienteYContinuar = () => {
+  if (!ambienteSeleccionado.value) {
+    toast.warning("Debes seleccionar un ambiente para continuar.");
+    return;
+  }
   
-  // A) Activamos la animación de tu equipo INMEDIATAMENTE
-  connectingId.value = ficha.id;
-  toast.info(`Sincronizando Ambiente 402 con Ficha ${ficha.numero}...`);
+  // A) Mostramos feedback visual de sincronización
+  connectingId.value = fichaPendiente.value.id;
+  showAmbienteModal.value = false; // Cerramos el modal
+  
+  const ambiente = ambientesDisponibles.value.find(a => a.id === ambienteSeleccionado.value);
+  toast.info(`Sincronizando ${ambiente.nombre} con Ficha ${fichaPendiente.value.numero}...`);
 
-  // B) Preparamos TUS datos correctos para Dataverse
-  const numeroAguardar = ficha.numero || "Sin Número";
-  const programaAguardar = ficha.programa || "Programa no definido";
-  let instructorAguardar = ficha.instructor || localStorage.getItem('instructorEmail') || "Instructor SENA";
+  // B) Limpiamos variables (Tu truco Ninja)
+  const numeroAguardar = fichaPendiente.value.numero || "Sin Número";
+  const programaAguardar = fichaPendiente.value.programa || "Programa no definido";
+  let instructorAguardar = fichaPendiente.value.instructor || localStorage.getItem('instructorEmail') || "Instructor SENA";
 
-  // 🥷 TRUCO NINJA FRONTEND: Transformamos el correo en Nombre Real
   if (instructorAguardar.includes('@')) {
-    // 1. Cortamos todo lo que está después del @ (nos quedamos con "FerleyTobon")
     let soloNombre = instructorAguardar.split('@')[0]; 
-    // 2. Le ponemos un espacio entre las mayúsculas (queda "Ferley Tobon")
     instructorAguardar = soloNombre.replace(/([a-z])([A-Z])/g, '$1 $2'); 
   }
 
-  // C) Simulamos la carga y luego guardamos (Unimos ambos mundos)
+  // C) Simulamos la conexión IoT y guardamos en memoria
   setTimeout(() => {
-    // Guardamos tus variables limpias para el Dashboard
+    // Variables de la Ficha
     localStorage.setItem('fichaActiva', numeroAguardar);
     localStorage.setItem('nombrePrograma', programaAguardar); 
-    // ¡Aquí ahora viaja el nombre limpio, sin el correo!
     localStorage.setItem('nombreInstructor', instructorAguardar); 
+    
+    // 🟢 Variables del Ambiente (Para el Dashboard)
+    localStorage.setItem('ambienteActivoId', ambienteSeleccionado.value);
+    localStorage.setItem('ambienteActivoNombre', ambiente.nombre);
 
     toast.success("Conexión establecida. Iniciando telemetría.");
-    
-    // D) Hacemos UN SOLO redireccionamiento al final
     router.push('/dashboard');
   }, 1200);
 };
@@ -101,22 +126,18 @@ const seleccionarFicha = (ficha) => {
     <div class="select-container">
       <header class="select-header">
         <div class="brand-assets-header">
-          <img
-            src="@/assets/VoltMindAccess.svg"
-            alt="VoltMind Logo"
-            class="logo-voltmind"
-          />
+          <img src="@/assets/VoltMindAccess.svg" alt="VoltMind Logo" class="logo-voltmind" />
           <div class="brand-divider"></div>
           <img src="@/assets/LogoSena.png" alt="SENA Logo" class="logo-sena" />
         </div>
 
         <div class="location-badge">
           <font-awesome-icon icon="fa-solid fa-location-dot" />
-          <span>AMBIENTE 402 • BLOQUE C</span>
+          <span>SISTEMA CENTRAL • VOLTMIND</span>
         </div>
         <h1>PANEL DE CONTROL VOLTMIND</h1>
         <p class="instruction">
-          Seleccione el grupo que inicia sesión técnica en este ambiente:
+          Seleccione el grupo que inicia sesión técnica:
         </p>
       </header>
 
@@ -130,11 +151,7 @@ const seleccionarFicha = (ficha) => {
           @click="seleccionarFicha(ficha)"
         >
           <div v-if="connectingId === ficha.id" class="connecting-overlay">
-            <font-awesome-icon
-              icon="fa-solid fa-circle-notch"
-              spin
-              class="spinner-icon"
-            />
+            <font-awesome-icon icon="fa-solid fa-circle-notch" spin class="spinner-icon" />
             <span>Sincronizando...</span>
           </div>
 
@@ -159,10 +176,33 @@ const seleccionarFicha = (ficha) => {
 
       <footer class="select-footer">
         <button class="btn-back" @click="router.push('/route-selector')">
-          <font-awesome-icon icon="fa-solid fa-arrow-left" /> REGRESAR AL
-          SELECTOR
+          <font-awesome-icon icon="fa-solid fa-arrow-left" /> REGRESAR AL SELECTOR
         </button>
       </footer>
+    </div>
+
+    <div v-if="showAmbienteModal" class="modal-overlay" style="z-index: 9999; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.85); position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;">
+      <div class="modal-content" style="background: white; padding: 40px; border-radius: 12px; width: 450px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
+        <img src="@/assets/LogoSena.png" alt="SENA" style="width: 90px; margin-bottom: 20px;" />
+        <h2 style="color: #333; margin-bottom: 10px; font-size: 22px;">Ubicación de Formación</h2>
+        <p style="color: #666; margin-bottom: 25px; line-height: 1.5;">Selecciona el ambiente físico donde dictarás clase a la Ficha <strong>{{ fichaPendiente?.numero }}</strong></p>
+        
+        <select v-model="ambienteSeleccionado" style="width: 100%; padding: 14px; border-radius: 8px; border: 2px solid #e0e0e0; margin-bottom: 25px; font-size: 16px; outline: none; transition: border 0.3s;">
+          <option disabled value="">Selecciona un ambiente de la lista...</option>
+          <option v-for="amb in ambientesDisponibles" :key="amb.id" :value="amb.id">
+            {{ amb.nombre }}
+          </option>
+        </select>
+
+        <div style="display: flex; gap: 10px;">
+          <button @click="showAmbienteModal = false" style="flex: 1; padding: 14px; background: #e74c3c; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: background 0.3s;" onmouseover="this.style.background='#c0392b'" onmouseout="this.style.background='#e74c3c'">
+            CANCELAR
+          </button>
+          <button @click="confirmarAmbienteYContinuar" style="flex: 2; padding: 14px; background: #39a900; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: background 0.3s;" onmouseover="this.style.background='#2d8500'" onmouseout="this.style.background='#39a900'">
+            ENTRAR AL AULA
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>

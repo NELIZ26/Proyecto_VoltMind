@@ -209,13 +209,14 @@
 <script setup>
 import { ref, computed, onUnmounted, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { useToast } from "vue-toastification"; // 🟢 Agregado para alertas
+import { useToast } from "vue-toastification";
 import { QrcodeStream } from "vue-qrcode-reader";
 import WaveTexture from "@/components/WaveTexture.vue";
 import UserAvatar from "@/components/UserAvatar.vue";
 
 const router = useRouter();
 const toast = useToast();
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 // --- ESTADOS ---
 const isValidated = ref(false);
@@ -254,8 +255,6 @@ onMounted(() => {
       
       userStore.value.name = datosUsuario.full_name || "Aprendiz SENA";
       userStore.value.email = datosUsuario.email || "usuario@sena.edu.co";
-      
-      // 🟢 Cero datos quemados: toma directamente lo que recuperamos de Dataverse
       userStore.value.doc = datosUsuario.documento || "00000000"; 
       
     } catch (e) {
@@ -286,38 +285,93 @@ const resetMethods = () => {
   isNfcTransmitting.value = false;
 };
 
+// ==========================================
 // 1. LÓGICA ESCÁNER QR
+// ==========================================
 const startQrScan = () => {
   resetMethods();
   isScanningQr.value = true;
 };
 
-const onQrDetect = (detectedCodes) => {
-  if (detectedCodes && detectedCodes.length > 0) {
-    const qrData = detectedCodes[0].rawValue;
-    isScanningQr.value = false;
-    isValidated.value = true;
-    showStatus("Código de aula validado exitosamente.", "success", 3000);
-    console.log("Datos capturados del QR:", qrData);
+const onCameraError = (error) => {
+  isScanningQr.value = false;
+  if (error.name === 'NotAllowedError') {
+    toast.error("Debes darle permisos de cámara al navegador para escanear.");
+  } else if (error.name === 'NotFoundError') {
+    toast.error("No se detectó ninguna cámara en este dispositivo.");
+  } else {
+    toast.error("Error al iniciar la cámara: " + error.message);
   }
 };
 
-const onCameraError = (error) => {
-  isScanningQr.value = false;
-  let errorMsg = "Error desconocido de cámara.";
-  if (error.name === 'NotAllowedError') errorMsg = "Permiso denegado: Activa la cámara.";
-  else if (error.name === 'NotFoundError') errorMsg = "No se detectó ninguna cámara.";
-  showStatus(errorMsg, "error", 5000);
+const onQrDetect = async (detectedCodes) => {
+  if (detectedCodes && detectedCodes.length > 0) {
+    const rawData = detectedCodes[0].rawValue;
+    isScanningQr.value = false; 
+    
+    try {
+      let tokenFinal = "";
+
+      try {
+        const qrPayload = JSON.parse(rawData);
+        tokenFinal = qrPayload.token;
+      } catch (e) {
+        tokenFinal = rawData;
+      }
+
+      if (!tokenFinal || !tokenFinal.startsWith("VM-")) {
+        toast.error("Formato inválido. Escanea el código oficial del proyector.");
+        return;
+      }
+
+      showStatus("Validando acceso con el servidor...", "info", 2000);
+
+      const response = await fetch(`${BASE_URL}/api/asistencia/validar-qr`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token_qr: tokenFinal.replace("qr:", ""), 
+          documento_aprendiz: userStore.value.doc
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        isValidated.value = true;
+        
+        // 🚦 MÁQUINA DE ESTADOS
+        if (data.accion === "ingreso_exitoso") {
+          showStatus("Ingreso autorizado", "success", 4000);
+          toast.success("¡Bienvenido! Tu asistencia inicial fue registrada.");
+        } 
+        else if (data.accion === "requiere_firma") {
+          showStatus("Salida autorizada", "success", 4000);
+          // 👇 Aquí simplemente le avisamos que pase donde el profesor
+          toast.info("Clase finalizada. Pasa a la tablet del instructor a registrar tu firma.");
+        }
+      } else {
+        showStatus("Acceso denegado", "error", 4000);
+        toast.error(data.detail || "Error al validar el código QR.");
+      }
+
+    } catch (error) {
+      console.error("Error de conexión:", error);
+      toast.error("Problema de conexión con el servidor central.");
+    }
+  }
 };
 
+// ==========================================
 // 2. LÓGICA GENERACIÓN DE PIN DINÁMICO
+// ==========================================
 const generateOtp = async () => {
   resetMethods();
   isGeneratingOtp.value = true;
   otpMessage.value = "Generando código de seguridad...";
   
   try {
-    const response = await fetch(`http://127.0.0.1:8000/api/asistencia/generar-pin`, {
+    const response = await fetch(`${BASE_URL}/api/asistencia/generar-pin`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ 
@@ -352,7 +406,9 @@ const generateOtp = async () => {
   }
 };
 
+// ==========================================
 // 3. LÓGICA NFC
+// ==========================================
 const triggerNfcTransmission = () => {
   resetMethods();
   isNfcTransmitting.value = true;
