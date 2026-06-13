@@ -316,41 +316,45 @@ const toggleMasterPower = async () => {
   
   // 🟢 4. SI EL INSTRUCTOR APAGÓ EL AULA
   } else {
-    toast.info("Apagando aula y registrando salida...");
-    
+    toast.info("Apagando aula y guardando asistencias en Dataverse...");
     try {
       const sesionId = localStorage.getItem('sesionActivaId') || "";
-      if (!sesionId) throw new Error("No hay sesión ID");
+      
+      // 1. Enviamos los datos para guardarlos en la BD (SIN generar PDF)
+      const correo = localStorage.getItem('instructorEmail') || "correo@sena.edu.co";
+      const payloadCierre = {
+        sesion_id: sesionId,
+        numero_ficha: fichaActiva.value,
+        nombre_programa: nombrePrograma.value,
+        nombre_instructor: nombreInstructor.value,
+        correo_destino: correo
+      };
+      
+      await fetch(`${BASE_URL}/api/asistencia/cerrar-asistencia`, {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payloadCierre)
+      });
 
+      // 2. Cerramos la sesión formalmente
       const responseCierre = await fetch(`${BASE_URL}/api/sesiones/finalizar?sesion_id=${sesionId}`, { method: "POST" });
+      if (!responseCierre.ok) throw new Error("Fallo finalizando la sesión.");
+      
+      const dataCierre = await responseCierre.json();
+      horaFin.value = new Date(dataCierre.hora_salida).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+      tiempoExtra.value = dataCierre.tiempo_extra;
 
-      if (responseCierre.ok) {
-        const dataCierre = await responseCierre.json();
-        
-        // Disparamos la generación del PDF en segundo plano
-        await solicitarReporteAsistenciaPDF(sesionId);
+      localStorage.setItem('isPowerOn', 'false');
+      localStorage.setItem('salidaHabilitada', 'false');
+      localStorage.setItem('horaFin', horaFin.value);
+      localStorage.removeItem('sesionActivaId'); 
 
-        const fechaSalida = new Date(dataCierre.hora_salida);
-        horaFin.value = fechaSalida.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
-        tiempoExtra.value = dataCierre.tiempo_extra;
-
-        // Guardamos todo en memoria para que no se pierda si recarga
-        localStorage.setItem('isPowerOn', 'false');
-        localStorage.setItem('salidaHabilitada', 'false');
-        localStorage.setItem('horaFin', horaFin.value);
-        localStorage.setItem('tiempoExtra', tiempoExtra.value);
-        localStorage.removeItem('sesionActivaId'); 
-
-        salidaHabilitada.value = false;
-        toast.success("¡Aula APAGADA y sesión finalizada!");
-      } else {
-         throw new Error("El servidor rechazó el cierre de sesión");
-      }
+      salidaHabilitada.value = false;
+      isPowerOn.value = false;
+      toast.success("¡Aula APAGADA y datos guardados correctamente!");
+      
     } catch (error) {
-      // ⚠️ ROLLBACK: Si falla el cierre, volvemos a encender el botón
-      isPowerOn.value = true;
-      roomNodes.value.forEach((node) => { node.energized = true; });
-      toast.error("Error al cerrar la sesión en Dataverse.");
+      isPowerOn.value = true; 
+      toast.error("Error al cerrar la clase en Dataverse.");
     }
   }
 };
@@ -431,6 +435,41 @@ const cerrarSesion = () => {
   
   toast.success("Sesión cerrada correctamente. Volviendo al inicio.");
   router.push("/route-selector"); // Redirige al selector de roles o login
+};
+
+const enviarReporteSemanalManual = async () => {
+  toast.info("Procesando matriz de asistencia. Por favor, espera...");
+  try {
+    const correo = localStorage.getItem('instructorEmail') || "ferley_tobon@soy.sena.edu.co";
+    const sesionId = localStorage.getItem('sesionActivaId') || ""; // Detectamos si hay clase en curso
+    const textoHorario = `${horaInicio.value} a ${horaFin.value !== '--:--' ? horaFin.value : 'En curso'}`;
+    // Convertimos parámetros a query strings
+    const urlParams = new URLSearchParams({
+      numero_ficha: fichaActiva.value,
+      nombre_programa: nombrePrograma.value,
+      nombre_instructor: nombreInstructor.value,
+      correo_destino: correo,
+      nombre_ambiente: nombreAmbienteSeleccionado.value,
+      horario: textoHorario
+    });
+
+    // Si el aula está encendida, le pasamos el ID de la sesión al backend
+    if (sesionId) {
+      urlParams.append("sesion_activa", sesionId);
+    }
+
+    const response = await fetch(`${BASE_URL}/api/asistencia/matriz-semanal?${urlParams.toString()}`, { 
+      method: "POST" 
+    });
+
+    if (response.ok) {
+      toast.success(`¡Reporte solicitado! Llegará a ${correo} en unos instantes.`);
+    } else {
+      toast.warning("Fallo la estructura del envío en el servidor.");
+    }
+  } catch (error) {
+    toast.error("Fallo de red al solicitar el reporte.");
+  }
 };
 
 // --- CICLO DE VIDA ---
@@ -595,6 +634,11 @@ onUnmounted(() => {
             <font-awesome-icon icon="fa-solid fa-flag-checkered" />
             <span>{{ salidaHabilitada ? "SALIDAS ACTIVAS" : "FINALIZAR CLASE" }}</span>
           </button>
+
+          <button class="btn-action" style="background-color: #34495e; color: white;" @click="enviarReporteSemanalManual">
+          <font-awesome-icon icon="fa-solid fa-file-excel" />
+          <span>ENVIAR REPORTE</span>
+        </button>
         </div>
 
         <AlertPanel title="ALERTAS DEL AMBIENTE" icon="fa-solid fa-triangle-exclamation" :alerts="systemAlerts" @resolve="handleAlertResolution" />
