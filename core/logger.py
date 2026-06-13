@@ -15,6 +15,4 @@ logging.basicConfig(
         logging.StreamHandler(sys.stdout)
     ]
 )
-
-# Creamos la instancia que importaremos en otros archivos
-log = logging.getLogger("VoltMind")
+log = logging.getLogger("voltmind")

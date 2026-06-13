@@ -1,14 +1,10 @@
 import os
 import base64
-import logging
-from datetime import datetime
-from fastapi import HTTPException, status
-import logging
 from datetime import datetime
 from fastapi import HTTPException, status
 import httpx
-
-log = logging.getLogger("voltmind")
+# 🟢 ESTA ES LA ÚNICA LÍNEA DE LOG QUE DEBES USAR:
+from core.logger import log
 
 # Configuración de la ruta de almacenamiento físico
 CARPETA_FIRMAS = os.path.join("storage", "firmas")
@@ -128,12 +124,10 @@ async def evaluar_alertas_desercion(aprendiz: dict, faltas_consecutivas: int, nu
         log.error(f"Alerta roja crítica emitida para {nombre}. Proceso de deserción activado.")
 
 
-import logging
-from datetime import datetime
+
 # Asumimos que tienes una función base para hacer peticiones HTTP a Dataverse
 # from core.dataverse_client import consultar_dataverse 
 
-log = logging.getLogger("voltmind")
 
 async def obtener_asistencia_semanal_dataverse(numero_ficha: str, lunes_inicio: datetime, viernes_fin: datetime):
     """
@@ -224,7 +218,6 @@ async def obtener_asistencia_semanal_dataverse(numero_ficha: str, lunes_inicio: 
 # 🟢 IMPORTAMOS TU CLIENTE GLOBAL DIRECTAMENTE
 from services.dataverse import obtener_cliente
 
-log = logging.getLogger("voltmind")
 
 async def obtener_aprendices_por_ficha_dataverse(numero_ficha: str) -> list:
     """
