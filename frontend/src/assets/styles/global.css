@@ -1,7 +1,6 @@
 /* ==========================================================================
    SISTEMA DE ESTILOS GLOBALES - VOLTMIND ACCESS v2.4
-   Arquitectura: Vue 3 + CSS Puro Nativo
-   Última Actualización: Junio 2026
+   Arquitectura: Vue 3 + CSS Puro Nativo (Scoped)
    ========================================================================== */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
@@ -9,7 +8,7 @@
    1. VARIABLES CSS - PALETA SENA CERTIFICADA 2024
    ========================================================================== */
 :root {
-  /* ── Identidad Corporativa SENA (Tus colores originales exactos) ── */
+  /* ── Identidad Corporativa SENA ── */
   --sena-verde: #39A900;
   --sena-verde-oscuro: #007832;
   --sena-azul-oscuro: #003040;
@@ -23,14 +22,12 @@
   --sena-negro: #000000;
   --sena-gris-claro: #F6F6F6;
 
-  /* ── Paleta de Interfaz (Tus variables originales intactas) ── */
+  /* ── Paleta de Interfaz ── */
   --fondo-app: var(--sena-gris-claro);
   --fondo-tarjetas: var(--sena-blanco);
-  /* Plural mantenido */
   --texto-principal: var(--sena-azul-oscuro);
   --texto-secundario: #555555;
   --borde: #E0E0E0;
-  /* Nombre original mantenido para no romper los bordes */
 
   /* Sombras globales */
   --sombra-suave: rgba(0, 48, 64, 0.08);
@@ -44,39 +41,25 @@
   --fuente-peso-bold: 700;
   --fuente-peso-extrabold: 800;
 
-  /* ── Tamaños de Fuente (Escala armónica) ── */
+  /* ── Tamaños de Fuente ── */
   --fs-xs: 0.75rem;
-  /* 12px */
   --fs-sm: 0.875rem;
-  /* 14px */
   --fs-base: 1rem;
-  /* 16px */
   --fs-lg: 1.125rem;
-  /* 18px */
   --fs-xl: 1.25rem;
-  /* 20px */
   --fs-2xl: 1.5rem;
-  /* 24px */
   --fs-3xl: 1.875rem;
-  /* 30px */
 
-  /* ── Espaciados Estándar (Sistema de 4px base) ── */
+  /* ── Espaciados Estándar ── */
   --spacing-xs: 0.25rem;
-  /* 4px */
   --spacing-sm: 0.5rem;
-  /* 8px */
   --spacing-md: 1rem;
-  /* 16px */
   --spacing-lg: 1.5rem;
-  /* 24px */
   --spacing-xl: 2rem;
-  /* 32px */
   --spacing-2xl: 2.5rem;
-  /* 40px */
   --spacing-3xl: 3rem;
-  /* 48px */
 
-  /* ── Border Radius (Identidad moderna) ── */
+  /* ── Border Radius ── */
   --border-radius-sm: 8px;
   --border-radius-md: 12px;
   --border-radius-lg: 16px;
@@ -138,859 +121,84 @@ button {
 }
 
 /* ==========================================================================
-   3. UTILIDADES FLEXBOX - COMPOSABLES CSS
+   3. ANIMACIONES CENTRALIZADAS - @KEYFRAMES
    ========================================================================== */
 
-/* ── Contenedores Flex Base ── */
-.flex {
-  display: flex;
-}
-
-.flex-row {
-  display: flex;
-  flex-direction: row;
-}
-
-.flex-col {
-  display: flex;
-  flex-direction: column;
-}
-
-/* ── Alineación Horizontal (Main Axis) ── */
-.flex-start {
-  justify-content: flex-start;
-}
-
-.flex-center {
-  justify-content: center;
-}
-
-.flex-end {
-  justify-content: flex-end;
-}
-
-.flex-between {
-  justify-content: space-between;
-}
-
-.flex-around {
-  justify-content: space-around;
-}
-
-.flex-evenly {
-  justify-content: space-evenly;
-}
-
-/* ── Alineación Vertical (Cross Axis) ── */
-.align-start {
-  align-items: flex-start;
-}
-
-.align-center {
-  align-items: center;
-}
-
-.align-end {
-  align-items: flex-end;
-}
-
-.align-stretch {
-  align-items: stretch;
-}
-
-.align-baseline {
-  align-items: baseline;
-}
-
-/* ── Wrapping y Flex Grow ── */
-.flex-wrap {
-  flex-wrap: wrap;
-}
-
-.flex-nowrap {
-  flex-wrap: nowrap;
-}
-
-.flex-1 {
-  flex: 1 1 0%;
-}
-
-.flex-auto {
-  flex: 1 1 auto;
-}
-
-.flex-none {
-  flex: none;
-}
-
-/* ── Gaps Reutilizables ── */
-.gap-xs {
-  gap: var(--spacing-xs);
-}
-
-.gap-sm {
-  gap: var(--spacing-sm);
-}
-
-.gap-md {
-  gap: var(--spacing-md);
-}
-
-.gap-lg {
-  gap: var(--spacing-lg);
-}
-
-.gap-xl {
-  gap: var(--spacing-xl);
-}
-
-/* ── Combinaciones Comunes ── */
-.flex-center-all {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.flex-col-center {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.flex-col-between {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.flex-row-center {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-}
-
-.flex-row-between {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
-  align-items: center;
-}
-
-/* ==========================================================================
-   4. UTILIDADES DE ESPACIADO (Margin y Padding)
-   ========================================================================== */
-
-/* ── Padding ── */
-.p-xs {
-  padding: var(--spacing-xs);
-}
-
-.p-sm {
-  padding: var(--spacing-sm);
-}
-
-.p-md {
-  padding: var(--spacing-md);
-}
-
-.p-lg {
-  padding: var(--spacing-lg);
-}
-
-.p-xl {
-  padding: var(--spacing-xl);
-}
-
-/* ── Padding Horizontal ── */
-.px-xs {
-  padding-left: var(--spacing-xs);
-  padding-right: var(--spacing-xs);
-}
-
-.px-sm {
-  padding-left: var(--spacing-sm);
-  padding-right: var(--spacing-sm);
-}
-
-.px-md {
-  padding-left: var(--spacing-md);
-  padding-right: var(--spacing-md);
-}
-
-.px-lg {
-  padding-left: var(--spacing-lg);
-  padding-right: var(--spacing-lg);
-}
-
-.px-xl {
-  padding-left: var(--spacing-xl);
-  padding-right: var(--spacing-xl);
-}
-
-/* ── Padding Vertical ── */
-.py-xs {
-  padding-top: var(--spacing-xs);
-  padding-bottom: var(--spacing-xs);
-}
-
-.py-sm {
-  padding-top: var(--spacing-sm);
-  padding-bottom: var(--spacing-sm);
-}
-
-.py-md {
-  padding-top: var(--spacing-md);
-  padding-bottom: var(--spacing-md);
-}
-
-.py-lg {
-  padding-top: var(--spacing-lg);
-  padding-bottom: var(--spacing-lg);
-}
-
-.py-xl {
-  padding-top: var(--spacing-xl);
-  padding-bottom: var(--spacing-xl);
-}
-
-/* ── Margin ── */
-.m-xs {
-  margin: var(--spacing-xs);
-}
-
-.m-sm {
-  margin: var(--spacing-sm);
-}
-
-.m-md {
-  margin: var(--spacing-md);
-}
-
-.m-lg {
-  margin: var(--spacing-lg);
-}
-
-.m-xl {
-  margin: var(--spacing-xl);
-}
-
-/* ── Margin Horizontal ── */
-.mx-xs {
-  margin-left: var(--spacing-xs);
-  margin-right: var(--spacing-xs);
-}
-
-.mx-sm {
-  margin-left: var(--spacing-sm);
-  margin-right: var(--spacing-sm);
-}
-
-.mx-md {
-  margin-left: var(--spacing-md);
-  margin-right: var(--spacing-md);
-}
-
-.mx-lg {
-  margin-left: var(--spacing-lg);
-  margin-right: var(--spacing-lg);
-}
-
-.mx-xl {
-  margin-left: var(--spacing-xl);
-  margin-right: var(--spacing-xl);
-}
-
-.mx-auto {
-  margin-left: auto;
-  margin-right: auto;
-}
-
-/* ── Margin Vertical ── */
-.my-xs {
-  margin-top: var(--spacing-xs);
-  margin-bottom: var(--spacing-xs);
-}
-
-.my-sm {
-  margin-top: var(--spacing-sm);
-  margin-bottom: var(--spacing-sm);
-}
-
-.my-md {
-  margin-top: var(--spacing-md);
-  margin-bottom: var(--spacing-md);
-}
-
-.my-lg {
-  margin-top: var(--spacing-lg);
-  margin-bottom: var(--spacing-lg);
-}
-
-.my-xl {
-  margin-top: var(--spacing-xl);
-  margin-bottom: var(--spacing-xl);
-}
-
-/* ==========================================================================
-   5. UTILIDADES DE TIPOGRAFÍA Y COLORES DE TEXTO
-   ========================================================================== */
-
-/* ── Tamaños de Fuente Rápidos ── */
-.text-xs {
-  font-size: var(--fs-xs);
-}
-
-.text-sm {
-  font-size: var(--fs-sm);
-}
-
-.text-base {
-  font-size: var(--fs-base);
-}
-
-.text-lg {
-  font-size: var(--fs-lg);
-}
-
-.text-xl {
-  font-size: var(--fs-xl);
-}
-
-.text-2xl {
-  font-size: var(--fs-2xl);
-}
-
-.text-3xl {
-  font-size: var(--fs-3xl);
-}
-
-/* ── Pesos de Fuente ── */
-.font-regular {
-  font-weight: var(--fuente-peso-regular);
-}
-
-.font-medium {
-  font-weight: var(--fuente-peso-medio);
-}
-
-.font-semibold {
-  font-weight: var(--fuente-peso-semibold);
-}
-
-.font-bold {
-  font-weight: var(--fuente-peso-bold);
-}
-
-.font-extrabold {
-  font-weight: var(--fuente-peso-extrabold);
-}
-
-/* ── Colores de Texto SENA ── */
-.text-sena-verde {
-  color: var(--sena-verde);
-}
-
-.text-sena-verde-oscuro {
-  color: var(--sena-verde-oscuro);
-}
-
-.text-sena-azul-oscuro {
-  color: var(--sena-azul-oscuro);
-}
-
-.text-sena-azul-claro {
-  color: var(--sena-azul-claro);
-}
-
-.text-sena-violeta {
-  color: var(--sena-violeta);
-}
-
-.text-sena-naranja {
-  color: var(--sena-naranja);
-}
-
-.text-sena-blanco {
-  color: var(--sena-blanco);
-}
-
-.text-sena-negro {
-  color: var(--sena-negro);
-}
-
-/* ── Colores de Texto Estándar ── */
-.text-primary {
-  color: var(--texto-principal);
-}
-
-.text-secondary {
-  color: var(--texto-secundario);
-}
-
-.text-white {
-  color: var(--sena-blanco);
-}
-
-/* ── Fondos Rápidos SENA ── */
-.bg-sena-verde {
-  background-color: var(--sena-verde);
-  color: var(--sena-blanco);
-}
-
-.bg-sena-verde-oscuro {
-  background-color: var(--sena-verde-oscuro);
-  color: var(--sena-blanco);
-}
-
-.bg-sena-azul-oscuro {
-  background-color: var(--sena-azul-oscuro);
-  color: var(--sena-blanco);
-}
-
-.bg-sena-violeta {
-  background-color: var(--sena-violeta);
-  color: var(--sena-blanco);
-}
-
-.bg-sena-naranja {
-  background-color: var(--sena-naranja);
-  color: var(--sena-negro);
-}
-
-.bg-sena-blanco {
-  background-color: var(--sena-blanco);
-  color: var(--sena-negro);
-}
-
-.bg-gris-claro {
-  background-color: var(--sena-gris-claro);
-}
-
-/* ── Alineación de Texto ── */
-.text-center {
-  text-align: center;
-}
-
-.text-left {
-  text-align: left;
-}
-
-.text-right {
-  text-align: right;
-}
-
-.text-justify {
-  text-align: justify;
-}
-
-/* ==========================================================================
-   6. UTILIDADES DE BORDES Y RADIOS
-   ========================================================================== */
-
-/* ── Border Radius ── */
-.rounded-sm {
-  border-radius: var(--border-radius-sm);
-}
-
-.rounded-md {
-  border-radius: var(--border-radius-md);
-}
-
-.rounded-lg {
-  border-radius: var(--border-radius-lg);
-}
-
-.rounded-xl {
-  border-radius: var(--border-radius-xl);
-}
-
-.rounded-full {
-  border-radius: var(--border-radius-full);
-}
-
-/* ── Bordes ── */
-.border {
-  border: 1px solid var(--borde-default);
-}
-
-.border-sena-verde {
-  border: 2px solid var(--sena-verde);
-}
-
-.border-sena-azul {
-  border: 2px solid var(--sena-azul-oscuro);
-}
-
-/* ==========================================================================
-   7. SOMBRAS (Depth & Elevation)
-   ========================================================================== */
-
-.shadow-sm {
-  box-shadow: 0 1px 2px var(--sombra-suave);
-}
-
-.shadow-md {
-  box-shadow: 0 4px 8px var(--sombra-media);
-}
-
-.shadow-lg {
-  box-shadow: 0 8px 16px rgba(0, 48, 64, 0.22);
-}
-
-.shadow-xl {
-  box-shadow: 0 12px 24px rgba(0, 48, 64, 0.28);
-}
-
-/* ==========================================================================
-   8. COMPONENTES RÁPIDOS (Botones, Cards, etc.)
-   ========================================================================== */
-
-/* ── Botón Primario ── */
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-sm);
-  background-color: var(--sena-verde);
-  border: none;
-  padding: 12px 24px;
-  border-radius: var(--border-radius-lg);
-  color: var(--sena-blanco);
-  font-weight: var(--fuente-peso-semibold);
-  font-size: var(--fs-base);
-  cursor: pointer;
-  transition: all var(--transition-base);
-  box-shadow: 0 2px 8px rgba(57, 169, 0, 0.15);
-}
-
-.btn-primary:hover:not(:disabled) {
-  background-color: #2d8500;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(57, 169, 0, 0.25);
-}
-
-.btn-primary:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-.btn-primary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* ── Botón Secundario ── */
-.btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-sm);
-  background-color: transparent;
-  border: 2px solid var(--sena-verde);
-  padding: 10px 22px;
-  border-radius: var(--border-radius-lg);
-  color: var(--sena-verde);
-  font-weight: var(--fuente-peso-semibold);
-  font-size: var(--fs-base);
-  cursor: pointer;
-  transition: all var(--transition-base);
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background-color: rgba(57, 169, 0, 0.08);
-  transform: translateY(-2px);
-}
-
-.btn-secondary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* ── Card Estándar ── */
-.card {
-  background-color: var(--fondo-tarjeta);
-  border-radius: var(--border-radius-lg);
-  padding: var(--spacing-lg);
-  box-shadow: var(--sombra-suave);
-  border: 1px solid rgba(0, 48, 64, 0.05);
-  transition: all var(--transition-base);
-}
-
-.card:hover {
-  box-shadow: var(--sombra-media);
-  transform: translateY(-2px);
-}
-
-/* ── Contenedor Flex Rápido ── */
-.container-flex {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-lg);
-}
-
-/* ==========================================================================
-   9. ANIMACIONES CENTRALIZADAS - @KEYFRAMES
-   ========================================================================== */
-
-/* ── Fade In (Entrada Suave) ── */
+/* ── Fade In ── */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
-.animate-fade-in {
-  animation: fadeIn var(--transition-base) var(--timing-ease-out) forwards;
-}
-
-/* ── Slide Up (Entrada desde Abajo) ── */
+/* ── Slide Up ── */
 @keyframes slideUp {
   from {
     opacity: 0;
     transform: translateY(20px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-.animate-slide-up {
-  animation: slideUp var(--transition-base) var(--timing-ease-out) forwards;
-}
-
-/* ── Slide Down (Entrada desde Arriba) ── */
+/* ── Slide Down ── */
 @keyframes slideDown {
   from {
     opacity: 0;
     transform: translateY(-20px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
   }
 }
 
-.animate-slide-down {
-  animation: slideDown var(--transition-base) var(--timing-ease-out) forwards;
-}
-
-/* ── Pulse (Efecto de Carga - Botones, Spinners) ── */
+/* ── Pulse ── */
 @keyframes pulse {
-  0% {
-    opacity: 1;
-  }
-
-  50% {
-    opacity: 0.5;
-  }
-
-  100% {
-    opacity: 1;
-  }
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
 }
 
-.animate-pulse {
-  animation: pulse 2s var(--timing-ease-in-out) infinite;
-}
-
-/* ── Scale In (Zoom Entrada) ── */
+/* ── Scale In ── */
 @keyframes scaleIn {
   from {
     opacity: 0;
     transform: scale(0.95);
   }
-
   to {
     opacity: 1;
     transform: scale(1);
   }
 }
 
-.animate-scale-in {
-  animation: scaleIn var(--transition-base) var(--timing-ease-out) forwards;
-}
-
-/* ── Bounce (Rebote Dinámico) ── */
+/* ── Bounce ── */
 @keyframes bounce {
-
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-
-  50% {
-    transform: translateY(-10px);
-  }
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
 }
 
-.animate-bounce {
-  animation: bounce 1s var(--timing-ease-in-out) infinite;
-}
-
-/* ── Spin (Rotación Continua - Loaders) ── */
+/* ── Spin ── */
 @keyframes spin {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
-.animate-spin {
-  animation: spin 1s linear infinite;
-}
-
-/* ── Shimmer (Efecto Brillo para Skeleton) ── */
+/* ── Shimmer ── */
 @keyframes shimmer {
-  0% {
-    background-position: -1000px 0;
-  }
-
-  100% {
-    background-position: 1000px 0;
-  }
+  0% { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
 }
 
-.animate-shimmer {
-  animation: shimmer 2s infinite;
-  background: linear-gradient(90deg,
-      var(--sena-gris-claro) 8%,
-      rgba(255, 255, 255, 0.3) 18%,
-      var(--sena-gris-claro) 33%);
-  background-size: 1000px 100%;
-}
-
-/* ── Wave (Onda suave - WaveTexture) ── */
+/* ── Wave ── */
 @keyframes wave {
-  0% {
-    transform: translateX(-100%);
-  }
-
-  100% {
-    transform: translateX(100%);
-  }
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
 }
 
-.animate-wave {
-  animation: wave 2s linear infinite;
-}
-
-/* ── Glow (Brillo Pulsante) ── */
+/* ── Glow ── */
 @keyframes glow {
-
-  0%,
-  100% {
-    box-shadow: 0 0 5px rgba(57, 169, 0, 0.3);
-  }
-
-  50% {
-    box-shadow: 0 0 20px rgba(57, 169, 0, 0.6);
-  }
+  0%, 100% { box-shadow: 0 0 5px rgba(57, 169, 0, 0.3); }
+  50% { box-shadow: 0 0 20px rgba(57, 169, 0, 0.6); }
 }
-
-.animate-glow {
-  animation: glow 2s var(--timing-ease-in-out) infinite;
-}
-
-/* ==========================================================================
-   10. UTILIDADES DE VISIBILIDAD Y DISPLAY
-   ========================================================================== */
-
-.hidden {
-  display: none;
-}
-
-.visible {
-  visibility: visible;
-}
-
-.invisible {
-  visibility: hidden;
-}
-
-.block {
-  display: block;
-}
-
-.inline-block {
-  display: inline-block;
-}
-
-.inline {
-  display: inline;
-}
-
-/* ==========================================================================
-   11. UTILIDADES RESPONSIVE (Mobile First)
-   ========================================================================== */
-
-/* ── Ocultar en Escritorio ── */
-@media (min-width: 768px) {
-  .hidden-desktop {
-    display: none !important;
-  }
-}
-
-/* ── Ocultar en Móvil ── */
-@media (max-width: 767px) {
-  .hidden-mobile {
-    display: none !important;
-  }
-}
-
-/* ── Ancho Completo Móvil ── */
-@media (max-width: 767px) {
-  .full-width-mobile {
-    width: 100% !important;
-  }
-}
-
-/* ==========================================================================
-   12. UTILIDADES DE ACCESIBILIDAD
-   ========================================================================== */
-
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border-width: 0;
-}
-
-.focus-visible:focus {
-  outline: 2px solid var(--sena-verde);
-  outline-offset: 2px;
-}
-
-/* ==========================================================================
-   13. UTILIDADES DE TRANSICIÓN
-   ========================================================================== */
-
-.transition-fast {
-  transition: all var(--transition-fast);
-}
-
-.transition-base {
-  transition: all var(--transition-base);
-}
-
-.transition-slow {
-  transition: all var(--transition-slow);
-}
-
-/* ==========================================================================
-   FIN DEL ARCHIVO - SISTEMA DE ESTILOS GLOBAL
-   ========================================================================== */

@@ -4,7 +4,7 @@
     @click="toggleTheme"
     :title="isDark ? 'Cambiar a modo claro' : 'Cambiar a modo oscuro'"
   >
-    <font-awesome-icon :icon="['fas', isDark ? 'sun' : 'moon']" />
+    <font-awesome-icon :icon="['fas', isDark ? 'lightbulb' : 'moon']" />
   </button>
 </template>
 

@@ -1202,9 +1202,9 @@ onMounted(async () => {
 }
 
 /* Modificadores por color */
-.start-card { border-left-color: #10b981; }
+.start-card { border-left-color: var(--sena-verde-oscuro); }
 .end-card { border-left-color: #f43f5e; }
-.extra-card { border-left-color: #f59e0b; }
+.extra-card { border-left-color: var(--sena-amarillo); }
 
 .icon-box {
   width: 48px;

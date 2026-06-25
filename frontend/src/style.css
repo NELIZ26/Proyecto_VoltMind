@@ -1,8 +1,8 @@
 /* ==========================================================================
-   1. IMPORTACIÓN DE FUENTES (Obligatoria: Inter)
+   1. IMPORTACIÓN DE FUENTES (Obligatoria: Work Sans)
    ========================================================================== */
 
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap");
+@import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700;800&display=swap');
 
 /* ==========================================================================
    2. VARIABLES DE COLOR OFICIALES SENA 2024
@@ -10,7 +10,7 @@
 
 :root {
   /* Tipografía Corporativa Forzada */
-  --fuente-principal: "Inter", sans-serif;
+  --fuente-principal: "Work Sans", sans-serif;
   /* Color Principal */
   --sena-verde: #39a900;
   /* Colores Secundarios */
@@ -22,7 +22,8 @@
   /* Colores Neutros y Fondos (Caso 1 - Blanco Predominante) */
   --sena-blanco: #ffffff;
   --sena-negro: #000000;
-  --sena-gris-claro: #f6f6f6;
+  --sena-gris-claro: #f8f9fa;
+  --sena-gris-fondo: #f8f9fa;
   /* PALETA DE INTERFAZ (Aplicada a componentes) */
   --fondo-app: var(--sena-gris-claro);
   --fondo-tarjetas: var(--sena-blanco);
@@ -45,6 +46,7 @@
   --sombra-suave: rgba(0, 0, 0, 0.3);
   --sombra-media: rgba(0, 0, 0, 0.5);
   --sena-azul-oscuro: #50E5F9;
+  --sena-gris-claro: #484949;
 }
 
 
