@@ -3,20 +3,16 @@ import { createRouter, createWebHistory } from "vue-router"; // <-- Cambiado aqu
 const routes = [
   {
     path: "/",
-    redirect: "/login", // Apuntamos directo al login por ahora
+    redirect: "/login", // Apuntamos directo al login
   },
   {
     path: "/login",
     name: "Login",
-    component: () => import("@/views/display/DashboardInstru.vue"),
+    // 🟢 CORREGIDO: Ahora sí apunta al componente de Login real
+    component: () => import("@/views/auth/Login.vue"),
     meta: { title: "VoltMind Access - Iniciar Sesión", requiresAuth: false },
   },
-  {
-    path: "/route-selector",
-    name: "RouteSelector",
-    component: () => import("@/views/display/DashboardCelador.vue"),
-    meta: { title: "Entorno de Desarrollo - Sandbox", requiresAuth: false },
-  },
+  // 🔴 ELIMINADO: El bloque de /route-selector ya no existe
   {
     path: "/select-ficha",
     name: "SelectFicha",
@@ -44,13 +40,13 @@ const routes = [
     meta: {
       title: "VoltMind - Consola Global",
       requiresAuth: true,
-      roles: ["dinamizador"], // Acceso exclusivo Superadmin
+      roles: ["dinamizador", "instructor"], // Acceso exclusivo Superadmin
     },
   },
   {
     path: "/dashboard-seguridad",
     name: "DashboardSeguridad",
-    component: () => import("@/views/display/DashboardCelador.vue"), // Este será el que crearemos luego
+    component: () => import("@/views/display/DashboardCelador.vue"),
     meta: {
       title: "VoltMind - Panel de Seguridad",
       requiresAuth: true,
@@ -117,11 +113,11 @@ const routes = [
     ]
   },
   {
+    // Ruta comodín: Si escriben una URL que no existe, los manda al login
     path: "/:pathMatch(.*)*",
     redirect: "/login",
   },
 ];
-
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL), // <-- Cambiado aquí también
   routes,

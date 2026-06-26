@@ -53,8 +53,8 @@ const handleGlobalResolution = (alertId) => {
 
 // Pequeña protección de ruta a nivel de componente
 onMounted(() => {
-  if (!hasRole(["dinamizador"])) {
-    router.push("/route-selector");
+  if (!hasRole(["dinamizador", "instructor"])) {
+    router.push("/login");
   }
   setInterval(() => {
     currentTime.value = new Date().toLocaleTimeString();
@@ -84,7 +84,7 @@ onMounted(() => {
         </div>
       </div>
 
-      <button class="btn-dev-back" @click="router.push('/route-selector')">
+      <button class="btn-dev-back" @click="router.push('/login')">
         <font-awesome-icon icon="fa-solid fa-code" /> Cambiar Rol
       </button>
     </header>
