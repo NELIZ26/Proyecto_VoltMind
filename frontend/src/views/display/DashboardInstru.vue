@@ -1,10 +1,12 @@
 <script setup>
+import DarkModeToggle from '@/components/DarkModeToggle.vue';
+import FirmaModal from "@/components/FirmaModal.vue";
 import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
-import QrcodeVue from "qrcode.vue";
-
 // IMPORTACIÓN DE COMPONENTES DEL SUBSISTEMA
+import PinKeypadModal from "@/components/PinKeypadModal.vue";
+import QrModal from "@/components/QrModal.vue";
 import ProfileModal from "@/components/profileModal.vue";
 import AttendanceModal from "@/components/attendanceModal.vue";
 import ExitModal from "@/components/exitModal.vue";
@@ -21,27 +23,44 @@ const nfcScanning = ref(false);
 const qrProjected = ref(false);
 const currentTime = ref(new Date().toLocaleTimeString());
 
-// --- ESTADOS DEL QR DINÁMICO ---
-const dynamicToken = ref("");
-let qrInterval = null;
+// --- ESTADOS DE DATOS REALES (Tu conexión restaurada) ---
+const fichaActiva = ref(""); 
+const apprentices = ref([]); 
+const isLoading = ref(true); 
+const nombrePrograma = ref("");
+const nombreInstructor = ref("");
+
+
 
 // --- ESTADOS DEL TECLADO PIN ---
 const showPinModal = ref(false);
-const pinDigits = ref("");
 const isValidatingPin = ref(false);
 
-// Datos de la Ficha (Dinámicos desde localStorage con fallback)
-const activeFicha = ref({
-  numero: "2997671",
-  programa: "Análisis y Desarrollo de Software",
-  jornada: "Mañana",
-});
+// CONTROLADORES DE INTERCEPCIÓN PARA LA FIRMA
+const showFirmaModal = ref(false);
+const aprendizSeleccionadoParaFirmar = ref({ name: "", doc: "" });
 
-// --- MANEJO DE VENTANAS MODALES BÁSICAS ---
+// Recuperamos la hora si el profe recarga la página, si no, mostramos "--:--"
+const horaInicio = ref(localStorage.getItem('horaInicio') || '--:--');
+const horaFin = ref('--:--');
+const tiempoExtra = ref('0 min'); // Más adelante le daremos lógica a esto
+
+// --- ESTADOS DE ALERTAS ---
+const systemAlerts = ref([
+  {
+    id: 1,
+    severity: "warning",
+    message: "Alerta de Deserción: Validación Dataverse pendiente.",
+    source: "Asistencia",
+    timestamp: "Hoy",
+  },
+]);
+
+// --- MANEJO DE VENTANAS MODALES ---
 const activeModal = ref(null);
 const selectedApprentice = ref(null);
 
-// --- MOCK DATA INSTITUCIONAL ---
+// --- MOCK DATA INSTITUCIONAL (Energía) ---
 const meters = ref([
   { id: 1, label: "Iluminación Aula", value: 120 },
   { id: 2, label: "Bancos de Cómputo", value: 850 },
@@ -53,118 +72,222 @@ const roomNodes = ref(
     id: i + 1,
     energized: false,
     load: Math.floor(Math.random() * 90) + 10,
-  })),
+  }))
 );
 
-const apprentices = ref([
-  {
-    id: "001",
-    name: "Carlos Mario Ruiz",
-    status: "present",
-    lastSeen: "08:05 AM",
-    absences: 0,
-    doc: "10234567",
-  },
-  {
-    id: "002",
-    name: "Ana Sofía Beltrán",
-    status: "absent",
-    lastSeen: "Ayer",
-    absences: 4,
-    doc: "11934568",
-  },
-  {
-    id: "003",
-    name: "Jorge Iván López",
-    status: "present",
-    lastSeen: "08:12 AM",
-    absences: 1,
-    doc: "10056789",
-  },
-  {
-    id: "004",
-    name: "Elena Maria Paz",
-    status: "absent",
-    lastSeen: "Hace 3 días",
-    absences: 3,
-    doc: "10876543",
-  },
-]);
 
-const systemAlerts = ref([
-  {
-    id: 1,
-    severity: "warning",
-    message: "Alerta de Deserción: Ana Sofía Beltrán.",
-    source: "Asistencia",
-    timestamp: "Ayer",
-  },
-]);
-
-// --- PAYLOAD DEL QR DINÁMICO ---
-const qrPayload = computed(() => {
-  return JSON.stringify({
-    ambiente: "402",
-    ficha: activeFicha.value.numero,
-    token: dynamicToken.value,
-  });
-});
-
-// --- GESTIÓN DE CONTROL QR ANTIFRAUDE ---
-const openQrModal = () => {
-  qrProjected.value = true;
-  dynamicToken.value = `VM-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-
-  qrInterval = setInterval(() => {
-    dynamicToken.value = `VM-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-  }, 5000);
-};
-
-const closeQrModal = () => {
-  qrProjected.value = false;
-  if (qrInterval) {
-    clearInterval(qrInterval);
-    qrInterval = null;
-  }
-};
 
 // --- GESTIÓN DEL TECLADO PIN ---
-const pressKey = (num) => {
-  if (pinDigits.value.length < 4) pinDigits.value += num;
-};
-
-const clearPin = () => {
-  pinDigits.value = pinDigits.value.slice(0, -1);
-};
-
-const submitPin = () => {
-  if (pinDigits.value.length !== 4) {
+const handlePinSubmit = async (pinValue) => {
+  if (pinValue.length !== 4) {
     toast.error("El PIN debe tener exactamente 4 dígitos.");
     return;
   }
-
   isValidatingPin.value = true;
+  
+  try {
+    const sesionId = localStorage.getItem('sesionActivaId') || "";
+    const response = await fetch(`http://127.0.0.1:8000/api/asistencia/validar-pin`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        pin: pinValue,
+        sesion_id: sesionId
+      })
+    });
 
-  // Simulación de petición Axios a FastAPI
-  setTimeout(() => {
+    if (response.ok) {
+      const data = await response.json();
+      
+      // Buscamos el documento retornado en nuestra lista local de la ficha
+      const aprendizEncontrado = apprentices.value.find(a => a.doc === data.documento_aprendiz);
+      
+      if (aprendizEncontrado) {
+        // Interceptamos el flujo: Cargamos los datos y abrimos la firma en la tablet
+        aprendizSeleccionadoParaFirmar.value = {
+          name: aprendizEncontrado.name,
+          doc: aprendizEncontrado.doc
+        };
+        showPinModal.value = false; // Cerramos el teclado
+        showFirmaModal.value = true; // 🖋️ Abrimos el lienzo de firmas
+      } else {
+        toast.warning("PIN válido, pero el aprendiz no pertenece a esta ficha operativa.");
+      }
+    } else {
+      toast.error("El código introducido es incorrecto o ya caducó.");
+    }
+  } catch (error) {
+    console.error("Error validando PIN:", error);
+    toast.error("Error de respuesta del nodo central.");
+  } finally {
     isValidatingPin.value = false;
-    toast.success(
-      `PIN ${pinDigits.value} validado en Dataverse. Asistencia registrada.`,
-    );
-    showPinModal.value = false;
-    pinDigits.value = "";
-  }, 1200);
+  }
 };
 
-// --- OPERACIONES IOT (CONMUTACIÓN DE RED) ---
-const toggleMasterPower = () => {
+const procesarRegistroFirmaAsistencia = async (base64Signature) => {
+  const sesionId = localStorage.getItem('sesionActivaId') || "";
+  
+  try {
+    const response = await fetch(`http://127.0.0.1:8000/api/asistencia/guardar-firma`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sesion_id: sesionId,
+        documento_aprendiz: aprendizSeleccionadoParaFirmar.value.doc,
+        nombre_aprendiz: aprendizSeleccionadoParaFirmar.value.name,
+        firma_base64: base64Signature
+      })
+    });
+
+    if (response.ok) {
+      // Buscamos al aprendiz y lo pasamos a "EN CLASE" con su hora estampada
+      const index = apprentices.value.findIndex(a => a.doc === aprendizSeleccionadoParaFirmar.value.doc);
+      if (index !== -1) {
+        apprentices.value[index].status = "present";
+        apprentices.value[index].lastSeen = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+      }
+      
+      toast.success(`¡Asistencia y firma registradas para ${aprendizSeleccionadoParaFirmar.value.name}!`);
+      showFirmaModal.value = false;
+    } else {
+      toast.error("Falló el empaquetado del registro en la memoria del servidor.");
+    }
+  } catch (error) {
+    console.error(error);
+    toast.error("Error de red al procesar la firma táctil.");
+  }
+};
+
+const solicitarReporteAsistenciaPDF = async (idDeSesionCerrada) => {
+  console.log("Ejecutando orden de PDF para la sesión:", idDeSesionCerrada);
+  toast.info("Ensamblando PDF con las firmas...");
+  
+  try {
+    // Tomamos todo del localStorage para evitar errores de variables no definidas en Vue
+    const correo = localStorage.getItem('instructorEmail') || "ferley_tobon@soy.sena.edu.co";
+    const ficha = localStorage.getItem('fichaActiva') || "3465773";
+    const programa = localStorage.getItem('nombrePrograma') || "Analisis y Desarrollo de Software";
+    const instructor = localStorage.getItem('instructorName') || "Ferley Tobon";
+
+    const response = await fetch(`http://127.0.0.1:8000/api/asistencia/generar-reporte`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sesion_id: idDeSesionCerrada,
+        numero_ficha: ficha,
+        nombre_programa: programa,
+        nombre_instructor: instructor,
+        correo_destino: correo
+      })
+    });
+
+    if (response.ok) {
+      toast.success("¡PDF generado en el servidor con éxito!");
+      console.log("¡Orden de PDF completada en Python!");
+    } else {
+      const err = await response.json();
+      console.error("Error del backend:", err);
+      toast.warning("Fallo al empaquetar el PDF.");
+    }
+  } catch (error) {
+    console.error("Error de conexión al pedir el PDF:", error);
+    toast.error("Fallo de red al solicitar el reporte final.");
+  }
+};
+
+// --- OPERACIONES IOT (Lógica mejorada del Equipo) ---
+const toggleMasterPower = async () => {
   isPowerOn.value = !isPowerOn.value;
+  
   roomNodes.value.forEach((node) => {
     node.energized = isPowerOn.value;
   });
-  isPowerOn.value
-    ? toast.success("Aula completamente Energizada")
-    : toast.error("Cierre Maestro: Aula sin Energía");
+
+  // ==========================================
+  // 🟢 LÓGICA DE ENCENDIDO
+  // ==========================================
+  if (isPowerOn.value) {
+    toast.info("Energizando aula y registrando inicio de clase...");
+    
+    try {
+      const emailInstructor = localStorage.getItem('instructorEmail') || "";
+      const responseSesion = await fetch(`http://127.0.0.1:8000/api/sesiones/iniciar?ficha=${fichaActiva.value}&email=${emailInstructor}`, {
+        method: "POST"
+      });
+
+      if (responseSesion.ok) {
+        const data = await responseSesion.json();
+        
+        // 1. Guardamos el ID único de ESTA sesión en el navegador
+        localStorage.setItem('sesionActivaId', data.sesion_id);
+        
+        // 2. Formatear y mostrar hora de inicio
+        const fechaEntrada = new Date(data.hora_entrada);
+        horaInicio.value = fechaEntrada.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+        localStorage.setItem('horaInicio', horaInicio.value); // Para que no se borre si recarga la página
+        horaFin.value = '--:--'; // Reseteamos la hora de fin por si había una anterior
+        
+        toast.success("¡Aula ENERGIZADA y sesión registrada con éxito!");
+      } else {
+        const errorData = await responseSesion.json();
+        console.error("Error del servidor:", errorData);
+        toast.error("Aula encendida, pero falló el registro en base de datos.");
+      }
+    } catch (error) {
+      console.error("Error de conexión:", error);
+      toast.error("Error de conexión con el servidor.");
+    }
+    
+  } 
+  // ==========================================
+  // 🔴 LÓGICA DE APAGADO
+  // ==========================================
+  else {
+    toast.info("Apagando aula y registrando salida...");
+    
+    try {
+      // Recuperamos el ID exacto que guardamos al encender
+      const sesionId = localStorage.getItem('sesionActivaId') || "";
+      
+      if (!sesionId) {
+        toast.warning("El aula se apagó, pero no se encontró una sesión activa para cerrar.");
+        return; 
+      }
+
+      const responseCierre = await fetch(`http://127.0.0.1:8000/api/sesiones/finalizar?sesion_id=${sesionId}`, {
+        method: "POST"
+      });
+
+      if (responseCierre.ok) {
+        const dataCierre = await responseCierre.json();
+        
+        // 🟢 ¡AQUÍ ESTÁ LA LÍNEA QUE FALTABA! Disparamos el PDF antes de limpiar la memoria
+        console.log("Enviando orden al backend para generar PDF...");
+        await solicitarReporteAsistenciaPDF(sesionId);
+
+        // Limpiamos la memoria
+        localStorage.removeItem('sesionActivaId'); 
+        localStorage.removeItem('horaInicio'); 
+        
+        // Formatear hora de fin
+        const fechaSalida = new Date(dataCierre.hora_salida);
+        horaFin.value = fechaSalida.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+        
+        // 🟡 NUEVO: Actualizar la tarjeta amarilla
+        tiempoExtra.value = dataCierre.tiempo_extra;
+
+        toast.success("¡Aula APAGADA y sesión finalizada en Dataverse!");
+      }
+       else {
+        const errorData = await responseCierre.json();
+        console.error("Error del servidor al cerrar:", errorData);
+        toast.error("El aula se apagó, pero falló el registro de salida.");
+      }
+    } catch (error) {
+      console.error("Error de conexión:", error);
+      toast.error("Error de conexión con el servidor al cerrar.");
+    }
+  }
 };
 
 const toggleNodePower = (node) => {
@@ -176,11 +299,9 @@ const toggleNodePower = (node) => {
   }
 };
 
-// --- SUBSISTEMA DE ALERTAS Y ACCIONES ---
+// --- SUBSISTEMA DE ALERTAS Y MODALES ---
 const handleAlertResolution = (alertId) => {
-  systemAlerts.value = systemAlerts.value.filter(
-    (alert) => alert.id !== alertId,
-  );
+  systemAlerts.value = systemAlerts.value.filter((alert) => alert.id !== alertId);
   toast.success("Alerta resuelta exitosamente.");
 };
 
@@ -203,25 +324,63 @@ const handleExitConfirm = (reason) => {
   closeModal();
 };
 
-onMounted(() => {
+// --- CICLO DE VIDA (Tu conexión real a FastAPI y Dataverse) ---
+onMounted(async () => {
+  // 1. Guardián de Seguridad del Equipo
   if (!hasRole(["instructor", "dinamizador"])) {
     toast.error("Acceso denegado. Se requiere perfil de Instructor.");
     router.push("/route-selector");
+    return;
   }
 
-  const storedFicha = localStorage.getItem("active_ficha");
-  if (storedFicha) {
-    activeFicha.value = JSON.parse(storedFicha);
-  }
-
+  // 2. Reloj
   setInterval(() => {
     currentTime.value = new Date().toLocaleTimeString();
   }, 1000);
+
+  // 3. Tus variables reales de localStorage
+  fichaActiva.value = localStorage.getItem('fichaActiva') || "Sin Ficha";
+  nombrePrograma.value = localStorage.getItem('nombrePrograma') || "Programa no definido";
+  nombreInstructor.value = localStorage.getItem('nombreInstructor') || "Instructor";
+
+  if (fichaActiva.value === "Sin Ficha") {
+    toast.error("No hay una ficha activa. Redirigiendo...");
+    router.push("/route-selector");
+    return;
+  }
+
+  // 4. Tu llamada a FastAPI
+  try {
+    const response = await fetch(`http://127.0.0.1:8000/api/fichas/${fichaActiva.value}/aprendices`);
+    
+    if (!response.ok) {
+      throw new Error("No se encontraron aprendices para esta ficha.");
+    }
+
+    const data = await response.json();
+    
+    // Mapeo real de datos
+    apprentices.value = data.map((ap) => ({
+      id: ap.documento,
+      name: ap.nombre || 'Sin Nombre',
+      doc: ap.documento,
+      email: ap.correo,
+      status: "absent", 
+      lastSeen: "Esperando ingreso",
+      absences: 0,
+      enum: "N/A",
+      history: []
+    }));
+
+  } catch (error) {
+    console.error("Error consultando aprendices:", error);
+    toast.warning("El aula está lista, pero no hay aprendices registrados.");
+  } finally {
+    isLoading.value = false;
+  }
 });
 
-onUnmounted(() => {
-  clearInterval(qrInterval);
-});
+
 </script>
 
 <template>
@@ -240,8 +399,8 @@ onUnmounted(() => {
         <div class="environment-badge">
           <h1>AMBIENTE 402</h1>
           <p class="header-meta">
-            Ficha: {{ activeFicha.numero }} | {{ activeFicha.programa }} |
-            <span>{{ currentTime }}</span>
+            Ficha: {{ fichaActiva }} - {{ nombrePrograma }} | Instructor: {{ nombreInstructor }} |
+           <span>{{ currentTime }}</span>
           </p>
         </div>
       </div>
@@ -259,6 +418,39 @@ onUnmounted(() => {
         </button>
       </div>
     </header>
+    <div class="time-cards-container">
+      
+      <div class="time-card start-card">
+        <div class="icon-box">
+          <font-awesome-icon icon="fa-solid fa-clock" />
+        </div>
+        <div class="info-box">
+          <p class="card-title">Hora de Inicio</p>
+          <p class="card-value">{{ horaInicio }}</p>
+        </div>
+      </div>
+
+      <div class="time-card end-card">
+        <div class="icon-box">
+          <font-awesome-icon icon="fa-solid fa-trash" />
+        </div>
+        <div class="info-box">
+          <p class="card-title">Hora de Cierre</p>
+          <p class="card-value">{{ horaFin }}</p>
+        </div>
+      </div>
+
+      <div class="time-card extra-card">
+        <div class="icon-box">
+          <font-awesome-icon icon="fa-solid fa-triangle-exclamation" />
+        </div>
+        <div class="info-box">
+          <p class="card-title">Tiempo Extra</p>
+          <p class="card-value">{{ tiempoExtra }}</p>
+        </div>
+      </div>
+
+    </div>
 
     <main class="dash-grid">
       <section class="dash-col energy-section">
@@ -330,7 +522,7 @@ onUnmounted(() => {
           <button
             class="btn-action qr"
             :class="{ 'btn-active': qrProjected }"
-            @click="qrProjected ? closeQrModal() : openQrModal()"
+            @click="qrProjected = !qrProjected"
           >
             <font-awesome-icon icon="fa-solid fa-qrcode" />
             <span>{{ qrProjected ? "OCULTAR QR" : "MOSTRAR QR" }}</span>
@@ -428,67 +620,25 @@ onUnmounted(() => {
       </section>
     </main>
 
-    <div v-if="qrProjected" class="qr-overlay" @click="closeQrModal">
-      <div class="qr-modal" @click.stop>
-        <h3>CÓDIGO QR DE ASISTENCIA AMBIENTE 402</h3>
+    <QrModal
+      :show="qrProjected"
+      :fichaActiva="fichaActiva"
+      @close="qrProjected = false"
+    />
 
-        <div class="qr-container-proyector">
-          <qrcode-vue :value="qrPayload" :size="220" level="M" />
-        </div>
+    <PinKeypadModal 
+      :isLoading="isValidatingPin" 
+      :show="showPinModal" 
+      @close="showPinModal = false" 
+      @submit="handlePinSubmit"
+    />
 
-        <p>
-          Abre VoltMind Access en tu teléfono, selecciona "ESCANEAR" y apunta a
-          la pantalla para registrar tu asistencia.
-        </p>
-        <button class="btn-close-overlay" @click="closeQrModal">
-          CERRAR PANTALLA COMPARTIDA
-        </button>
-      </div>
-    </div>
-
-    <div v-if="showPinModal" class="qr-overlay" @click="showPinModal = false">
-      <div class="qr-modal pin-modal" @click.stop>
-        <h3>VALIDACIÓN POR PIN DINÁMICO</h3>
-        <p class="pin-instruction">
-          Digite el código generado por el dispositivo del aprendiz.
-        </p>
-
-        <div class="pin-display" :class="{ 'is-loading': isValidatingPin }">
-          {{
-            isValidatingPin
-              ? "Sincronizando..."
-              : pinDigits.padEnd(4, "•").split("").join(" ")
-          }}
-        </div>
-
-        <div
-          class="keypad"
-          :style="{
-            pointerEvents: isValidatingPin ? 'none' : 'auto',
-            opacity: isValidatingPin ? 0.5 : 1,
-          }"
-        >
-          <button v-for="n in 9" :key="n" class="btn-key" @click="pressKey(n)">
-            {{ n }}
-          </button>
-          <button class="btn-key action-key" @click="clearPin">
-            <font-awesome-icon icon="fa-solid fa-arrow-left" />
-          </button>
-          <button class="btn-key" @click="pressKey(0)">0</button>
-          <button
-            class="btn-key submit-key"
-            @click="submitPin"
-            :disabled="pinDigits.length !== 4"
-          >
-            <font-awesome-icon icon="fa-solid fa-check" />
-          </button>
-        </div>
-
-        <button class="btn-close-overlay" @click="showPinModal = false">
-          CANCELAR
-        </button>
-      </div>
-    </div>
+    <FirmaModal 
+      v-if="showFirmaModal"
+      :apprenticeName="aprendizSeleccionadoParaFirmar.name"
+      @close="showFirmaModal = false"
+      @save="procesarRegistroFirmaAsistencia"
+    />
 
     <ProfileModal
       v-if="activeModal === 'profile'"
@@ -506,6 +656,7 @@ onUnmounted(() => {
       @close="closeModal"
       @confirm="handleExitConfirm"
     />
+    <DarkModeToggle />
   </div>
 </template>
 
@@ -763,7 +914,7 @@ onUnmounted(() => {
   border-style: solid;
 }
 .map-node:hover:not(:disabled) {
-  background: #ffffff;
+  background: var(--fondo-tarjetas);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 .map-node:disabled {
@@ -828,6 +979,19 @@ onUnmounted(() => {
   background: var(--sena-verde);
   color: var(--sena-blanco);
   border-color: var(--sena-verde-oscuro);
+}
+.btn-action.qr:hover:not(.btn-active) {
+  border-color: var(--sena-verde);
+  color: var(--sena-verde);
+  background: rgba(57, 169, 0, 0.1);
+}
+.btn-action.nfc:hover:not(.btn-active) {
+  border-color: var(--sena-azul-oscuro);
+  color: var(--sena-azul-oscuro);
+  background: rgba(0, 48, 64, 0.05);
+}
+[data-theme="dark"] .btn-action.nfc:hover:not(.btn-active) {
+  background: rgba(80, 229, 249, 0.1);
 }
 .btn-action.pin:hover {
   border-color: var(--sena-amarillo);
@@ -913,65 +1077,8 @@ onUnmounted(() => {
 }
 
 /* ==========================================================================
-   ZONA PROYECTOR DE QR (BLANCO INSTITUCIONAL Y ANTIFRAUDE)
+   ZONA PROYECTOR DE QR (ABS-EXTRACTED TO QrModal.vue)
    ========================================================================== */
-.qr-overlay {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 48, 64, 0.6);
-  backdrop-filter: blur(8px);
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1rem;
-}
-.qr-modal {
-  background: var(--sena-blanco);
-  color: var(--sena-azul-oscuro);
-  text-align: center;
-  max-width: 400px;
-  padding: 2rem;
-  border-radius: 20px;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-}
-.qr-modal h3 {
-  font-size: 1rem;
-  font-weight: 800;
-  margin: 0;
-}
-
-.qr-container-proyector {
-  background: #ffffff;
-  padding: 1.5rem;
-  border-radius: 16px;
-  display: inline-block;
-  margin: 1.5rem 0;
-  box-shadow: 0 8px 24px rgba(0, 48, 64, 0.1);
-  border: 1px solid var(--borde);
-  transition: transform 0.2s ease;
-}
-
-.qr-modal p {
-  font-size: 0.85rem;
-  color: var(--texto-secundario);
-  line-height: 1.5;
-  margin-bottom: 2rem;
-}
-.btn-close-overlay {
-  background: var(--sena-azul-oscuro);
-  color: var(--sena-blanco);
-  border: none;
-  padding: 12px 16px;
-  border-radius: 10px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  width: 100%;
-  cursor: pointer;
-}
-.btn-close-overlay:hover {
-  background: var(--sena-verde-oscuro);
-}
 
 /* ==========================================================================
    ESTILOS DEL TECLADO NUMÉRICO (PIN MODAL)
@@ -1072,5 +1179,81 @@ onUnmounted(() => {
   color: var(--texto-secundario);
   cursor: not-allowed;
   opacity: 0.5;
+}
+
+/* ==========================================
+   ESTILOS DE LAS TARJETAS DE TIEMPO
+   ========================================== */
+.time-cards-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin: 20px 0 30px 0;
+}
+
+.time-card {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  background-color: var(--fondo-tarjetas);
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+  border-left: 5px solid var(--borde);
+}
+
+/* Modificadores por color */
+.start-card { border-left-color: var(--sena-verde-oscuro); }
+.end-card { border-left-color: #f43f5e; }
+.extra-card { border-left-color: var(--sena-amarillo); }
+
+.icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16px;
+  flex-shrink: 0;
+}
+
+/* AQUÍ DOMAMOS LOS TAMAÑOS DE LOS ÍCONOS */
+.icon-box svg {
+  width: 24px !important;
+  height: 24px !important;
+}
+
+.icon-box font-awesome-icon {
+  font-size: 1.5rem;
+}
+
+/* Colores de fondo y texto de los íconos */
+.start-card .icon-box { background-color: #d1fae5; color: #059669; }
+.end-card .icon-box { background-color: #ffe4e6; color: #e11d48; }
+.extra-card .icon-box { background-color: #fef3c7; color: #d97706; }
+
+.info-box {
+  display: flex;
+  flex-direction: column;
+}
+
+.card-title {
+  font-size: 0.85rem;
+  color: var(--texto-secundario);
+  margin: 0 0 4px 0;
+  font-weight: 500;
+}
+
+.card-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--texto-principal);
+  margin: 0;
+}
+
+/* Parche de seguridad para el botón de apagado gigante */
+.power-switch svg {
+  width: 1.5rem;
+  height: 1.5rem;
 }
 </style>

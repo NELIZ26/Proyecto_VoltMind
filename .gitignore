@@ -1,3 +1,7 @@
+**/.env
+**/venv/
+**/__pycache__/
+**/node_modules/
 # --- Dependencias de Node ---
 node_modules/
 dist/
@@ -54,3 +58,11 @@ Thumbs.db
 ehthumbs.db
 Desktop.ini
 .DS_Store
+
+# --- Ignorar archivos Markdown (excluyendo el README.md) ---
+*.md
+!README.md
+
+# --- Archivos de ejemplo que no deben ser versionados ---
+frontend/src/components/ExampleGlobalStyles.vue
+

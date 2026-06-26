@@ -1,37 +1,54 @@
 /* ==========================================================================
-   1. IMPORTACIÓN DE FUENTES (Obligatoria: Inter)
+   1. IMPORTACIÓN DE FUENTES (Obligatoria: Work Sans)
    ========================================================================== */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700;800&display=swap');
 
 /* ==========================================================================
    2. VARIABLES DE COLOR OFICIALES SENA 2024
    ========================================================================== */
+
 :root {
   /* Tipografía Corporativa Forzada */
-  --fuente-principal: 'Inter', sans-serif;
-
+  --fuente-principal: "Work Sans", sans-serif;
   /* Color Principal */
-  --sena-verde: #39A900; 
-
+  --sena-verde: #39a900;
   /* Colores Secundarios */
   --sena-verde-oscuro: #007832;
   --sena-azul-oscuro: #003040;
-  --sena-azul-claro: #50E5F9;
-  --sena-violeta: #71277A;
-  --sena-amarillo: #FDC300;
-
+  --sena-azul-claro: #50e5f9;
+  --sena-violeta: #71277a;
+  --sena-amarillo: #fdc300;
   /* Colores Neutros y Fondos (Caso 1 - Blanco Predominante) */
   --sena-blanco: #ffffff;
   --sena-negro: #000000;
-  --sena-gris-claro: #F6F6F6;
-
+  --sena-gris-claro: #f8f9fa;
+  --sena-gris-fondo: #f8f9fa;
   /* PALETA DE INTERFAZ (Aplicada a componentes) */
-  --fondo-app: var(--sena-gris-claro); 
+  --fondo-app: var(--sena-gris-claro);
   --fondo-tarjetas: var(--sena-blanco);
-  --texto-principal: var(--sena-azul-oscuro); 
-  --texto-secundario: #555555; /* Gris oscuro para legibilidad estándar */
-  --borde: #E0E0E0; /* Gris sutil para separar elementos en fondos blancos */
+  --texto-principal: var(--sena-azul-oscuro);
+  --texto-secundario: #555555;
+  /* Gris oscuro para legibilidad estándar */
+  --borde: #e0e0e0;
+  /* Gris sutil para separar elementos en fondos blancos */
 }
+
+/* ==========================================================================
+   TEMA OSCURO (DARK MODE)
+   ========================================================================== */
+[data-theme="dark"] {
+  --fondo-app: #121212;
+  --fondo-tarjetas: #1e1e1e;
+  --texto-principal: #ffffff;
+  --texto-secundario: #a0a0a0;
+  --borde: #333333;
+  --sombra-suave: rgba(0, 0, 0, 0.3);
+  --sombra-media: rgba(0, 0, 0, 0.5);
+  --sena-azul-oscuro: #50E5F9;
+  --sena-gris-claro: #484949;
+}
+
 
 /* ==========================================================================
    3. RESET DE CAJA Y HERENCIA ESTRICTA
@@ -52,24 +69,29 @@ body {
 }
 
 /* Evita que los inputs y botones usen las fuentes por defecto del sistema en teléfonos */
-input, select, textarea, button {
+
+input,
+select,
+textarea,
+button {
   font-family: var(--fuente-principal);
 }
 
 /* ==========================================================================
    4. CLASES DE UTILIDAD GENERAL (CSS PURO)
    ========================================================================== */
+
 .icon-margin {
   margin-right: 10px;
 }
 
-.bg-sena { 
-  background-color: var(--sena-verde); 
-  color: white; 
+.bg-sena {
+  background-color: var(--sena-verde);
+  color: white;
 }
 
-.text-sena { 
-  color: var(--sena-verde); 
+.text-sena {
+  color: var(--sena-verde);
 }
 
 /* Botón Primario Estándar para vistas generales (Fichas, Dashboards, etc.) */

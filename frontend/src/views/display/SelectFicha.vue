@@ -3,6 +3,7 @@ import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 import { useRole } from "@/composables/useRole";
+import DarkModeToggle from "@/components/DarkModeToggle.vue";
 
 const router = useRouter();
 const toast = useToast();
@@ -11,50 +12,89 @@ const { hasRole } = useRole();
 // Estado para la animación de carga
 const connectingId = ref(null);
 
-const fichas = [
-  {
-    id: 1,
-    numero: "2997671",
-    programa: "Análisis y Desarrollo de Software",
-    jornada: "Mañana",
-  },
-  { id: 2, numero: "2800500", programa: "Sistemas", jornada: "Tarde" },
-  {
-    id: 3,
-    numero: "3001234",
-    programa: "Gestión Administrativa",
-    jornada: "Mañana",
-  },
-  {
-    id: 4,
-    numero: "2856789",
-    programa: "Mantenimiento de Equipos de Cómputo",
-    jornada: "Noche",
-  },
-];
+// Variables reactivas
+const fichas = ref([]);
+const isLoading = ref(true);
 
-const seleccionarFicha = (ficha) => {
-  // 1. Activamos el estado de carga visual
-  connectingId.value = ficha.id;
-  toast.info(`Sincronizando Ambiente 402 con Ficha ${ficha.numero}...`);
-
-  // 2. Simulamos el tiempo de respuesta del Backend (FastAPI / Dataverse)
-  setTimeout(() => {
-    // 3. Guardamos la ficha en la sesión local para que el Dashboard la lea
-    localStorage.setItem("active_ficha", JSON.stringify(ficha));
-
-    toast.success("Conexión establecida. Iniciando telemetría.");
-    router.push("/dashboard");
-  }, 1200);
-};
-
-// Protección de la vista al cargar
-onMounted(() => {
+// 1. UNIFICAMOS EL CICLO DE VIDA (Protección + Consulta)
+onMounted(async () => {
+  // A) Primero protegemos la ruta (Lógica del equipo)
   if (!hasRole(["instructor", "dinamizador"])) {
     toast.error("Acceso denegado. Se requiere credencial de Instructor.");
     router.push("/route-selector");
+    return; // Detenemos la ejecución si no tiene permiso
+  }
+
+  // B) Luego hacemos tu consulta a la base de datos (Tu lógica)
+  const correoInstructor = localStorage.getItem('instructorEmail');
+
+  if (!correoInstructor) {
+    toast.error("No se encontró la sesión del instructor. Volviendo al inicio.");
+    router.push("/route-selector");
+    return;
+  }
+
+  try {
+    const response = await fetch(`http://127.0.0.1:8000/api/fichas/${correoInstructor}`);
+    
+    if (!response.ok) {
+      throw new Error("No se encontraron fichas para este instructor.");
+    }
+    
+    const data = await response.json();
+    
+    // Mapeamos para el diseño
+    fichas.value = data.map((ficha, index) => ({
+      id: index + 1,
+      numero: ficha.numero_ficha,
+      programa: ficha.nombre_programa,
+      instructor: ficha.instructor, // Aseguramos traer al instructor del backend
+      jornada: "Asignada"
+    }));
+
+  } catch (error) {
+    console.error("Error consultando la base de datos:", error);
+    toast.error("No se pudieron cargar las fichas asignadas.");
+  } finally {
+    isLoading.value = false;
   }
 });
+
+// 2. ARREGLAMOS LA FUNCIÓN DE SELECCIÓN (Animación + Guardado real)
+const seleccionarFicha = (ficha) => {
+  console.log("Iniciando sincronización con ficha:", ficha); 
+  
+  // A) Activamos la animación de tu equipo INMEDIATAMENTE
+  connectingId.value = ficha.id;
+  toast.info(`Sincronizando Ambiente 402 con Ficha ${ficha.numero}...`);
+
+  // B) Preparamos TUS datos correctos para Dataverse
+  const numeroAguardar = ficha.numero || "Sin Número";
+  const programaAguardar = ficha.programa || "Programa no definido";
+  let instructorAguardar = ficha.instructor || localStorage.getItem('instructorEmail') || "Instructor SENA";
+
+  // 🥷 TRUCO NINJA FRONTEND: Transformamos el correo en Nombre Real
+  if (instructorAguardar.includes('@')) {
+    // 1. Cortamos todo lo que está después del @ (nos quedamos con "FerleyTobon")
+    let soloNombre = instructorAguardar.split('@')[0]; 
+    // 2. Le ponemos un espacio entre las mayúsculas (queda "Ferley Tobon")
+    instructorAguardar = soloNombre.replace(/([a-z])([A-Z])/g, '$1 $2'); 
+  }
+
+  // C) Simulamos la carga y luego guardamos (Unimos ambos mundos)
+  setTimeout(() => {
+    // Guardamos tus variables limpias para el Dashboard
+    localStorage.setItem('fichaActiva', numeroAguardar);
+    localStorage.setItem('nombrePrograma', programaAguardar); 
+    // ¡Aquí ahora viaja el nombre limpio, sin el correo!
+    localStorage.setItem('nombreInstructor', instructorAguardar); 
+
+    toast.success("Conexión establecida. Iniciando telemetría.");
+    
+    // D) Hacemos UN SOLO redireccionamiento al final
+    router.push('/dashboard');
+  }, 1200);
+};
 </script>
 
 <template>
@@ -125,6 +165,7 @@ onMounted(() => {
         </button>
       </footer>
     </div>
+    <DarkModeToggle />
   </div>
 </template>
 

@@ -1,19 +1,137 @@
 <script setup>
+import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
+import { PublicClientApplication } from "@azure/msal-browser";
+import { useAuthStore } from "@/stores/auth";
+import DarkModeToggle from "@/components/DarkModeToggle.vue";
 
 const router = useRouter();
 const toast = useToast();
+const authStore = useAuthStore();
+const isLoggingIn = ref(false);
 
-const handleAzureLogin = () => {
-  // 1. Simulación de respuesta exitosa del Active Directory de Azure
-  toast.success("Autenticación institucional exitosa con Microsoft");
+// 1. Configuración de MSAL
+const msalConfig = {
+  auth: {
+    clientId: "d5c704a2-4bd3-4675-9822-7bdf35edfec6", 
+    authority: "https://login.microsoftonline.com/organizations", 
+    redirectUri: window.location.origin, 
+    navigateToLoginRequestUrl: false, 
+  },
+  cache: {
+    cacheLocation: "sessionStorage", 
+    storeAuthStateInCookie: false,
+  }
+};
 
-  // 2. Despacho inmediato hacia el entorno de desarrollo / selector de interfaces
-  router.push("/route-selector");
+const msalInstance = new PublicClientApplication(msalConfig);
+
+// 2. FUNCIÓN CENTRALIZADA: Enrutamiento Inteligente con Enriquecimiento de Perfil (RBAC)
+const processLoginSuccess = async (account) => {
+  const userName = account.name;
+  const userEmail = account.username;
+  
+  // Guardamos inicialmente en el store de Pinia
+  authStore.setSession(userEmail, userName);
+  
+  // Extraemos el dominio del correo pasándolo todo a minúsculas
+  const domain = userEmail.split('@')[1]?.toLowerCase();
+
+  if (domain === 'soy.sena.edu.co') {
+    toast.info("Verificando registro académico en Dataverse...");
+
+    try {
+      // 🟢 CONSULTA AL BACKEND: Cruzamos el correo de Microsoft con Dataverse
+      const response = await fetch(`http://127.0.0.1:8000/api/usuarios/perfil?email=${userEmail}`);
+      
+      if (response.ok) {
+        const perfilCompleto = await response.json();
+
+        // Guardamos el objeto estructurado JSON (el que lee JSON.parse en el carnet)
+        localStorage.setItem("userData", JSON.stringify(perfilCompleto));
+        
+        // Guardamos las llaves individuales para asegurar compatibilidad total en el almacenamiento
+        localStorage.setItem("microsoft_user_name", perfilCompleto.full_name);
+        localStorage.setItem("microsoft_user_email", perfilCompleto.email);
+        localStorage.setItem("microsoft_user_doc", perfilCompleto.documento);
+        localStorage.setItem("microsoft_user_ficha", perfilCompleto.ficha);
+        localStorage.setItem("fichaActiva", perfilCompleto.ficha);
+        
+        localStorage.setItem("user_role", "aprendiz");
+        
+        toast.success(`¡Bienvenido, ${perfilCompleto.full_name}! Cargando carnet digital...`);
+        
+        // Redirección directa al carnet ahora que la memoria está llena y es dinámica
+        router.push("/card"); 
+
+      } else {
+        const err = await response.json();
+        console.error("Error de vinculación:", err.detail);
+        toast.error(err.detail || "Autenticado en Microsoft, pero no estás registrado en Dataverse.");
+      }
+    } catch (error) {
+      console.error("Error conectando con FastAPI:", error);
+      toast.error("Error de conexión con el servidor central al validar tu perfil.");
+    }
+
+  } else if (domain === 'sena.edu.co' || domain === 'voltmind746.onmicrosoft.com') {
+    // RUTA DEL INSTRUCTOR
+    localStorage.setItem("user_role", "instructor");
+    localStorage.setItem("instructorEmail", userEmail); 
+    localStorage.setItem("instructorName", userName);
+    localStorage.setItem("nombreInstructor", userName.split(' ')[0]); // Primer nombre para el saludo corta
+    
+    toast.success(`Instructor Autenticado. Cargando panel operativo...`);
+    
+    // Cambiado directamente a la selección de ficha oficial
+    router.push("/select-ficha"); 
+
+  } else {
+    // SEGURIDAD: Bloquea dominios externos no autorizados
+    toast.error("Acceso denegado. Utilice exclusivamente su correo institucional del SENA.");
+  }
+};
+
+// 3. Procesar el regreso de la redirección de Microsoft (Modificado para soportar la función async)
+onMounted(async () => {
+  try {
+    await msalInstance.initialize();
+    
+    const response = await msalInstance.handleRedirectPromise();
+    
+    if (response) {
+      await processLoginSuccess(response.account);
+    } else {
+      const currentAccounts = msalInstance.getAllAccounts();
+      if (currentAccounts.length > 0) {
+        await processLoginSuccess(currentAccounts[0]);
+      }
+    }
+  } catch (error) {
+    console.error("Error procesando el regreso de MSAL:", error);
+    toast.error("Error al validar credenciales institucionales.");
+  }
+});
+
+// 4. Función del botón para iniciar el flujo
+const handleAzureLogin = async () => {
+  if (isLoggingIn.value) return;
+  isLoggingIn.value = true;
+
+  try {
+    const loginRequest = {
+      scopes: ["User.Read", "profile", "email"]
+    };
+
+    await msalInstance.loginRedirect(loginRequest);
+
+  } catch (error) {
+    console.error("Error al iniciar redirección:", error);
+    isLoggingIn.value = false;
+  }
 };
 </script>
-
 <template>
   <div class="login-shell">
     <div class="login-card">
@@ -73,6 +191,7 @@ const handleAzureLogin = () => {
         </div>
       </footer>
     </div>
+    <DarkModeToggle />
   </div>
 </template>
 
@@ -99,6 +218,15 @@ const handleAzureLogin = () => {
   background-image:
     linear-gradient(rgba(0, 48, 64, 0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(0, 48, 64, 0.03) 1px, transparent 1px);
+  background-size: 30px 30px;
+  mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
+  pointer-events: none;
+}
+
+[data-theme="dark"] .login-shell::before {
+  background-image:
+    linear-gradient(rgba(80, 229, 249, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(80, 229, 249, 0.04) 1px, transparent 1px);
   background-size: 30px 30px;
   mask-image: radial-gradient(circle at center, black 40%, transparent 80%);
   pointer-events: none;

@@ -67,13 +67,11 @@
         />
 
         <div class="user-info">
-          <h2 class="user-name">{{ userStore.name || "Aprendiz SENA" }}</h2>
-          <p class="user-email">
-            {{ userStore.email || "usuario@sena.edu.co" }}
-          </p>
+          <h2 class="user-name">{{ userStore.name }}</h2>
+          <p class="user-email">{{ userStore.email }}</p>
           <div class="user-meta">
             <span class="meta-tag tag-ficha">
-              <font-awesome-icon icon="fa-solid fa-graduation-cap" /> 2997671
+              <font-awesome-icon icon="fa-solid fa-graduation-cap" /> {{ userStore.ficha }}
             </span>
           </div>
         </div>
@@ -127,7 +125,7 @@
             icon="fa-solid fa-fingerprint"
             class="icon-brand-tech"
           />
-          VM-{{ idCode }}
+          VM-{{ userStore.doc }}
         </div>
         <div class="carnet-validity">
           <span class="live-dot" /> Vigente 2026
@@ -205,17 +203,21 @@
     </transition>
 
     <div class="voltmind-watermark">VoltMind Access</div>
+    <DarkModeToggle />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onUnmounted } from "vue";
+import { ref, computed, onUnmounted, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { QrcodeStream } from "vue-qrcode-reader"; // <-- Importamos el lector
+import { useToast } from "vue-toastification"; // 🟢 Agregado para alertas
+import { QrcodeStream } from "vue-qrcode-reader";
 import WaveTexture from "@/components/WaveTexture.vue";
 import UserAvatar from "@/components/UserAvatar.vue";
+import DarkModeToggle from "@/components/DarkModeToggle.vue";
 
 const router = useRouter();
+const toast = useToast();
 
 // --- ESTADOS ---
 const isValidated = ref(false);
@@ -226,24 +228,48 @@ const otpMessage = ref("Selecciona un método de validación.");
 const otpCode = ref("");
 const isGeneratingOtp = ref(false);
 const isNfcTransmitting = ref(false);
-const isScanningQr = ref(false); // Estado de la cámara
+const isScanningQr = ref(false);
 
 const otpSeconds = ref(0);
-const otpTimer = ref(null);
+let countdownInterval = null;
 
+// Estructura de almacenamiento reactivo mapeada con Microsoft Login
 const userStore = ref({
-  name: "Diego Alejandro Tobar",
-  email: "diego.tobar@sena.edu.co",
+  name: "Cargando...",
+  email: "usuario@sena.edu.co",
+  doc: "000000",
+  ficha: "000000",
   avatarUrl: "",
 });
 
-const idCode = computed(() => "2997671");
+const idCode = computed(() => userStore.value.doc);
 const otpDisplay = computed(() =>
   otpCode.value ? otpCode.value.split("").join(" ") : "----",
 );
 
+onMounted(() => {
+  const userDataString = localStorage.getItem('userData');
+  
+  if (userDataString) {
+    try {
+      const datosUsuario = JSON.parse(userDataString);
+      
+      userStore.value.name = datosUsuario.full_name || "Aprendiz SENA";
+      userStore.value.email = datosUsuario.email || "usuario@sena.edu.co";
+      
+      // 🟢 Cero datos quemados: toma directamente lo que recuperamos de Dataverse
+      userStore.value.doc = datosUsuario.documento || "00000000"; 
+      
+    } catch (e) {
+      console.error("Error leyendo datos del aprendiz:", e);
+    }
+  }
+
+  userStore.value.ficha = localStorage.getItem('fichaActiva') || "Sin ficha";
+});
+
 onUnmounted(() => {
-  clearOtpTimer();
+  if (countdownInterval) clearInterval(countdownInterval);
 });
 
 const showStatus = (msg, type = "info", duration = 3000) => {
@@ -254,82 +280,78 @@ const showStatus = (msg, type = "info", duration = 3000) => {
   }, duration);
 };
 
-const clearOtpTimer = () => {
-  if (otpTimer.value) {
-    clearInterval(otpTimer.value);
-    otpTimer.value = null;
-  }
-};
-
 const resetMethods = () => {
-  clearOtpTimer();
+  if (countdownInterval) clearInterval(countdownInterval);
   isValidated.value = false;
   otpCode.value = "";
   isScanningQr.value = false;
   isNfcTransmitting.value = false;
 };
 
-// 1. LÓGICA ESCÁNER QR (NUEVO)
+// 1. LÓGICA ESCÁNER QR
 const startQrScan = () => {
   resetMethods();
   isScanningQr.value = true;
 };
 
-// Evento que se dispara cuando la cámara lee un QR
 const onQrDetect = (detectedCodes) => {
   if (detectedCodes && detectedCodes.length > 0) {
-    const qrData = detectedCodes[0].rawValue; // Aquí tienes lo que dice el QR de la tablet
+    const qrData = detectedCodes[0].rawValue;
     isScanningQr.value = false;
     isValidated.value = true;
     showStatus("Código de aula validado exitosamente.", "success", 3000);
     console.log("Datos capturados del QR:", qrData);
-    // Aquí harías la petición a FastAPI enviando el qrData
   }
 };
 
-// Función mejorada para capturar problemas de permisos de cámara
 const onCameraError = (error) => {
-  isScanningQr.value = false; // Cerramos el modal de la cámara
-  
+  isScanningQr.value = false;
   let errorMsg = "Error desconocido de cámara.";
-
-  // Diccionario de errores nativos del navegador / OS
-  if (error.name === 'NotAllowedError') {
-    errorMsg = "Permiso denegado: Activa la cámara en tu navegador/teléfono.";
-  } else if (error.name === 'NotFoundError') {
-    errorMsg = "No se detectó ninguna cámara en el dispositivo.";
-  } else if (error.name === 'NotSupportedError' || error.name === 'InsecureContextError') {
-    errorMsg = "Seguridad: La cámara requiere entorno seguro (HTTPS).";
-  } else if (error.name === 'NotReadableError') {
-    errorMsg = "La cámara ya está siendo usada por otra aplicación.";
-  } else if (error.name === 'OverconstrainedError') {
-    errorMsg = "Las cámaras no cumplen los requisitos del sistema.";
-  } else if (error.name === 'StreamApiNotSupportedError') {
-    errorMsg = "Tu navegador no soporta streaming de video.";
-  }
-
-  showStatus(errorMsg, "error", 5000); // Mostramos el toast rojo por 5 segundos
+  if (error.name === 'NotAllowedError') errorMsg = "Permiso denegado: Activa la cámara.";
+  else if (error.name === 'NotFoundError') errorMsg = "No se detectó ninguna cámara.";
+  showStatus(errorMsg, "error", 5000);
 };
 
-// 2. LÓGICA PIN
-const generateOtp = () => {
+// 2. LÓGICA GENERACIÓN DE PIN DINÁMICO
+const generateOtp = async () => {
   resetMethods();
   isGeneratingOtp.value = true;
-  setTimeout(() => {
-    otpCode.value = Math.floor(1000 + Math.random() * 9000).toString();
+  otpMessage.value = "Generando código de seguridad...";
+  
+  try {
+    const response = await fetch(`http://127.0.0.1:8000/api/asistencia/generar-pin`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ 
+        documento_aprendiz: userStore.value.doc
+      })
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      otpCode.value = data.pin; 
+      otpMessage.value = "Muestra este PIN en la pantalla del instructor.";
+      
+      otpSeconds.value = 60;
+      countdownInterval = setInterval(() => {
+        otpSeconds.value--;
+        if (otpSeconds.value <= 0) {
+          clearInterval(countdownInterval);
+          otpCode.value = "";
+          otpMessage.value = "El PIN expiró. Genera uno nuevo.";
+          toast.warning("Tu código de validación ha caducado.");
+        }
+      }, 1000);
+
+    } else {
+      toast.error("No se pudo estructurar el token dinámico.");
+    }
+  } catch (error) {
+    console.error(error);
+    toast.error("Error de enlace con el servidor de telemetría.");
+  } finally {
     isGeneratingOtp.value = false;
-    otpMessage.value = "Ingresa este PIN en la tablet.";
-    otpSeconds.value = 30;
-    otpTimer.value = setInterval(() => {
-      otpSeconds.value = Math.max(0, otpSeconds.value - 1);
-      if (otpSeconds.value === 0) {
-        clearOtpTimer();
-        otpMessage.value = "PIN expirado.";
-        otpCode.value = "";
-      }
-    }, 1000);
-    showStatus("PIN temporal creado.", "success", 2000);
-  }, 500);
+  }
 };
 
 // 3. LÓGICA NFC

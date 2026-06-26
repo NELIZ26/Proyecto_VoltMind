@@ -3,6 +3,7 @@ import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import AlertPanel from "@/components/AlertPanel.vue";
 import { useRole } from "@/composables/useRole";
+import DarkModeToggle from "@/components/DarkModeToggle.vue";
 
 const router = useRouter();
 const { hasRole } = useRole();
@@ -130,6 +131,7 @@ onMounted(() => {
         />
       </section>
     </main>
+    <DarkModeToggle />
   </div>
 </template>
 

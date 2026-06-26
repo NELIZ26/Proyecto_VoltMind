@@ -115,6 +115,17 @@ Se utilizan variables globales de CSS para mantener la coherencia:
 
 ---
 
+## 🔄 Refactorizaciones y Modularización Reciente
+
+Con el fin de mantener un código desacoplado y fácil de mantener, se han extraído y modularizado funcionalidades clave:
+
+1. **`PinKeypadModal.vue`**: Modal del teclado de validación por PIN que administra localmente la entrada del usuario y notifica mediante eventos al dashboard para el proceso de firma digital.
+2. **`QrModal.vue`**: Proyector del código QR dinámico antifraude, el cual regenera tokens de seguridad cada 5 segundos de forma autónoma.
+3. **`DarkModeToggle.vue`**: Componente de alternancia de tema (Modo Claro / Modo Oscuro) con persistencia en `localStorage` y **activación automática por horario** a partir de las 7:00 PM (19:00).
+
+---
+
 > **⚠️ IMPORTANTE:** Nunca subas la carpeta `node_modules/` ni archivos `.env` al repositorio. Asegúrate de tener el archivo `.gitignore` configurado.
 
 ---
+

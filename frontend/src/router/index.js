@@ -1,20 +1,20 @@
-import { createRouter, createWebHashHistory } from "vue-router";
+import { createRouter, createWebHistory } from "vue-router"; // <-- Cambiado aquí
 
 const routes = [
   {
     path: "/",
-    redirect: "/route-selector", // Apuntamos directo al Sandbox de desarrollo por ahora
+    redirect: "/login", // Apuntamos directo al login por ahora
   },
   {
     path: "/login",
     name: "Login",
-    component: () => import("@/views/auth/Login.vue"),
+    component: () => import("@/views/display/DashboardInstru.vue"),
     meta: { title: "VoltMind Access - Iniciar Sesión", requiresAuth: false },
   },
   {
     path: "/route-selector",
     name: "RouteSelector",
-    component: () => import("@/views/auth/routeSelector.vue"),
+    component: () => import("@/views/display/DashboardCelador.vue"),
     meta: { title: "Entorno de Desarrollo - Sandbox", requiresAuth: false },
   },
   {
@@ -68,13 +68,62 @@ const routes = [
     },
   },
   {
+    path: "/admin",
+    component: () => import("@/layouts/AdminLayout.vue"),
+    meta: { requiresAuth: false }, // Sin restricción por ahora para facilitar pruebas
+    children: [
+      {
+        path: "dashboard",
+        name: "AdminDashboard",
+        component: () => import("@/views/admin/DashboardView.vue"),
+        meta: { title: "VoltMind Admin - Dashboard" }
+      },
+      {
+        path: "calculadora",
+        name: "AdminCalculadora",
+        component: () => import("@/views/admin/CalculadoraHorasView.vue"),
+        meta: { title: "VoltMind Admin - Calculadora" }
+      },
+      {
+        path: "fichas",
+        name: "AdminFichas",
+        component: () => import("@/views/admin/GestionFichasView.vue"),
+        meta: { title: "VoltMind Admin - Fichas" }
+      },
+      {
+        path: "instructores",
+        name: "AdminInstructores",
+        component: () => import("@/views/admin/InstructoresView.vue"),
+        meta: { title: "VoltMind Admin - Instructores" }
+      },
+      {
+        path: "aprendices",
+        name: "AdminAprendices",
+        component: () => import("@/views/admin/AprendicesView.vue"),
+        meta: { title: "VoltMind Admin - Aprendices" }
+      },
+      {
+        path: "ambientes",
+        name: "AdminAmbientes",
+        component: () => import("@/views/admin/AmbientesHorariosView.vue"),
+        meta: { title: "VoltMind Admin - Ambientes y Horarios" }
+      },
+      {
+        path: "iot",
+        name: "AdminIoT",
+        component: () => import("@/views/admin/ConfiguracionIoTView.vue"),
+        meta: { title: "VoltMind Admin - Configuración IoT" }
+      }
+    ]
+  },
+  {
     path: "/:pathMatch(.*)*",
-    redirect: "/route-selector",
+    redirect: "/login",
   },
 ];
 
 const router = createRouter({
-  history: createWebHashHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(import.meta.env.BASE_URL), // <-- Cambiado aquí también
   routes,
 });
 
@@ -92,7 +141,7 @@ router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth) {
     // Si no hay rol (nadie ha iniciado sesión o no pasaron por el selector)
     if (!userRole) {
-      return next("/route-selector"); // En producción, redirigirá a '/login'
+      return next("/login"); // En producción, redirigirá a '/login'
     }
 
     // Si el usuario tiene un rol, pero ese rol no está en la lista permitida de la ruta
@@ -100,7 +149,7 @@ router.beforeEach((to, from, next) => {
       console.warn(
         `Bloqueo de seguridad: El rol '${userRole}' intentó acceder a '${to.path}'`,
       );
-      return next("/route-selector"); // Rechazado. Lo devolvemos al Sandbox.
+      return next("/login"); // Rechazado. Lo devolvemos al login.
     }
   }
 

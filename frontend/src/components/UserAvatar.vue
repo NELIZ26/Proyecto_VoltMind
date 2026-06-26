@@ -8,8 +8,8 @@
   >
     <div class="avatar-inner">
       <img
-        v-if="src"
-        :src="src"
+        v-if="avatarSrc"
+        :src="avatarSrc"
         :alt="alt"
         class="avatar-img"
       />
@@ -46,7 +46,9 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue';
+
+const props = defineProps({
   src: {
     type: String,
     default: "",
@@ -63,6 +65,14 @@ defineProps({
     type: Boolean,
     default: false,
   }
+});
+
+const avatarSrc = computed(() => {
+  if (props.src) return props.src;
+  if (props.alt && props.alt !== 'Avatar del usuario') {
+    return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(props.alt)}`;
+  }
+  return '';
 });
 </script>
 
