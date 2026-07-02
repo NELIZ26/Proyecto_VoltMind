@@ -1,14 +1,13 @@
 # services/dataverse.py
+from email.utils import quote
 import os
 import msal
 import httpx
 from fastapi import HTTPException
 from dotenv import load_dotenv
 
-# Cargar variables de entorno del archivo .env
 load_dotenv()
 
-# Asignar los valores llamando a las variables exactas de tu .env
 TENANT_ID = os.getenv("AZURE_TENANT_ID")
 CLIENT_ID = os.getenv("AZURE_CLIENT_ID") 
 CLIENT_SECRET = os.getenv("AZURE_CLIENT_SECRET")
@@ -35,44 +34,59 @@ def obtener_token_dataverse() -> str:
         error_msg = resultado.get('error_description', 'Error desconocido de MSAL')
         raise Exception(f"Fallo al obtener el token: {error_msg}")
 
-async def cliente_dataverse() -> httpx.AsyncClient:
-    """Retorna un cliente HTTP asíncrono con las cabeceras globales de Dataverse."""
-    token = obtener_token_dataverse()
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Accept": "application/json",
-        "OData-MaxVersion": "4.0",
-        "OData-Version": "4.0",
-        "Prefer": 'odata.include-annotations="*"'
-    }
-    return httpx.AsyncClient(base_url=f"{DATAVERSE_URL}/api/data/v9.2/", headers=headers)
+# 🚀 NUEVO: Interceptor de Autenticación
+class DataverseAuth(httpx.Auth):
+    """Inyecta el token y las cabeceras requeridas en cada petición HTTP de forma dinámica."""
+    def auth_flow(self, request: httpx.Request):
+        token = obtener_token_dataverse()
+        request.headers["Authorization"] = f"Bearer {token}"
+        request.headers["Accept"] = "application/json"
+        request.headers["OData-MaxVersion"] = "4.0"
+        request.headers["OData-Version"] = "4.0"
+        request.headers["Prefer"] = 'odata.include-annotations="*"'
+        yield request
 
+# 🚀 NUEVO: Cliente Singleton Global
+# Se instancia una sola vez cuando arranca FastAPI
+_cliente_dataverse_global = httpx.AsyncClient(
+    base_url=f"{DATAVERSE_URL}/api/data/v9.2/",
+    auth=DataverseAuth(),
+    timeout=15.0  # Buena práctica: evitar que peticiones huérfanas bloqueen el servidor
+)
 
+def obtener_cliente() -> httpx.AsyncClient:
+    """Retorna la instancia global del cliente HTTP."""
+    return _cliente_dataverse_global
+
+# Adaptación de la función existente
 async def consultar_dataverse(query: str) -> dict:
+    # Ahora usamos el cliente global sin cerrarlo
+    client = obtener_cliente()
+    try:
+        response = await client.get(query)
+        response.raise_for_status() 
+        return response.json()
+    except httpx.HTTPStatusError as exc:
+        print(f"Error HTTP de Dataverse al pedir {query}: {exc.response.text}")
+        raise HTTPException(
+            status_code=exc.response.status_code, 
+            detail="Fallo en la consulta a la base de datos de Dataverse."
+        )
+    except Exception as exc:
+        print(f"Error inesperado conectando con Dataverse: {exc}")
+        raise HTTPException(
+            status_code=500, 
+            detail="Error interno del servidor al conectar con Dataverse."
+        )
+
+def sanitizar_odata(texto: str) -> str:
     """
-    Ejecuta una consulta GET en Dataverse usando el query o endpoint especificado.
-    Retorna el resultado en formato de diccionario de Python (JSON).
+    Limpia el texto ingresado por el usuario para evitar inyecciones OData.
+    1. Duplica las comillas simples para neutralizarlas.
+    2. Codifica el texto a formato URL (%20, etc.).
     """
-    async with await cliente_dataverse() as client:
-        try:
-            # Hacemos la petición GET a Dataverse
-            response = await client.get(query)
-            
-            # Si el código de estado no es 200 OK, lanza un error HTTPStatusError
-            response.raise_for_status() 
-            
-            # Devolvemos el cuerpo de la respuesta convertido a JSON
-            return response.json()
-            
-        except httpx.HTTPStatusError as exc:
-            print(f"Error HTTP de Dataverse al pedir {query}: {exc.response.text}")
-            raise HTTPException(
-                status_code=exc.response.status_code, 
-                detail="Fallo en la consulta a la base de datos de Dataverse."
-            )
-        except Exception as exc:
-            print(f"Error inesperado conectando con Dataverse: {exc}")
-            raise HTTPException(
-                status_code=500, 
-                detail="Error interno del servidor al conectar con Dataverse."
-            )
+    if not texto:
+        return ""
+        
+    texto_limpio = texto.replace("'", "''")
+    return quote(texto_limpio)

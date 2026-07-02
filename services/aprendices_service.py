@@ -1,53 +1,78 @@
-from services.dataverse import cliente_dataverse
+from services.dataverse import obtener_cliente, sanitizar_odata
 from fastapi import HTTPException
-import json # Importamos json para formatear la respuesta
+from core.logger import log  # 🟢 Importamos el logger profesional
 
 async def consultar_aprendices_por_ficha(numero_ficha: str) -> list:
-    numero_limpio = numero_ficha.strip()
-    
-    print("\n================ DEBUG DATAVERSE ================")
-    print(f"1. Buscando ficha exacta: '{numero_limpio}'")
+    # 🛡️ Aplicamos el escudo OData
+    numero_limpio = sanitizar_odata(numero_ficha.strip())
 
-    async with await cliente_dataverse() as client:
-        # --- PASO 1 ---
-        url_ficha = f"cr6a3_fichas?$filter=cr6a3_numero_ficha eq '{numero_limpio}'"
-        print(f"2. URL generada: {url_ficha}")
+    log.info(f"Iniciando consulta para la ficha exacta: '{numero_limpio}'")
 
-        res_ficha = await client.get(url_ficha)
-        print(f"3. Código de Estado Dataverse (Ficha): {res_ficha.status_code}")
+    client = obtener_cliente()
 
-        if res_ficha.status_code != 200:
-            print(f"   ❌ ERROR DE DATAVERSE: {res_ficha.text}")
-            raise HTTPException(status_code=res_ficha.status_code, detail="Error en consulta")
+    url_ficha = (
+        f"cr6a3_fichas?"
+        f"$filter=cr6a3_numero_ficha eq '{numero_limpio}'"
+        f"&$select=cr6a3_fichaid,cr6a3_numero_ficha"
+    )
 
-        datos_ficha = res_ficha.json().get("value", [])
-        print(f"4. Fichas encontradas: {len(datos_ficha)}")
+    # Usamos debug para URLs o datos técnicos que solo importan al rastrear un fallo
+    log.debug(f"URL generada para consulta de ficha: {url_ficha}")
 
-        if len(datos_ficha) == 0:
-            print("   💥 DATAVERSE DEVOLVIÓ VACÍO. (El número no coincide o la columna se llama distinto)")
-            print("=================================================\n")
-            raise HTTPException(status_code=404, detail="La ficha no existe.")
+    res_ficha = await client.get(url_ficha)
 
-        ficha_id = datos_ficha[0].get("cr6a3_fichaid")
-        print(f"5. ID interno de la ficha (GUID): {ficha_id}")
+    if res_ficha.status_code != 200:
+        log.error(f"Error de Dataverse al consultar ficha '{numero_limpio}'. Status: {res_ficha.status_code}. Detalle: {res_ficha.text}")
+        raise HTTPException(
+            status_code=res_ficha.status_code,
+            detail="Error en consulta de la ficha en Dataverse"
+        )
 
-        # --- PASO 2 ---
-        columnas = "cr6a3_documento_de_identidad,cr6a3_correo_electronico,cr6a3_nombre_completo"
-        url_aprendices = f"cr6a3_aprendizs?$filter=_cr6a3_fichavinculad_value eq '{ficha_id}'&$select={columnas}"
-        print(f"6. Buscando aprendices vinculados...")
+    datos_ficha = res_ficha.json().get("value", [])
 
-        res_aprendices = await client.get(url_aprendices)
-        print(f"7. Código de Estado Dataverse (Aprendices): {res_aprendices.status_code}")
-        
-        datos_aprendices = res_aprendices.json().get("value", [])
-        print(f"8. Total de aprendices hallados: {len(datos_aprendices)}")
-        print("=================================================\n")
+    if not datos_ficha:
+        # Un 404 esperado es un warning, no un error de caída del servidor
+        log.warning(f"Dataverse devolvió vacío. La ficha '{numero_limpio}' no existe en el sistema.")
+        raise HTTPException(
+            status_code=404,
+            detail="La ficha no existe."
+        )
 
-        return [
-            {
-                "documento": ap.get("cr6a3_documento_de_identidad"),
-                "correo": ap.get("cr6a3_correo_electronico"),
-                "nombre": ap.get("cr6a3_nombre_completo")
-            }
-            for ap in datos_aprendices
-        ]
+    ficha_id = datos_ficha[0]["cr6a3_fichaid"]
+    log.debug(f"Ficha encontrada. ID interno (GUID): {ficha_id}")
+
+    columnas = (
+        "cr6a3_documento_de_identidad,"
+        "cr6a3_correo_electronico,"
+        "cr6a3_nombre_completo"
+    )
+
+    url_aprendices = (
+        f"cr6a3_aprendizs?"
+        f"$filter=_cr6a3_fichavinculad_value eq '{ficha_id}'"
+        f"&$select={columnas}"
+    )
+
+    log.info(f"Buscando aprendices vinculados a la ficha '{numero_limpio}'...")
+
+    res_aprendices = await client.get(url_aprendices)
+
+    if res_aprendices.status_code != 200:
+        log.error(f"Error al consultar aprendices para ficha '{numero_limpio}'. Status: {res_aprendices.status_code}. Detalle: {res_aprendices.text}")
+        raise HTTPException(
+            status_code=res_aprendices.status_code,
+            detail="Error consultando aprendices vinculados"
+        )
+
+    datos_aprendices = res_aprendices.json().get("value", [])
+
+    log.info(f"Consulta exitosa. Total de aprendices hallados: {len(datos_aprendices)}")
+
+    return [
+        {
+            "documento": ap.get("cr6a3_documento_de_identidad"),
+            "correo": ap.get("cr6a3_correo_electronico"),
+            "nombre": ap.get("cr6a3_nombre_completo")
+        }
+        for ap in datos_aprendices
+    ]
