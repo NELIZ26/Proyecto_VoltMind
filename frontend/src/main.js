@@ -98,6 +98,7 @@ import {
   faLink,
   faUserPlus,
   faXmark,
+  faClipboardUser,
   faMagnifyingGlass,
   faClockRotateLeft,
   faBuilding,
@@ -129,6 +130,7 @@ import {
   faSignal,
   faChartLine,
   faChevronDown,
+  faChartSimple,
 } from "@fortawesome/free-solid-svg-icons";
 
 library.add(
@@ -188,6 +190,7 @@ library.add(
   faLink,
   faUserPlus,
   faXmark,
+  faClipboardUser,
   faMagnifyingGlass,
   faClockRotateLeft,
   faBuilding,
@@ -218,7 +221,8 @@ library.add(
   faUserTie,
   faSignal,
   faChartLine,
-  faChevronDown
+  faChevronDown,
+  faChartSimple
 );
 
 // ── 3. INICIALIZACIÓN DE LA INSTANCIA DE VUE ──

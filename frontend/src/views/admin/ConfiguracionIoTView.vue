@@ -307,9 +307,36 @@ const modulos = reactive([
 
 const showModal = ref(false);
 
-const toggleRelay = (modulo) => {
+const toggleRelay = async (modulo) => {
   if (modulo.online) {
     console.log(`Enviando señal a ${modulo.ip} - Estado: ${modulo.powerOn ? 'ENCENDIDO' : 'APAGADO'}`);
+    
+    // Si es el módulo Master (ID: 1), enviamos comando global al backend
+    if (modulo.id === 1) {
+      try {
+        await fetch(`http://127.0.0.1:8000/api/iot/master`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ estado: modulo.powerOn ? "1" : "0" })
+        });
+        
+        // Mostrar alerta simple para feedback
+        Swal.fire({
+          icon: 'success',
+          title: 'Orden Maestra Enviada',
+          text: `Todos los bombillos se han ${modulo.powerOn ? 'encendido' : 'apagado'}.`,
+          timer: 2000,
+          showConfirmButton: false
+        });
+      } catch (error) {
+        console.error("Error enviando comando maestro desde admin:", error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Error de Comunicación',
+          text: 'No se pudo contactar con el backend (Raspberry Pi).'
+        });
+      }
+    }
   }
 };
 

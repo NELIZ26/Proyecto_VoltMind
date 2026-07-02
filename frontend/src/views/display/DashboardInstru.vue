@@ -1,9 +1,10 @@
 <script setup>
 import DarkModeToggle from '@/components/DarkModeToggle.vue';
 import FirmaModal from "@/components/FirmaModal.vue";
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, computed, onMounted, onUnmounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
+import { useKioskStore } from '@/stores/kioskStore';
 // IMPORTACIÓN DE COMPONENTES DEL SUBSISTEMA
 import PinKeypadModal from "@/components/PinKeypadModal.vue";
 import QrModal from "@/components/QrModal.vue";
@@ -16,6 +17,7 @@ import { useRole } from "@/composables/useRole";
 const toast = useToast();
 const router = useRouter();
 const { hasRole, hasPermission } = useRole();
+const kioskStore = useKioskStore();
 
 // --- ESTADOS REACTIVOS PRINCIPALES ---
 const isPowerOn = ref(false);
@@ -30,7 +32,8 @@ const isLoading = ref(true);
 const nombrePrograma = ref("");
 const nombreInstructor = ref("");
 
-
+const lightState1 = ref(false); 
+const lightState2 = ref(false);
 
 // --- ESTADOS DEL TECLADO PIN ---
 const showPinModal = ref(false);
@@ -62,9 +65,8 @@ const selectedApprentice = ref(null);
 
 // --- MOCK DATA INSTITUCIONAL (Energía) ---
 const meters = ref([
-  { id: 1, label: "Iluminación Aula", value: 120 },
-  { id: 2, label: "Bancos de Cómputo", value: 850 },
-  { id: 3, label: "Rack Comunicaciones", value: 450 },
+  { id: 1, label: "ZONA 1 (Iluminación Aula)", value: 0 },
+  { id: 2, label: "ZONA 2 (Bancos de Cómputo)", value: 0 }
 ]);
 
 const roomNodes = ref(
@@ -75,7 +77,28 @@ const roomNodes = ref(
   }))
 );
 
-
+const toggleLights = async (zone) => {
+  const currentState = zone === 1 ? lightState1.value : lightState2.value;
+  const newState = !currentState;
+  try {
+    const response = await fetch("http://127.0.0.1:8000/api/iot/relay", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rele: `L${zone}`, estado: newState ? "1" : "0" })
+    });
+    
+    if (response.ok) {
+      if (zone === 1) lightState1.value = newState;
+      else lightState2.value = newState;
+      toast.success(newState ? `💡 Iluminación Z${zone} Encendida` : `💡 Iluminación Z${zone} Apagada`);
+    } else {
+      toast.error("Error al comunicarse con el módulo IoT.");
+    }
+  } catch (error) {
+    console.error(error);
+    toast.error("Servidor IoT desconectado.");
+  }
+};
 
 // --- GESTIÓN DEL TECLADO PIN ---
 const handlePinSubmit = async (pinValue) => {
@@ -140,14 +163,18 @@ const procesarRegistroFirmaAsistencia = async (base64Signature) => {
     });
 
     if (response.ok) {
-      // Buscamos al aprendiz y lo pasamos a "EN CLASE" con su hora estampada
       const index = apprentices.value.findIndex(a => a.doc === aprendizSeleccionadoParaFirmar.value.doc);
       if (index !== -1) {
-        apprentices.value[index].status = "present";
-        apprentices.value[index].lastSeen = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+        if (apprentices.value[index].status === 'present') {
+           apprentices.value[index].status = "absent";
+           apprentices.value[index].lastSeen = "Salida: " + new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+           toast.success(`¡Salida y firma registradas para ${aprendizSeleccionadoParaFirmar.value.name}!`);
+        } else {
+           apprentices.value[index].status = "present";
+           apprentices.value[index].lastSeen = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+           toast.success(`¡Asistencia y firma registradas para ${aprendizSeleccionadoParaFirmar.value.name}!`);
+        }
       }
-      
-      toast.success(`¡Asistencia y firma registradas para ${aprendizSeleccionadoParaFirmar.value.name}!`);
       showFirmaModal.value = false;
     } else {
       toast.error("Falló el empaquetado del registro en la memoria del servidor.");
@@ -204,6 +231,19 @@ const toggleMasterPower = async () => {
   });
 
   // ==========================================
+  // 🟢 ENVIAR ORDEN MAESTRA AL ARDUINO
+  // ==========================================
+  try {
+    await fetch(`http://127.0.0.1:8000/api/iot/master`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ estado: isPowerOn.value ? "1" : "0" })
+    });
+  } catch (error) {
+    console.error("Error enviando comando maestro:", error);
+  }
+
+  // ==========================================
   // 🟢 LÓGICA DE ENCENDIDO
   // ==========================================
   if (isPowerOn.value) {
@@ -226,6 +266,7 @@ const toggleMasterPower = async () => {
         horaInicio.value = fechaEntrada.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
         localStorage.setItem('horaInicio', horaInicio.value); // Para que no se borre si recarga la página
         horaFin.value = '--:--'; // Reseteamos la hora de fin por si había una anterior
+        localStorage.removeItem('horaFin'); // Limpiar la de la clase anterior
         
         toast.success("¡Aula ENERGIZADA y sesión registrada con éxito!");
       } else {
@@ -272,6 +313,7 @@ const toggleMasterPower = async () => {
         // Formatear hora de fin
         const fechaSalida = new Date(dataCierre.hora_salida);
         horaFin.value = fechaSalida.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+        localStorage.setItem('horaFin', horaFin.value);
         
         // 🟡 NUEVO: Actualizar la tarjeta amarilla
         tiempoExtra.value = dataCierre.tiempo_extra;
@@ -290,12 +332,29 @@ const toggleMasterPower = async () => {
   }
 };
 
-const toggleNodePower = (node) => {
+const toggleNodePower = async (node) => {
   node.energized = !node.energized;
   if (!node.energized && !roomNodes.value.some((n) => n.energized)) {
     isPowerOn.value = false;
   } else {
     isPowerOn.value = true;
+  }
+
+  // --- NUEVA LÓGICA IOT: Enviar comando al Arduino para P1, P2 o P3 ---
+  if (node.id >= 1 && node.id <= 3) {
+    try {
+      await fetch(`http://127.0.0.1:8000/api/iot/relay`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          rele: String(node.id),
+          estado: node.energized ? "1" : "0"
+        })
+      });
+    } catch (error) {
+      console.error(`Error al conmutar relé ${node.id}:`, error);
+      toast.error(`No se pudo comunicar con el relé ${node.id}`);
+    }
   }
 };
 
@@ -324,6 +383,63 @@ const handleExitConfirm = (reason) => {
   closeModal();
 };
 
+const goToLogin = () => {
+  router.push("/login");
+};
+
+const handleManualAttendance = (a) => {
+  if (a.status !== 'present') {
+    a.status = 'present';
+    a.lastSeen = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+    toast.success(`Asistencia registrada manualmente para ${a.name}`);
+  }
+};
+
+const handleManualExit = async (a) => {
+  // Cuando es manual exit (y firma), enviamos la orden a FastAPI para que la Tablet reaccione
+  toast.info(`Forzando firma en kiosko para ${a.name}...`);
+  try {
+    const response = await fetch("http://127.0.0.1:8000/api/kiosko/forzar-firma", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ambiente_id: "402", // Por ahora estático
+        aprendiz_id: a.doc,
+        nombre_aprendiz: a.name
+      })
+    });
+    if (response.ok) {
+      toast.success(`Petición enviada. La tablet ahora solicitará la firma de ${a.name}`);
+    }
+  } catch (error) {
+    toast.error("Error al comunicarse con el Kiosko.");
+  }
+};
+
+// Control de Estado del Kiosko
+const kioskStatus = ref("ACTIVO");
+
+const toggleKioskStatus = async () => {
+  let nuevoEstado = "ACTIVO";
+  if (kioskStatus.value === "ACTIVO") nuevoEstado = "BLOQUEADO";
+  else if (kioskStatus.value === "BLOQUEADO") nuevoEstado = "MODO_SALIDA";
+  else nuevoEstado = "ACTIVO";
+  
+  try {
+    const response = await fetch("http://127.0.0.1:8000/api/kiosko/estado", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ambiente_id: "402", estado: nuevoEstado })
+    });
+    if (response.ok) {
+      kioskStatus.value = nuevoEstado;
+      toast.success(`Kiosko actualizado a: ${nuevoEstado}`);
+    }
+  } catch (error) {
+    toast.error("Error al enviar el comando al kiosko.");
+  }
+};
+
 // --- CICLO DE VIDA (Tu conexión real a FastAPI y Dataverse) ---
 onMounted(async () => {
   // 1. Guardián de Seguridad del Equipo
@@ -333,9 +449,27 @@ onMounted(async () => {
     return;
   }
 
-  // 2. Reloj
-  setInterval(() => {
+  // 2. Reloj y Telemetría IoT
+  setInterval(async () => {
     currentTime.value = new Date().toLocaleTimeString();
+    
+    // Polling de Telemetría (cada segundo)
+    try {
+      const res = await fetch("http://127.0.0.1:8000/api/iot/telemetry");
+      if (res.ok) {
+        const data = await res.json();
+        if (data["1"] !== undefined) {
+          // Asignar el valor al primer medidor (Iluminación Aula)
+          meters.value[0].value = Math.round(data["1"]); 
+        }
+        if (data["2"] !== undefined) {
+          // Asignar el valor al segundo medidor (Bancos de Cómputo)
+          meters.value[1].value = Math.round(data["2"]);
+        }
+      }
+    } catch (e) {
+      console.error("Error en telemetría:", e);
+    }
   }, 1000);
 
   // 3. Tus variables reales de localStorage
@@ -378,8 +512,37 @@ onMounted(async () => {
   } finally {
     isLoading.value = false;
   }
+
+  // 5. Iniciar la conexión WebSocket para recibir asistencias en tiempo real
+  kioskStore.connectWebSocket("402");
 });
 
+// ESCUCHAR ASISTENCIAS EN TIEMPO REAL DESDE LA TABLET
+watch(() => kioskStore.ultimaAsistencia, (newAsistencia) => {
+  if (newAsistencia) {
+    const index = apprentices.value.findIndex(a => String(a.doc) === String(newAsistencia.documento));
+    if (index !== -1) {
+      // Clonamos para forzar reactividad en el array
+      const student = { ...apprentices.value[index] };
+      const accionStr = String(newAsistencia.accion || "").toUpperCase().trim();
+
+      if (accionStr === "INGRESO" || accionStr === "ENTRADA") {
+        student.status = "present";
+        student.lastSeen = newAsistencia.hora;
+      } else if (accionStr === "SALIDA") {
+        student.status = "absent"; 
+        student.lastSeen = newAsistencia.hora;
+      } else {
+        // Fallback robusto por si el backend manda algo diferente a INGRESO/SALIDA
+        student.status = "present";
+        student.lastSeen = newAsistencia.hora || new Date().toLocaleTimeString();
+      }
+      
+      // Reasignación en el índice para que Vue renderice los cambios
+      apprentices.value[index] = student;
+    }
+  }
+}, { deep: true });
 
 </script>
 
@@ -405,17 +568,33 @@ onMounted(async () => {
         </div>
       </div>
 
-      <div class="power-master-box" v-if="hasPermission('gestionar_aula')">
+      <div class="header-right-actions" v-if="hasPermission('gestionar_aula')">
         <span class="power-label">{{
           isPowerOn ? "AULA ENERGIZADA" : "AULA APAGADA"
         }}</span>
-        <button
-          class="power-switch"
-          :class="{ 'power-active': isPowerOn }"
-          @click="toggleMasterPower"
-        >
-          <font-awesome-icon icon="fa-solid fa-power-off" />
-        </button>
+        <div class="header-action-col">
+          <button
+            class="power-switch"
+            :class="{ 'power-active': isPowerOn }"
+            @click="toggleMasterPower"
+            style="width: 42px; height: 42px; font-size: 1.2rem;"
+          >
+            <font-awesome-icon icon="fa-solid fa-power-off" />
+          </button>
+          <span class="header-action-label" style="visibility: hidden;">_</span>
+        </div>
+        <div class="header-action-col">
+          <button class="header-icon-btn exit-icon" @click="goToLogin">
+            <font-awesome-icon icon="fa-solid fa-right-from-bracket" />
+          </button>
+          <span class="header-action-label">EXIT</span>
+        </div>
+        <div class="header-action-col">
+          <button class="header-icon-btn carnet-icon">
+            <font-awesome-icon icon="fa-solid fa-clipboard-user" />
+          </button>
+          <span class="header-action-label">CARNET</span>
+        </div>
       </div>
     </header>
     <div class="time-cards-container">
@@ -459,16 +638,17 @@ onMounted(async () => {
             <font-awesome-icon icon="fa-solid fa-microchip" /> TELEMETRÍA DE
             CONSUMO
           </h2>
+
           <div class="meters-grid">
             <div v-for="m in meters" :key="m.id" class="meter-pill">
               <span class="meter-label">{{ m.label }}</span>
               <span class="meter-val"
-                >{{ isPowerOn ? m.value : 0 }}<small>W</small></span
+                >{{ m.value }}<small>W</small></span
               >
               <div class="meter-bar">
                 <div
                   class="bar-fill"
-                  :style="{ width: isPowerOn ? m.value / 10 + '%' : '0%' }"
+                  :style="{ width: (m.value > 100 ? 100 : m.value) + '%' }"
                 ></div>
               </div>
             </div>
@@ -485,23 +665,43 @@ onMounted(async () => {
             independiente.
           </p>
 
-          <div class="room-map-wrapper">
-            <div class="room-map">
-              <button
-                v-for="node in roomNodes"
-                :key="node.id"
-                class="map-node"
-                :class="{ 'node-on': node.energized }"
-                @click="
-                  hasPermission('gestionar_aula') ? toggleNodePower(node) : null
-                "
-                :disabled="!hasPermission('gestionar_aula')"
+          <div class="map-and-lights-container">
+            <div class="room-map-wrapper" style="flex: 2;">
+              <div class="room-map">
+                <button
+                  v-for="node in roomNodes"
+                  :key="node.id"
+                  class="map-node"
+                  :class="{ 'node-on': node.energized }"
+                  @click="hasPermission('gestionar_aula') ? toggleNodePower(node) : null"
+                  :disabled="!hasPermission('gestionar_aula')"
+                >
+                  <small>P{{ node.id }}</small>
+                  <font-awesome-icon icon="fa-solid fa-bolt" class="node-bolt" />
+                  <span class="node-watts">{{ node.energized ? node.load + "W" : "OFF" }}</span>
+                </button>
+              </div>
+            </div>
+            
+            <div class="lighting-controls-wrapper" style="flex: 1; display: flex; flex-direction: row; gap: 15px; justify-content: center; align-items: center; border-left: 1px solid var(--borde); padding-left: 20px;">
+              <button 
+                class="light-big-btn" 
+                :class="{'active': lightState1}" 
+                @click="toggleLights(1)"
               >
-                <small>P{{ node.id }}</small>
-                <font-awesome-icon icon="fa-solid fa-bolt" class="node-bolt" />
-                <span class="node-watts">{{
-                  node.energized ? node.load + "W" : "OFF"
-                }}</span>
+                <small>ZONA 1</small>
+                <font-awesome-icon icon="fa-solid fa-lightbulb" class="lb-icon" />
+                <span class="node-status">{{ lightState1 ? "ON" : "OFF" }}</span>
+              </button>
+              
+              <button 
+                class="light-big-btn" 
+                :class="{'active': lightState2}" 
+                @click="toggleLights(2)"
+              >
+                <small>ZONA 2</small>
+                <font-awesome-icon icon="fa-solid fa-lightbulb" class="lb-icon" />
+                <span class="node-status">{{ lightState2 ? "ON" : "OFF" }}</span>
               </button>
             </div>
           </div>
@@ -509,37 +709,50 @@ onMounted(async () => {
       </section>
 
       <section class="dash-col attendance-section">
-        <div class="actions-group" v-if="hasPermission('gestionar_aula')">
-          <button
-            class="btn-action nfc"
-            :class="{ 'btn-active': nfcScanning }"
-            @click="nfcScanning = !nfcScanning"
-          >
-            <font-awesome-icon icon="fa-solid fa-wifi" />
-            <span>{{ nfcScanning ? "ESCANEANDO" : "ACTIVAR NFC" }}</span>
-          </button>
+        <button 
+          class="btn-wide-action" 
+          v-if="hasPermission('gestionar_aula')"
+          :class="{
+            'kiosk-active': kioskStatus === 'ACTIVO',
+            'kiosk-blocked': kioskStatus === 'BLOQUEADO',
+            'kiosk-exit': kioskStatus === 'MODO_SALIDA'
+          }"
+          @click="toggleKioskStatus"
+        >
+          {{ kioskStatus === 'ACTIVO' ? 'BLOQUEAR KIOSKO' : (kioskStatus === 'BLOQUEADO' ? 'HABILITAR SALIDAS KIOSKO' : 'ABRIR KIOSKO (ENTRADAS)') }}
+        </button>
 
-          <button
-            class="btn-action qr"
-            :class="{ 'btn-active': qrProjected }"
-            @click="qrProjected = !qrProjected"
-          >
-            <font-awesome-icon icon="fa-solid fa-qrcode" />
-            <span>{{ qrProjected ? "OCULTAR QR" : "MOSTRAR QR" }}</span>
-          </button>
-
-          <button class="btn-action pin" @click="showPinModal = true">
-            <font-awesome-icon icon="fa-solid fa-lock" />
-            <span>DIGITAR PIN</span>
-          </button>
+        <div class="module-card alert-card">
+          <div class="alert-card-header">
+            <h2 class="module-title">
+              <font-awesome-icon icon="fa-solid fa-triangle-exclamation" /> ALERTA DE AMBIENTE
+            </h2>
+            <span class="alert-badge">1</span>
+          </div>
+          <div class="alerts-list">
+             <div class="alert-item alert-warning">
+               <div class="alert-icon"><font-awesome-icon icon="fa-solid fa-triangle-exclamation" /></div>
+               <div class="alert-content">
+                 <p class="alert-msg">Alerta de Deserción: Validación Dataverse pendiente.</p>
+                 <span class="alert-meta">HOY • ASISTENCIA</span>
+               </div>
+               <div class="alert-check"><font-awesome-icon icon="fa-solid fa-check" /></div>
+             </div>
+             <div class="alert-item alert-success">
+               <div class="alert-icon"><font-awesome-icon icon="fa-solid fa-shield-halved" /></div>
+               <div class="alert-content">
+                 <p class="alert-msg">Validación de Asistencia Exitosa<br>Aprendiz Registrado</p>
+                 <span class="alert-meta">HOY • ASISTENCIA</span>
+               </div>
+               <div class="alert-check active"><font-awesome-icon icon="fa-solid fa-check" /></div>
+             </div>
+          </div>
+          <button class="btn-show-more">Mostrar más</button>
         </div>
 
-        <AlertPanel
-          title="ALERTAS DEL AMBIENTE"
-          icon="fa-solid fa-triangle-exclamation"
-          :alerts="systemAlerts"
-          @resolve="handleAlertResolution"
-        />
+        <button class="btn-wide-action with-icon" v-if="hasPermission('gestionar_aula')">
+          <font-awesome-icon icon="fa-solid fa-chart-simple" /> GENERACION DE INFORMES
+        </button>
       </section>
 
       <section
@@ -598,17 +811,20 @@ onMounted(async () => {
                         <font-awesome-icon icon="fa-solid fa-calendar-days" />
                       </button>
                       <button
-                        v-if="
-                          a.status === 'present' &&
-                          hasPermission('gestionar_aula')
-                        "
-                        class="btn-table action-exit"
-                        title="Salida Inesperada"
-                        @click="openModal('exit', a)"
+                        v-if="a.status !== 'present' && hasPermission('gestionar_aula')"
+                        class="btn-table action-attendance"
+                        title="Registrar Ingreso"
+                        @click="handleManualAttendance(a)"
                       >
-                        <font-awesome-icon
-                          icon="fa-solid fa-right-from-bracket"
-                        />
+                        <font-awesome-icon icon="fa-solid fa-check" />
+                      </button>
+                      <button
+                        v-if="a.status === 'present' && hasPermission('gestionar_aula')"
+                        class="btn-table action-exit"
+                        title="Registrar Salida"
+                        @click="handleManualExit(a)"
+                      >
+                        <font-awesome-icon icon="fa-solid fa-right-from-bracket" />
                       </button>
                     </div>
                   </td>
@@ -683,6 +899,22 @@ onMounted(async () => {
   border: 1px solid var(--borde);
   margin-bottom: 1.5rem;
   box-shadow: 0 4px 12px rgba(0, 48, 64, 0.03);
+}
+
+.kiosk-active {
+  background: var(--sena-verde) !important;
+  color: white !important;
+  border-color: var(--sena-verde-oscuro) !important;
+}
+.kiosk-blocked {
+  background: #ef4444 !important;
+  color: white !important;
+  border-color: #b91c1c !important;
+}
+.kiosk-exit {
+  background: #f59e0b !important;
+  color: white !important;
+  border-color: #d97706 !important;
 }
 
 .header-left {
@@ -790,16 +1022,52 @@ onMounted(async () => {
   .environment-badge h1 {
     font-size: 1.4rem;
   }
-  .power-master-box {
-    background: transparent;
-    border: none;
-    padding: 0;
+  .header-right-actions {
+    display: flex;
+    align-items: center;
     gap: 1.5rem;
   }
   .dash-grid {
     grid-template-columns: 1fr 380px;
     display: grid;
   }
+}
+
+.header-right-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.header-action-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.header-icon-btn {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 2px solid var(--borde);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+.header-icon-btn.exit-icon {
+  color: #e11d48;
+  border-color: #e11d48;
+}
+.header-icon-btn.carnet-icon {
+  color: var(--texto-secundario);
+  border-color: var(--texto-secundario);
+}
+.header-action-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--texto-secundario);
 }
 
 .dash-col {
@@ -822,6 +1090,82 @@ onMounted(async () => {
   align-items: center;
   gap: 8px;
   text-transform: uppercase;
+}
+
+.light-control-inline {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -3rem;
+  margin-bottom: 1rem;
+}
+.btn-icon-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: var(--borde);
+  color: var(--texto-secundario);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-size: 1.2rem;
+}
+.btn-icon-circle.btn-table.action-exit {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+}
+
+.light-big-btn {
+  aspect-ratio: 1 / 1;
+  max-width: 85px;
+  width: 100%;
+  background: var(--fondo-app);
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0.25rem;
+  cursor: pointer;
+  color: var(--texto-secundario);
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.light-big-btn:hover {
+  background: var(--fondo-tarjetas);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.light-big-btn.active {
+  background: rgba(57, 169, 0, 0.06);
+  border-color: var(--sena-verde);
+  color: var(--sena-verde-oscuro);
+}
+
+.light-big-btn small {
+  font-size: 0.5rem;
+  font-weight: 700;
+}
+
+.light-big-btn .lb-icon {
+  font-size: 1rem;
+  opacity: 0.5;
+}
+
+.light-big-btn.active .lb-icon {
+  color: var(--sena-verde);
+  opacity: 1;
+}
+
+.light-big-btn .node-status {
+  font-size: 0.6rem;
+  font-weight: 700;
+  font-family: monospace;
 }
 
 .meters-grid {
@@ -869,10 +1213,16 @@ onMounted(async () => {
    MAPA DE PUESTOS ELÉCTRICOS (REGLA DE 8 COLUMNAS AJUSTADAS)
    ========================================================================== */
 .map-instruction {
-  font-size: 0.7rem;
+  font-size: 0.85rem;
   color: var(--texto-secundario);
-  margin: -0.5rem 0 1rem 0;
+  margin-bottom: 1.5rem;
 }
+
+.map-and-lights-container {
+  display: flex;
+  gap: 20px;
+}
+
 .room-map-wrapper {
   width: 100%;
   overflow: hidden;
@@ -886,11 +1236,8 @@ onMounted(async () => {
 
 @media (min-width: 992px) {
   .room-map {
-    grid-template-columns: repeat(
-      8,
-      1fr
-    ); /* Redimensionamiento estricto a 8 columnas */
-    max-width: 760px;
+    grid-template-columns: repeat(9, 1fr);
+    max-width: 100%;
   }
 }
 
@@ -946,57 +1293,113 @@ onMounted(async () => {
 }
 
 /* COMPONENTES DE INFRAESTRUCTURA LATERAL Y BOTONERA A 3 COLUMNAS */
-.actions-group {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.75rem;
+.btn-wide-action {
+  width: 100%;
+  padding: 1rem;
+  border-radius: 8px;
+  background: var(--fondo-app);
+  color: var(--sena-azul-oscuro);
+  font-weight: 800;
+  font-size: 0.85rem;
+  border: 1px solid var(--borde);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
-.btn-action {
-  padding: 1rem 0.5rem;
+.btn-wide-action:hover {
+  background: #f8fafc;
+}
+.alert-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+.alert-badge {
+  background: var(--fondo-app);
+  color: var(--texto-secundario);
+  font-size: 0.7rem;
+  padding: 2px 8px;
   border-radius: 12px;
   border: 1px solid var(--borde);
-  background: var(--fondo-tarjetas);
-  color: var(--texto-secundario);
+}
+.alerts-list {
   display: flex;
   flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.alert-item {
+  display: flex;
   align-items: center;
-  gap: 6px;
+  padding: 1rem;
+  border-radius: 12px;
+  gap: 12px;
+  border: 2px solid transparent;
+}
+.alert-warning {
+  background: #fefce8;
+  border-color: #fef08a;
+}
+.alert-warning .alert-icon {
+  color: #ca8a04;
+  font-size: 1.2rem;
+}
+.alert-warning .alert-msg {
+  color: #854d0e;
+}
+.alert-success {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+}
+.alert-success .alert-icon {
+  color: #16a34a;
+  font-size: 1.2rem;
+}
+.alert-success .alert-msg {
+  color: #166534;
+}
+.alert-content {
+  flex: 1;
+}
+.alert-msg {
+  margin: 0 0 4px 0;
+  font-size: 0.75rem;
   font-weight: 700;
+}
+.alert-meta {
   font-size: 0.65rem;
+  color: var(--texto-secundario);
+  text-transform: uppercase;
+}
+.alert-check {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #e2e8f0;
+}
+.alert-check.active {
+  color: #16a34a;
+}
+.btn-show-more {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--sena-azul-oscuro);
+  font-weight: 700;
+  font-size: 0.85rem;
   cursor: pointer;
-  border-style: solid;
-  transition: all 0.2s ease;
+  padding: 0.5rem;
 }
-.btn-action:hover {
-  background: var(--fondo-app);
-}
-.btn-action.nfc.btn-active {
-  background: var(--sena-azul-oscuro);
-  color: var(--sena-blanco);
-  border-color: var(--sena-azul-oscuro);
-}
-.btn-action.qr.btn-active {
-  background: var(--sena-verde);
-  color: var(--sena-blanco);
-  border-color: var(--sena-verde-oscuro);
-}
-.btn-action.qr:hover:not(.btn-active) {
-  border-color: var(--sena-verde);
-  color: var(--sena-verde);
-  background: rgba(57, 169, 0, 0.1);
-}
-.btn-action.nfc:hover:not(.btn-active) {
-  border-color: var(--sena-azul-oscuro);
-  color: var(--sena-azul-oscuro);
-  background: rgba(0, 48, 64, 0.05);
-}
-[data-theme="dark"] .btn-action.nfc:hover:not(.btn-active) {
-  background: rgba(80, 229, 249, 0.1);
-}
-.btn-action.pin:hover {
-  border-color: var(--sena-amarillo);
-  color: var(--sena-azul-oscuro);
-  background: rgba(253, 195, 0, 0.1);
+.btn-show-more:hover {
+  text-decoration: underline;
 }
 
 /* TABLA GENERAL DE ALUMNOS */

@@ -8,13 +8,13 @@ const routes = [
   {
     path: "/login",
     name: "Login",
-    component: () => import("@/views/display/DashboardInstru.vue"),
+    component: () => import("@/views/auth/Login.vue"),
     meta: { title: "VoltMind Access - Iniciar Sesión", requiresAuth: false },
   },
   {
     path: "/route-selector",
     name: "RouteSelector",
-    component: () => import("@/views/display/DashboardCelador.vue"),
+    component: () => import("@/views/auth/routeSelector.vue"),
     meta: { title: "Entorno de Desarrollo - Sandbox", requiresAuth: false },
   },
   {
@@ -25,6 +25,15 @@ const routes = [
       title: "VoltMind - Selección de Ambiente",
       requiresAuth: true,
       roles: ["instructor"], // Solo el instructor asigna la ficha
+    },
+  },
+  {
+    path: "/tablet",
+    name: "TabletView",
+    component: () => import("@/views/display/TabletView.vue"),
+    meta: {
+      title: "VoltMind - Modo Tablet",
+      requiresAuth: false,
     },
   },
   {

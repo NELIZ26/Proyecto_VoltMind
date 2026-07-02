@@ -11,10 +11,16 @@ from fpdf import FPDF
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 from pydantic import BaseModel
 from datetime import datetime, timedelta
+from services.websocket_manager import manager
 
 load_dotenv()
 
 memoria_pines = {}
+
+# ==========================================
+# 🧠 MEMORIA EFÍMERA PARA CONTROL DE INGRESOS
+# ==========================================
+ingresos_sesion = {}
 
 
 class PinCreate(BaseModel):
@@ -58,6 +64,17 @@ async def guardar_firma_temporal(datos: FirmaCreate):
         "documento": datos.documento_aprendiz,
         "firma_b64": datos.firma_base64
     })
+    
+    # Emitimos evento a los websockets (Instructor y Tablet)
+    import asyncio
+    evento = {
+        "tipo": "ASISTENCIA_REGISTRADA",
+        "documento": datos.documento_aprendiz,
+        "nombre": datos.nombre_aprendiz,
+        "accion": "SALIDA" # Asumimos que la firma manual es para salidas
+    }
+    # Por ahora hardcodeamos el ambiente 402
+    asyncio.create_task(manager.broadcast_to_ambiente("402", evento))
     
     return {"mensaje": "Firma almacenada en caché temporalmente."}
 
@@ -164,8 +181,11 @@ async def generar_reporte_asistencia(datos: CierreSesion, background_tasks: Back
     # Lanzar el ensamble y envío al fondo para no hacer esperar al frontend
     background_tasks.add_task(ensamblar_y_enviar_pdf, datos, lista_firmas)
     
-    # 💥 Destruir las firmas de la memoria RAM inmediatamente
-    del firmas_temporales[datos.sesion_id]
+    # 💥 Destruir de la memoria RAM inmediatamente
+    if datos.sesion_id in firmas_temporales:
+        del firmas_temporales[datos.sesion_id]
+    if datos.sesion_id in ingresos_sesion:
+        del ingresos_sesion[datos.sesion_id]
     
     return {"mensaje": "Reporte en proceso. Se enviará al correo del instructor en breve."}
 
@@ -206,9 +226,30 @@ async def validar_pin(datos: PinValidate):
         raise HTTPException(status_code=400, detail="El PIN ha expirado.")
 
     doc_aprendiz = info_pin["documento"]
-    del memoria_pines[datos.pin]
+    
+    # Lógica de INGRESO vs SALIDA
+    if datos.sesion_id not in ingresos_sesion:
+        ingresos_sesion[datos.sesion_id] = set()
+        
+    if doc_aprendiz in ingresos_sesion[datos.sesion_id]:
+        accion = "SALIDA"
+        # No lo eliminamos de ingresos_sesion, asumimos que ya salió
+    else:
+        accion = "INGRESO"
+        ingresos_sesion[datos.sesion_id].add(doc_aprendiz)
+
+    # Emitimos evento al websocket del instructor para actualizar la UI en vivo
+    import asyncio
+    evento = {
+        "tipo": "ASISTENCIA_REGISTRADA",
+        "documento": doc_aprendiz,
+        "accion": accion,
+        "hora": ahora.strftime("%I:%M %p")
+    }
+    asyncio.create_task(manager.broadcast_to_ambiente("402", evento))
 
     return {
         "mensaje": "Asistencia validada con éxito", 
-        "documento_aprendiz": doc_aprendiz
+        "documento_aprendiz": doc_aprendiz,
+        "accion": accion
     }
