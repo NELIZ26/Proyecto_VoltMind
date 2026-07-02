@@ -66,3 +66,7 @@ Desktop.ini
 # --- Archivos de ejemplo que no deben ser versionados ---
 frontend/src/components/ExampleGlobalStyles.vue
 
+# --- Archivos temporales de VoltMind ---
+backend/firmas_temporales/
+*.png
+dump.rdb

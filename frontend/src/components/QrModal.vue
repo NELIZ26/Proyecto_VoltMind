@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, onUnmounted } from 'vue';
+import { ref, watch, onUnmounted } from 'vue';
 import QrcodeVue from 'qrcode.vue';
 
 const props = defineProps({
@@ -8,33 +8,49 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close']);
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-const dynamicToken = ref("GENERANDO...");
-let qrInterval = null;
+const qrData = ref("GENERANDO..."); // Aquí guardamos el token real
+let refreshInterval = null;
 
-const qrPayload = computed(() => {
-  return JSON.stringify({
-    ambiente: "402",
-    ficha: props.fichaActiva,
-    token: dynamicToken.value,
-  });
-});
+// 1. Función para pedirle un QR nuevo a Python (Tu código)
+const fetchNewQr = async () => {
+  try {
+    const sesionId = localStorage.getItem('sesionActivaId');
+    if (!sesionId) return;
 
-const startInterval = () => {
-  stopInterval();
-  dynamicToken.value = `VM-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-  qrInterval = setInterval(() => {
-    dynamicToken.value = `VM-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
-  }, 5000);
-};
+    const response = await fetch(`${BASE_URL}/api/asistencia/generar-qr`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sesion_id: sesionId })
+    });
 
-const stopInterval = () => {
-  if (qrInterval) {
-    clearInterval(qrInterval);
-    qrInterval = null;
+    if (response.ok) {
+      const data = await response.json();
+      qrData.value = data.token; // Actualizamos el QR con el token de Dataverse
+    }
+  } catch (error) {
+    console.error("Error renovando QR", error);
   }
 };
 
+// 2. Control de tiempos unificado
+const startInterval = () => {
+  stopInterval();
+  fetchNewQr(); // Pedimos el primero apenas se abre
+  refreshInterval = setInterval(() => {
+    fetchNewQr();
+  }, 5000); // Se renueva cada 5 segundos
+};
+
+const stopInterval = () => {
+  if (refreshInterval) {
+    clearInterval(refreshInterval);
+    refreshInterval = null;
+  }
+};
+
+// 3. Vigilar si el modal se abre o cierra (Código del equipo adaptado)
 watch(() => props.show, (show) => {
   if (show) {
     startInterval();
@@ -58,7 +74,7 @@ const handleClose = () => {
       <h3>CÓDIGO QR DE ASISTENCIA AMBIENTE 402</h3>
 
       <div class="qr-container-proyector">
-        <qrcode-vue :value="qrPayload" :size="220" level="M" />
+        <qrcode-vue :value="qrData" :size="220" level="M" />
       </div>
 
       <p>
@@ -73,6 +89,7 @@ const handleClose = () => {
 </template>
 
 <style scoped>
+/* Nos quedamos con los estilos del equipo (HEAD) porque tienen la estructura visual más reciente */
 .qr-overlay {
   position: fixed;
   inset: 0;
@@ -107,7 +124,7 @@ const handleClose = () => {
 }
 
 .qr-container-proyector {
-  background: #ffffff; /* Para asegurar contraste del código QR en modo claro y oscuro */
+  background: #ffffff; 
   padding: 1.25rem;
   border-radius: 12px;
   display: inline-block;

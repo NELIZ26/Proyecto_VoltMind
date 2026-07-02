@@ -14,8 +14,10 @@ const isLoggingIn = ref(false);
 // 1. Configuración de MSAL
 const msalConfig = {
   auth: {
-    clientId: "d5c704a2-4bd3-4675-9822-7bdf35edfec6", 
-    authority: "https://login.microsoftonline.com/organizations", 
+    // Ahora Vite irá a buscar el ID correcto a tu archivo .env
+    clientId: import.meta.env.VITE_AZURE_CLIENT_ID, 
+    // Y también buscará tu inquilino específico en lugar del genérico
+    authority: import.meta.env.VITE_AZURE_AUTHORITY, 
     redirectUri: window.location.origin, 
     navigateToLoginRequestUrl: false, 
   },
@@ -43,7 +45,7 @@ const processLoginSuccess = async (account) => {
 
     try {
       // 🟢 CONSULTA AL BACKEND: Cruzamos el correo de Microsoft con Dataverse
-      const response = await fetch(`http://127.0.0.1:8000/api/usuarios/perfil?email=${userEmail}`);
+      const response = await fetch(`/api/usuarios/perfil?email=${userEmail}`);
       
       if (response.ok) {
         const perfilCompleto = await response.json();
