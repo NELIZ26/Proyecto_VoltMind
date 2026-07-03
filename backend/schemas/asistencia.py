@@ -1,14 +1,15 @@
 # schemas/asistencia.py
 from typing import Optional
-
 from pydantic import BaseModel
 
 class PinCreate(BaseModel):
-    documento_aprendiz: str
+    rol: str = "aprendiz"
+    documento_aprendiz: Optional[str] = None
+    identificador: Optional[str] = None # Para el correo institucional del instructor
 
 class PinValidate(BaseModel):
     pin: str
-    sesion_id: str
+    sesion_id: str # Opcional: si el aula está apagada, la tablet enviará "N/A" o el ID del aula
 
 class FirmaCreate(BaseModel):
     sesion_id: str
@@ -31,3 +32,4 @@ class QrGenerate(BaseModel):
 class QrValidate(BaseModel):
     token_qr: str
     documento_aprendiz: str
+    rol: str = "aprendiz" # Preparado para cuando implementes el QR

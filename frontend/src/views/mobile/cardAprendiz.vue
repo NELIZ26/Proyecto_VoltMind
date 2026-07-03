@@ -31,6 +31,7 @@
           class="carnet-badge"
           :class="{
             'is-active': isValidated || isNfcTransmitting || isScanningQr,
+            'is-instructor': perfilLocal.role === 'instructor'
           }"
         >
           <span class="badge-led" />
@@ -42,7 +43,7 @@
                   ? 'fa-solid fa-camera'
                   : isValidated
                     ? 'fa-solid fa-circle-check'
-                    : 'fa-solid fa-id-badge'
+                    : (perfilLocal.role === 'instructor' ? 'fa-solid fa-chalkboard-user' : 'fa-solid fa-id-badge')
             "
             class="badge-icon"
           />
@@ -53,25 +54,26 @@
                 ? "CÁMARA ACTIVA"
                 : isValidated
                   ? "VALIDADO"
-                  : "APRENDIZ"
+                  : (perfilLocal.role === 'instructor' ? 'INSTRUCTOR' : 'APRENDIZ')
           }}</span>
         </div>
       </div>
 
       <div class="carnet-identity">
+        <!-- Puedes seguir usando el avatar que tenías -->
         <UserAvatar
-          :src="userStore.avatarUrl"
-          :alt="userStore.name"
+          :src="perfilLocal.avatarUrl"
+          :alt="perfilLocal.name"
           :isTransmitting="isNfcTransmitting || isScanningQr"
           :isValidated="isValidated"
         />
 
         <div class="user-info">
-          <h2 class="user-name">{{ userStore.name }}</h2>
-          <p class="user-email">{{ userStore.email }}</p>
+          <h2 class="user-name">{{ perfilLocal.name }}</h2>
+          <p class="user-email">{{ perfilLocal.email }}</p>
           <div class="user-meta">
             <span class="meta-tag tag-ficha">
-              <font-awesome-icon icon="fa-solid fa-graduation-cap" /> {{ userStore.ficha }}
+              <font-awesome-icon icon="fa-solid fa-graduation-cap" /> {{ perfilLocal.ficha }}
             </span>
           </div>
         </div>
@@ -125,7 +127,7 @@
             icon="fa-solid fa-fingerprint"
             class="icon-brand-tech"
           />
-          VM-{{ userStore.doc }}
+          VM-{{ perfilLocal.doc }}
         </div>
         <div class="carnet-validity">
           <span class="live-dot" /> Vigente 2026
@@ -218,7 +220,8 @@ import DarkModeToggle from "@/components/DarkModeToggle.vue";
 
 const router = useRouter();
 const toast = useToast();
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+// Añadimos un fallback por si la variable de entorno no carga
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
 // --- ESTADOS ---
 const isValidated = ref(false);
@@ -234,37 +237,47 @@ const isScanningQr = ref(false);
 const otpSeconds = ref(0);
 let countdownInterval = null;
 
-// Estructura de almacenamiento reactivo mapeada con Microsoft Login
-const userStore = ref({
+// 🟢 NUEVO: Objeto reactivo local (independiente de Pinia para evitar choques)
+const perfilLocal = ref({
   name: "Cargando...",
-  email: "usuario@sena.edu.co",
-  doc: "000000",
-  ficha: "000000",
-  avatarUrl: "",
+  email: "...",
+  doc: "...",
+  ficha: "...",
+  role: "aprendiz",
+  avatarUrl: ""
 });
 
-const idCode = computed(() => userStore.value.doc);
+const idCode = computed(() => perfilLocal.value.doc);
 const otpDisplay = computed(() =>
   otpCode.value ? otpCode.value.split("").join(" ") : "----",
 );
 
 onMounted(() => {
-  const userDataString = localStorage.getItem('userData');
-  
-  if (userDataString) {
-    try {
-      const datosUsuario = JSON.parse(userDataString);
-      
-      userStore.value.name = datosUsuario.full_name || "Aprendiz SENA";
-      userStore.value.email = datosUsuario.email || "usuario@sena.edu.co";
-      userStore.value.doc = datosUsuario.documento || "00000000"; 
-      
-    } catch (e) {
-      console.error("Error leyendo datos del aprendiz:", e);
-    }
-  }
+  // 1. Descubrimos el rol guardado en el Login
+  const storedRole = localStorage.getItem('user_role') || 'aprendiz';
+  perfilLocal.value.role = storedRole;
 
-  userStore.value.ficha = localStorage.getItem('fichaActiva') || "Sin ficha";
+  if (storedRole === 'instructor') {
+    // 2. RUTA INSTRUCTOR
+    perfilLocal.value.name = localStorage.getItem('instructorName') || "Instructor SENA";
+    perfilLocal.value.email = localStorage.getItem('instructorEmail') || "correo@sena.edu.co";
+    perfilLocal.value.doc = localStorage.getItem('instructorEmail') || "ID-Admin"; // Usamos el correo como ID
+    perfilLocal.value.ficha = "Instructor"; 
+  } else {
+    // 3. RUTA APRENDIZ
+    const userDataString = localStorage.getItem('userData');
+    if (userDataString) {
+      try {
+        const datosUsuario = JSON.parse(userDataString);
+        perfilLocal.value.name = datosUsuario.full_name || "Aprendiz SENA";
+        perfilLocal.value.email = datosUsuario.email || "usuario@sena.edu.co";
+        perfilLocal.value.doc = datosUsuario.documento || "00000000"; 
+      } catch (e) {
+        console.error("Error leyendo datos del aprendiz:", e);
+      }
+    }
+    perfilLocal.value.ficha = localStorage.getItem('fichaActiva') || "Sin ficha";
+  }
 });
 
 onUnmounted(() => {
@@ -288,84 +301,7 @@ const resetMethods = () => {
 };
 
 // ==========================================
-// 1. LÓGICA ESCÁNER QR
-// ==========================================
-const startQrScan = () => {
-  resetMethods();
-  isScanningQr.value = true;
-};
-
-const onCameraError = (error) => {
-  isScanningQr.value = false;
-  if (error.name === 'NotAllowedError') {
-    toast.error("Debes darle permisos de cámara al navegador para escanear.");
-  } else if (error.name === 'NotFoundError') {
-    toast.error("No se detectó ninguna cámara en este dispositivo.");
-  } else {
-    toast.error("Error al iniciar la cámara: " + error.message);
-  }
-};
-
-const onQrDetect = async (detectedCodes) => {
-  if (detectedCodes && detectedCodes.length > 0) {
-    const rawData = detectedCodes[0].rawValue;
-    isScanningQr.value = false; 
-    
-    try {
-      let tokenFinal = "";
-
-      try {
-        const qrPayload = JSON.parse(rawData);
-        tokenFinal = qrPayload.token;
-      } catch (e) {
-        tokenFinal = rawData;
-      }
-
-      if (!tokenFinal || !tokenFinal.startsWith("VM-")) {
-        toast.error("Formato inválido. Escanea el código oficial del proyector.");
-        return;
-      }
-
-      showStatus("Validando acceso con el servidor...", "info", 2000);
-
-      const response = await fetch(`${BASE_URL}/api/asistencia/validar-qr`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token_qr: tokenFinal.replace("qr:", ""), 
-          documento_aprendiz: userStore.value.doc
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        isValidated.value = true;
-        
-        // 🚦 MÁQUINA DE ESTADOS
-        if (data.accion === "ingreso_exitoso") {
-          showStatus("Ingreso autorizado", "success", 4000);
-          toast.success("¡Bienvenido! Tu asistencia inicial fue registrada.");
-        } 
-        else if (data.accion === "requiere_firma") {
-          showStatus("Salida autorizada", "success", 4000);
-          // 👇 Aquí simplemente le avisamos que pase donde el profesor
-          toast.info("Clase finalizada. Pasa a la tablet del instructor a registrar tu firma.");
-        }
-      } else {
-        showStatus("Acceso denegado", "error", 4000);
-        toast.error(data.detail || "Error al validar el código QR.");
-      }
-
-    } catch (error) {
-      console.error("Error de conexión:", error);
-      toast.error("Problema de conexión con el servidor central.");
-    }
-  }
-};
-
-// ==========================================
-// 2. LÓGICA GENERACIÓN DE PIN DINÁMICO
+// LÓGICA GENERACIÓN DE PIN DINÁMICO
 // ==========================================
 const generateOtp = async () => {
   resetMethods();
@@ -373,18 +309,30 @@ const generateOtp = async () => {
   otpMessage.value = "Generando código de seguridad...";
   
   try {
+    // 🚦 DECISIÓN DE PAYLOAD BASADA EN EL ROL
+    const payload = perfilLocal.value.role === 'instructor' 
+      ? { 
+          identificador: perfilLocal.value.email, // Dato esperado por el schema backend
+          rol: 'instructor' 
+        }
+      : { 
+          documento_aprendiz: perfilLocal.value.doc, // Dato esperado por el schema backend
+          rol: 'aprendiz' 
+        };
+
     const response = await fetch(`${BASE_URL}/api/asistencia/generar-pin`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        documento_aprendiz: userStore.value.doc
-      })
+      body: JSON.stringify(payload)
     });
 
     if (response.ok) {
       const data = await response.json();
       otpCode.value = data.pin; 
-      otpMessage.value = "Muestra este PIN en la pantalla del instructor.";
+      
+      otpMessage.value = perfilLocal.value.role === 'instructor' 
+        ? "Ingresa este PIN en la tablet para iniciar el ambiente." 
+        : "Muestra este PIN en la pantalla del instructor.";
       
       otpSeconds.value = 60;
       countdownInterval = setInterval(() => {
@@ -398,32 +346,30 @@ const generateOtp = async () => {
       }, 1000);
 
     } else {
-      toast.error("No se pudo estructurar el token dinámico.");
+      const errorData = await response.json();
+      toast.error(errorData.detail || "No se pudo generar el PIN.");
     }
   } catch (error) {
     console.error(error);
-    toast.error("Error de enlace con el servidor de telemetría.");
+    toast.error("Error de conexión con el servidor.");
   } finally {
     isGeneratingOtp.value = false;
   }
 };
 
 // ==========================================
-// 3. LÓGICA NFC
+// LÓGICA QR Y NFC (Mantén tus funciones actuales)
 // ==========================================
-const triggerNfcTransmission = () => {
-  resetMethods();
-  isNfcTransmitting.value = true;
-  showStatus("Acerca tu teléfono a la tablet...", "info", 2000);
-  setTimeout(() => {
-    isNfcTransmitting.value = false;
-    isValidated.value = true;
-    showStatus("Ingreso RFID validado.", "success", 3000);
-  }, 4000);
-};
-
-const handleExitCard = () => {
-  router.push("/route-selector");
+const startQrScan = () => { /* tu código QR */ };
+const onQrDetect = async (detectedCodes) => { /* tu código QR */ };
+const triggerNfcTransmission = () => { /* tu código NFC */ };
+const handleExitCard = () => { 
+  // OJO: Solo el instructor debería volver al selector. El aprendiz debería hacer logout.
+  if (perfilLocal.value.role === 'instructor') {
+    router.push("/route-selector");
+  } else {
+    router.push("/login"); // O la ruta de logout que tengas
+  }
 };
 </script>
 

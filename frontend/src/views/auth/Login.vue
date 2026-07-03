@@ -84,10 +84,9 @@ const processLoginSuccess = async (account) => {
     localStorage.setItem("instructorName", userName);
     localStorage.setItem("nombreInstructor", userName.split(' ')[0]); // Primer nombre para el saludo corta
     
-    toast.success(`Instructor Autenticado. Cargando panel operativo...`);
-    
-    // Cambiado directamente a la selección de ficha oficial
-    router.push("/select-ficha"); 
+    // 🟢 ACTUALIZADO: Mensaje y enrutamiento hacia la vista de selección
+    toast.success(`Instructor Autenticado. Cargando opciones de entorno...`);
+    router.push("/route-selector"); 
 
   } else {
     // SEGURIDAD: Bloquea dominios externos no autorizados
@@ -134,6 +133,7 @@ const handleAzureLogin = async () => {
   }
 };
 </script>
+
 <template>
   <div class="login-shell">
     <div class="login-card">
@@ -152,8 +152,7 @@ const handleAzureLogin = async () => {
         </div>
         <h1>VoltMind Access</h1>
         <p class="subtitle">
-          Gestión IoT de Asistencia y Eficiencia Energética para Ambientes de
-          Formación
+          Gestión IoT de Asistencia y Eficiencia Energética para Ambientes de Formación
         </p>
       </header>
 
@@ -168,8 +167,7 @@ const handleAzureLogin = async () => {
           <div class="notice-text">
             <span>SISTEMA DE CONTROL RESTRINGIDO</span>
             <p>
-              Acceso exclusivo para Instructores y Personal Administrativo
-              autorizado.
+              Acceso exclusivo para Instructores y Personal Administrativo autorizado.
             </p>
           </div>
         </div>

@@ -24,6 +24,17 @@ const routes = [
     },
   },
   {
+    path: "/route-selector",
+    name: "RouteSelector",
+    // Asegúrate de que la ruta del import coincida exactamente con tu estructura de carpetas
+    component: () => import("@/views/admin/RouteSelector.vue"),
+    meta: {
+      title: "VoltMind - Selección de Entorno",
+      requiresAuth: true,
+      roles: ["instructor"], // 🛡️ Bloqueo RBAC: Solo instructores pasan aquí
+    },
+  },
+  {
     path: "/dashboard",
     name: "Dashboard",
     component: () => import("@/views/display/DashboardInstru.vue"),
@@ -60,7 +71,7 @@ const routes = [
     meta: {
       title: "VoltMind - Carnet Digital",
       requiresAuth: true,
-      roles: ["aprendiz"],
+      roles: ["aprendiz", "instructor"],
     },
   },
   {
