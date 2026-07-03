@@ -57,29 +57,76 @@ async def cerrar_asistencia_diaria(datos: CierreSesion):
 
 @router.post("/generar-pin")
 async def generar_pin(datos: PinCreate):
-    # Validar que el documento de identidad contenga solo caracteres seguros
-    doc_seguro = "".join(filter(str.isalnum, datos.documento_aprendiz))
+    # 1. Generamos el PIN numérico único de 4 dígitos
     while True:
         nuevo_pin = str(random.randint(1000, 9999))
         if not await redis_client.exists(f"pin:{nuevo_pin}"):
             break
 
-    await redis_client.setex(name=f"pin:{nuevo_pin}", time=65, value=doc_seguro)
+    # 2. Armamos el payload dependiendo del rol
+    if datos.rol == "instructor":
+        if not datos.identificador:
+            raise HTTPException(status_code=400, detail="Falta el identificador del instructor.")
+        
+        payload_redis = json.dumps({"rol": "instructor", "id": datos.identificador})
+        log.info(f"PIN maestro generado para instructor: {datos.identificador}")
+        
+    else:
+        if not datos.documento_aprendiz:
+            raise HTTPException(status_code=400, detail="Falta el documento del aprendiz.")
+        
+        # Limpieza de seguridad original
+        doc_seguro = "".join(filter(str.isalnum, datos.documento_aprendiz))
+        payload_redis = json.dumps({"rol": "aprendiz", "id": doc_seguro})
+        log.info(f"PIN de asistencia generado para aprendiz doc: {doc_seguro}")
+
+    # 3. Guardamos en Redis (65 segundos)
+    await redis_client.setex(name=f"pin:{nuevo_pin}", time=65, value=payload_redis)
     return {"pin": nuevo_pin}
 
 @router.post("/validar-pin")
 async def validar_pin(datos: PinValidate):
     clave_pin = f"pin:{datos.pin}"
-    doc_aprendiz = await redis_client.get(clave_pin)
+    datos_redis_str = await redis_client.get(clave_pin)
 
-    if not doc_aprendiz:
+    if not datos_redis_str:
         log.warning(f"Intento fallido o expirado de PIN: {datos.pin}")
         raise HTTPException(status_code=400, detail="PIN incorrecto o ha expirado.")
     
+    # Intentamos parsear el JSON (Incluye manejo por si hay un PIN viejo vivo)
+    try:
+        datos_pin = json.loads(datos_redis_str)
+        rol = datos_pin.get("rol", "aprendiz")
+        usuario_id = datos_pin.get("id")
+    except json.JSONDecodeError:
+        rol = "aprendiz"
+        usuario_id = datos_redis_str
+
+    # ==========================================
+    # RUTA 1: ES UN INSTRUCTOR (LLAVE MAESTRA)
+    # ==========================================
+    if rol == "instructor":
+        await redis_client.delete(clave_pin)
+        log.info(f"Instructor {usuario_id} validó PIN maestro.")
+        return {
+            "accion": "activar_aula",
+            "mensaje": "Clave maestra aceptada. Iniciando ambiente...",
+            "rol": "instructor",
+            "datos_clase": {
+                "instructor": usuario_id
+                # Más adelante, aquí cruzarás con Dataverse para enviar la ficha programada
+            }
+        }
+
+    # ==========================================
+    # RUTA 2: ES UN APRENDIZ (ASISTENCIA)
+    # ==========================================
+    doc_aprendiz = usuario_id
     clave_ingresos = f"sesion:{datos.sesion_id}:ingresos"
     ya_ingreso = await redis_client.sismember(clave_ingresos, doc_aprendiz)
 
     if not ya_ingreso:
+        # Registro de Entrada
         await redis_client.sadd(clave_ingresos, doc_aprendiz)
         await redis_client.expire(clave_ingresos, 43200)
         await redis_client.delete(clave_pin)
@@ -88,9 +135,11 @@ async def validar_pin(datos: PinValidate):
         return {
             "accion": "ingreso_exitoso", 
             "mensaje": "Ingreso a clase registrado. ¡Bienvenido!",
-            "documento_aprendiz": doc_aprendiz
+            "documento_aprendiz": doc_aprendiz,
+            "rol": "aprendiz"
         }
     else:
+        # Validación de Salida / Firma
         clave_salida = f"sesion:{datos.sesion_id}:salida_activa"
         if not await redis_client.exists(clave_salida):
             log.warning(f"Aprendiz {doc_aprendiz} intentó salir antes de tiempo.")
@@ -103,7 +152,8 @@ async def validar_pin(datos: PinValidate):
         return {
             "accion": "requiere_firma", 
             "mensaje": "Clase finalizada. Por favor registra tu firma.",
-            "documento_aprendiz": doc_aprendiz
+            "documento_aprendiz": doc_aprendiz,
+            "rol": "aprendiz"
         }
 
 @router.post("/habilitar-salida/{sesion_id}")
