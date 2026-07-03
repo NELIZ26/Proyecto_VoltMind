@@ -6,10 +6,9 @@ import json
 import redis.asyncio as redis 
 from fastapi import APIRouter, HTTPException, BackgroundTasks, status
 from datetime import datetime, timedelta
-from services.websocket_manager import manager
 from core.logger import log
 from schemas.asistencia import FirmaCreate, CierreSesion, PinCreate, PinValidate, QrGenerate, QrValidate
-from services.asistencia_service import procesar_cierre_y_persistencia, obtener_asistencia_semanal_dataverse
+from services.asistencia_service import procesar_cierre_y_persistencia, obtener_asistencia_semanal_dataverse,obtener_historial_aprendiz
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://127.0.0.1:6379/0")
 redis_client = redis.from_url(REDIS_URL, decode_responses=True, protocol=2)
@@ -26,18 +25,6 @@ async def guardar_firma_temporal(datos: FirmaCreate):
     }
     await redis_client.rpush(clave_redis, json.dumps(firma_data))
     await redis_client.expire(clave_redis, 43200) 
-
-    # Emitimos evento a los websockets (Instructor y Tablet)
-    import asyncio
-    evento = {
-        "tipo": "ASISTENCIA_REGISTRADA",
-        "documento": datos.documento_aprendiz,
-        "nombre": datos.nombre_aprendiz,
-        "accion": "SALIDA" # Asumimos que la firma manual es para salidas
-    }
-    # Por ahora hardcodeamos el ambiente 402
-    asyncio.create_task(manager.broadcast_to_ambiente("402", evento))
-
     return {"mensaje": "Firma almacenada en bóveda temporal (Redis)."}
 
 @router.post("/cerrar-asistencia")
@@ -98,18 +85,6 @@ async def validar_pin(datos: PinValidate):
         await redis_client.delete(clave_pin)
         
         log.info(f"Ingreso registrado para aprendiz {doc_aprendiz} en sesión {datos.sesion_id}")
-        
-        import asyncio
-        from datetime import datetime
-        ahora = datetime.now()
-        evento = {
-            "tipo": "ASISTENCIA_REGISTRADA",
-            "documento": doc_aprendiz,
-            "accion": "INGRESO",
-            "hora": ahora.strftime("%I:%M %p")
-        }
-        asyncio.create_task(manager.broadcast_to_ambiente("402", evento))
-        
         return {
             "accion": "ingreso_exitoso", 
             "mensaje": "Ingreso a clase registrado. ¡Bienvenido!",
@@ -125,18 +100,6 @@ async def validar_pin(datos: PinValidate):
             )
         
         await redis_client.delete(clave_pin)
-        
-        import asyncio
-        from datetime import datetime
-        ahora = datetime.now()
-        evento = {
-            "tipo": "ASISTENCIA_REGISTRADA",
-            "documento": doc_aprendiz,
-            "accion": "SALIDA",
-            "hora": ahora.strftime("%I:%M %p")
-        }
-        asyncio.create_task(manager.broadcast_to_ambiente("402", evento))
-        
         return {
             "accion": "requiere_firma", 
             "mensaje": "Clase finalizada. Por favor registra tu firma.",
@@ -234,3 +197,9 @@ async def generar_matriz_semanal(
     )
     
     return {"mensaje": "El reporte semanal se está ensamblando y llegará a tu correo en breve."}
+
+
+    #NUEVO ENDPOINT#
+@router.get("/historial/{documento}")
+async def historial_aprendiz(documento: str):    #Devuelve el historial de asistencia y faltas de un aprendiz#
+    return await obtener_historial_aprendiz(documento)
