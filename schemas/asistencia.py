@@ -6,6 +6,7 @@ class PinCreate(BaseModel):
     rol: str = "aprendiz"
     documento_aprendiz: Optional[str] = None
     identificador: Optional[str] = None # Para el correo institucional del instructor
+    nombre: str = "Aprendiz"
 
 class PinValidate(BaseModel):
     pin: str
