@@ -70,3 +70,10 @@ frontend/src/components/ExampleGlobalStyles.vue
 backend/firmas_temporales/
 *.png
 dump.rdb
+
+
+# Archivos locales de Ngrok
+ngrok.exe
+ngrok
+ngrok.yml
+.ngrok/

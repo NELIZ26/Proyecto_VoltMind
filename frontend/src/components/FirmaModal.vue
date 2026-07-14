@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useToast } from 'vue-toastification';
 
 const props = defineProps({
   apprenticeName: {
@@ -9,6 +10,7 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close', 'save']);
+const toast = useToast();
 
 // Referencia al elemento canvas en el HTML
 const canvasRef = ref(null);
@@ -18,17 +20,20 @@ let ctx = null;
 const isDrawing = ref(false);
 let lastX = 0;
 let lastY = 0;
+let hasDrawn = false; // 🟢 Control estricto y liviano para saber si firmó
 
 onMounted(() => {
   const canvas = canvasRef.value;
   ctx = canvas.getContext('2d');
   
-  // Ajustar la resolución del canvas para que el trazo sea nítido
-  canvas.width = canvas.offsetWidth;
-  canvas.height = canvas.offsetHeight;
+  // 🟢 MAGIA PARA TABLETS: Ajustar la resolución para pantallas de alta densidad
+  const ratio = window.devicePixelRatio || 1;
+  canvas.width = canvas.offsetWidth * ratio;
+  canvas.height = canvas.offsetHeight * ratio;
+  ctx.scale(ratio, ratio); // Escala el contexto para que las coordenadas coincidan
 
   // Estilo del "esfero"
-  ctx.strokeStyle = '#0f172a'; // Color de la tinta (azul muy oscuro/negro)
+  ctx.strokeStyle = '#0f172a'; // Tinta oscura
   ctx.lineWidth = 3; // Grosor
   ctx.lineCap = 'round'; // Puntas redondeadas
   ctx.lineJoin = 'round';
@@ -55,6 +60,7 @@ const getCoordinates = (e) => {
 const startDrawing = (e) => {
   e.preventDefault(); // Evita que la tablet haga scroll al dibujar
   isDrawing.value = true;
+  hasDrawn = true; // 🟢 Marcamos que el aprendiz ya tocó el lienzo
   const { x, y } = getCoordinates(e);
   lastX = x;
   lastY = y;
@@ -67,9 +73,9 @@ const draw = (e) => {
   const { x, y } = getCoordinates(e);
 
   ctx.beginPath();
-  ctx.moveTo(lastX, lastY); // Desde donde estaba
-  ctx.lineTo(x, y); // Hasta donde se movió
-  ctx.stroke(); // Dibuja la línea
+  ctx.moveTo(lastX, lastY); 
+  ctx.lineTo(x, y); 
+  ctx.stroke(); 
 
   lastX = x;
   lastY = y;
@@ -82,25 +88,22 @@ const stopDrawing = () => {
 // --- ACCIONES DE LOS BOTONES ---
 const clearCanvas = () => {
   const canvas = canvasRef.value;
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // Ojo: Para limpiar con el ratio aplicado usamos dimensiones enormes o guardamos el ratio
+  ctx.clearRect(0, 0, canvas.width * 2, canvas.height * 2);
+  hasDrawn = false; // Reseteamos la validación
 };
 
 const saveSignature = () => {
-  const canvas = canvasRef.value;
-  
-  // Verificamos si el canvas está en blanco (opcional, básico)
-  const blank = document.createElement('canvas');
-  blank.width = canvas.width;
-  blank.height = canvas.height;
-  if (canvas.toDataURL() === blank.toDataURL()) {
-    alert("Por favor, registre su firma antes de continuar.");
+  // 🟢 VALIDACIÓN MEJORADA (Adiós al alert nativo)
+  if (!hasDrawn) {
+    toast.warning("Por favor, registre su firma en el lienzo antes de continuar.");
     return;
   }
 
-  // Convertimos el dibujo a una cadena de texto Base64 (formato imagen PNG)
+  const canvas = canvasRef.value;
   const signatureBase64 = canvas.toDataURL('image/png');
   
-  // Enviamos la firma al componente padre (DashboardInstru.vue)
+  // Enviamos la firma al componente padre
   emit('save', signatureBase64);
 };
 </script>
@@ -111,7 +114,7 @@ const saveSignature = () => {
       
       <div class="modal-header">
         <h3>CONFIRMAR ASISTENCIA</h3>
-        <p>Aprendiz: <strong>{{ apprenticeName }}</strong></p>
+        <p>Aprendiz: <strong style="color: #2c3e50; font-size: 1.1em;">{{ apprenticeName }}</strong></p>
       </div>
 
       <div class="canvas-container">
@@ -126,7 +129,7 @@ const saveSignature = () => {
           @touchmove="draw" 
           @touchend="stopDrawing"
         ></canvas>
-        <span class="watermark">Firme aquí</span>
+        <span class="watermark" v-if="!hasDrawn">Firme aquí</span>
       </div>
 
       <div class="modal-actions">

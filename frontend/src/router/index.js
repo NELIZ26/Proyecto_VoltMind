@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from "vue-router"; // <-- Cambiado aquí
+import { createRouter, createWebHistory } from "vue-router"; 
 
 const routes = [
   {
@@ -12,7 +12,6 @@ const routes = [
     component: () => import("@/views/auth/Login.vue"),
     meta: { title: "VoltMind Access - Iniciar Sesión", requiresAuth: false },
   },
-  // 🔴 ELIMINADO: El bloque de /route-selector ya no existe
   {
     path: "/select-ficha",
     name: "SelectFicha",
@@ -26,12 +25,23 @@ const routes = [
   {
     path: "/route-selector",
     name: "RouteSelector",
-    // Asegúrate de que la ruta del import coincida exactamente con tu estructura de carpetas
     component: () => import("@/views/admin/RouteSelector.vue"),
     meta: {
       title: "VoltMind - Selección de Entorno",
       requiresAuth: true,
       roles: ["instructor"], // 🛡️ Bloqueo RBAC: Solo instructores pasan aquí
+    },
+  },
+  // ==========================================
+  // 🟢 NUEVA RUTA: Kiosko (Tablet del Aula)
+  // ==========================================
+  {
+    path: "/tablet",
+    name: "TabletView",
+    component: () => import("@/views/display/TabletView.vue"),
+    meta: {
+      title: "VoltMind - Modo Tablet",
+      requiresAuth: false, // La tablet de la pared no necesita login tradicional
     },
   },
   {
@@ -129,6 +139,7 @@ const routes = [
     redirect: "/login",
   },
 ];
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL), // <-- Cambiado aquí también
   routes,

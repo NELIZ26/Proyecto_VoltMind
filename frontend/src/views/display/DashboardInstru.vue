@@ -1,10 +1,10 @@
 <script setup>
-import DarkModeToggle from '@/components/DarkModeToggle.vue'; // Conservado de la versión de tu equipo para evitar errores en el template
-import { ref, computed, onMounted, onUnmounted, watch } from "vue";
+import DarkModeToggle from '@/components/DarkModeToggle.vue';
+import { ref, watch, onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import { useToast } from "vue-toastification";
 
-// IMPORTACIÓN DE COMPONENTES MODULARES (Tu versión priorizada)
+// IMPORTACIÓN DE COMPONENTES MODULARES
 import PinModal from "@/components/PinModal.vue";
 import QrModal from "@/components/QrModal.vue";
 import FirmaModal from "@/components/FirmaModal.vue";
@@ -14,7 +14,7 @@ import ExitModal from "@/components/exitModal.vue";
 import AlertPanel from "@/components/AlertPanel.vue";
 import { useRole } from "@/composables/useRole";
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 const toast = useToast();
 const router = useRouter();
 const { hasRole, hasPermission } = useRole();
@@ -28,28 +28,26 @@ const showPinModal = ref(false);
 const isValidatingPin = ref(false);
 const currentTime = ref(new Date().toLocaleTimeString());
 
-// --- ESTADOS DE LA SESIÓN (Traídos desde el Selector de Fichas) ---
-const ambienteSeleccionadoId = ref(localStorage.getItem('ambienteActivoId') || "");
-const nombreAmbienteSeleccionado = ref(localStorage.getItem('ambienteActivoNombre') || "Ambiente no definido");
-
-// --- ESTADOS DE DATOS REALES Y SESIÓN ---
+// --- ESTADOS DE LA SESIÓN ---
+const ambienteSeleccionadoId = ref(localStorage.getItem('ambienteActivoId') || localStorage.getItem('kiosko_ambiente_id') || "");
+const nombreAmbienteSeleccionado = ref(localStorage.getItem('ambienteActivoNombre') || localStorage.getItem('kiosko_ambiente_nombre') || "Ambiente no definido");
 const fichaActiva = ref(localStorage.getItem('fichaActiva') || "Sin Ficha");
 const nombreInstructor = ref(localStorage.getItem('nombreInstructor') || "Instructor");
 const nombrePrograma = ref(localStorage.getItem('nombrePrograma') || "Programa no definido");
 
 const apprentices = ref([]); 
-const isLoading = ref(true); // Limpiados los duplicados de la versión anterior
+const isLoading = ref(true);
 
-// CONTROLADORES DE INTERCEPCIÓN PARA LA FIRMA
+// --- CONTROLADORES PARA FIRMA ---
 const showFirmaModal = ref(false);
 const aprendizSeleccionadoParaFirmar = ref({ name: "", doc: "" });
 
-// RELOJES Y TIEMPOS
+// --- RELOJES Y TIEMPOS ---
 const horaInicio = ref(localStorage.getItem('horaInicio') || '--:--');
 const horaFin = ref(localStorage.getItem('horaFin') || '--:--');
 const tiempoExtra = ref(localStorage.getItem('tiempoExtra') || '0 min');
 
-// --- ESTADOS DE ALERTAS Y MODALES ---
+// --- ALERTAS, MODALES Y NODOS IOT ---
 const systemAlerts = ref([
   {
     id: 1,
@@ -68,23 +66,162 @@ const meters = ref([
   { id: 3, label: "Rack Comunicaciones", value: 450 },
 ]);
 
+// Si el aula ya estaba encendida en caché, cargamos los nodos encendidos
 const roomNodes = ref(
   Array.from({ length: 16 }, (_, i) => ({
     id: i + 1,
-    energized: false,
+    energized: isPowerOn.value,
     load: Math.floor(Math.random() * 90) + 10,
   }))
 );
 
+// 🟢 FUNCIÓN DE RECUPERACIÓN: Sincroniza la vista con la base de datos en memoria (Redis)
+const recuperarEstadoClase = async (sesionId) => {
+  console.log("🔍 Intentando recuperar clase para sesión:", sesionId);
+  try {
+    // Asegúrate de usar la variable BASE_URL que ya tienes definida en tu archivo
+    const url = `${BASE_URL}/api/asistencia/sesion/${sesionId}/ingresos`;
+    
+    const response = await fetch(url);
+    
+    if (response.ok) {
+      const data = await response.json();
+      const documentosPresentes = data.ingresos;
+      console.log("📦 Documentos recuperados de Redis:", documentosPresentes);
+
+      if (documentosPresentes.length > 0) {
+        documentosPresentes.forEach(doc => {
+          // Comparamos el documento de Redis con la lista visual de Dataverse
+          const aprendiz = apprentices.value.find(ap => String(ap.doc) === String(doc));
+          
+          if (aprendiz) {
+            aprendiz.status = "present"; // Lo pintamos de verde
+            if (!aprendiz.lastSeen || aprendiz.lastSeen === "--:--") {
+              aprendiz.lastSeen = "Sincronizado";
+            }
+          }
+        });
+      }
+    } else {
+      console.error("❌ El backend rechazó la petición de recuperación.");
+    }
+  } catch (error) {
+    console.error("❌ ERROR al intentar recuperar el estado desde Redis:", error);
+  }
+};
+
 // ==========================================
-// 📡 TELEPATÍA DEL QR (1 a 1)
+// 📡 CEREBRO WEBSOCKET (DOBLE VÍA CON KIOSKO)
+// ==========================================
+let wsDashboard = null;
+
+const conectarWebSocketDashboard = () => {
+  if (!ambienteSeleccionadoId.value || ambienteSeleccionadoId.value === "Sin Definir") return;
+
+  wsDashboard = new WebSocket(`ws://localhost:8000/api/ws/ambiente/${ambienteSeleccionadoId.value}`);
+
+  wsDashboard.onopen = () => {
+    console.log(`[Dashboard] 🟢 Escuchando al ambiente ${nombreAmbienteSeleccionado.value}`);
+  };
+
+  wsDashboard.onmessage = (event) => {
+    const mensaje = JSON.parse(event.data);
+    
+    // 1. El Kiosko encendió el aula
+    if (mensaje.tipo === "SESION_INICIADA") {
+      if (!isPowerOn.value) { 
+        toast.success("Aula energizada remotamente desde la Terminal Kiosko.");
+        isPowerOn.value = true;
+        
+        // Encendemos los nodos visualmente
+        roomNodes.value.forEach((node) => { node.energized = true; });
+
+        // Sincronizamos la memoria local
+        localStorage.setItem('sesionActivaId', mensaje.sesion_id);
+        localStorage.setItem('isPowerOn', 'true');
+        
+        const fechaEntrada = mensaje.hora ? new Date(mensaje.hora) : new Date();
+        horaInicio.value = fechaEntrada.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+        localStorage.setItem('horaInicio', horaInicio.value);
+
+        // Cargamos la lista operativa
+        recargarListadoAprendices();
+      }
+    } 
+    // 2. Un aprendiz ingresó su PIN en el Kiosko
+    else if (mensaje.tipo === "APRENDIZ_INGRESO") {
+      const aprendiz = apprentices.value.find(ap => String(ap.doc) === String(mensaje.documento));
+      if (aprendiz) {
+        aprendiz.status = "present";
+        aprendiz.lastSeen = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+        toast.info(`Ingreso desde Kiosko: ${mensaje.nombre}`);
+      }
+    }
+    // 🟢 NUEVA REGLA 3: Capturar cuando el aprendiz completa su firma táctil
+    else if (mensaje.tipo === "APRENDIZ_FIRMA") {
+      const aprendiz = apprentices.value.find(ap => String(ap.doc) === String(mensaje.documento));
+      if (aprendiz) {
+        // Actualizamos el estado visual exactamente como lo haría el proceso local
+        aprendiz.lastSeen = "Firma Completada";
+        toast.success(`Firma registrada para: ${aprendiz.name}`);
+      }
+    }
+  };
+
+  wsDashboard.onclose = () => {
+    console.warn("[Dashboard] 🔴 Conexión perdida. Reconectando...");
+    setTimeout(conectarWebSocketDashboard, 3000);
+  };
+};
+
+// ==========================================
+// 🔄 FUNCIONES DE CARGA Y SINCRONIZACIÓN
+// ==========================================
+const recargarListadoAprendices = async () => {
+  if (fichaActiva.value === "Sin Ficha") return;
+  isLoading.value = true;
+  try {
+    const response = await fetch(`${BASE_URL}/api/fichas/${fichaActiva.value}/aprendices`);
+    if (!response.ok) throw new Error("No se encontraron aprendices.");
+
+    const data = await response.json();
+    apprentices.value = data.map((ap) => ({
+      id: ap.documento,
+      name: ap.nombre || 'Sin Nombre',
+      doc: ap.documento,
+      email: ap.correo,
+      status: "absent", 
+      lastSeen: "Esperando ingreso"
+    }));
+
+    // 🟢 LA SOLUCIÓN DEFINITIVA: Sincronización automática
+    // Apenas termine de armar la lista visual, busca si hay una sesión activa
+    // y recupera a los que ya habían entrado (incluso si se inició desde la tablet).
+    
+    console.log("✅ Lista de Dataverse cargada. Total alumnos:", apprentices.value.length);
+    
+    const sesionActivaId = localStorage.getItem('sesionActivaId');
+    if (sesionActivaId && apprentices.value.length > 0) {
+      await recuperarEstadoClase(sesionActivaId);
+    } else {
+      console.log("⚠️ No se ejecutó la recuperación porque falta el ID de sesión o la lista está vacía.");
+    }
+
+  } catch (error) {
+    console.error("Error consultando aprendices:", error);
+    toast.warning("El aula está lista, pero no hay aprendices registrados.");
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+// ==========================================
+// 📡 TELEPATÍA DEL QR (Mantiene soporte local)
 // ==========================================
 let qrListenerInterval = null;
 
-// Observa cuando el instructor abre o cierra el QR
 watch(qrProjected, (newVal) => {
   if (newVal) {
-    // Si el QR está proyectado, la tablet pregunta cada 1.5 segundos si alguien ya lo quemó
     qrListenerInterval = setInterval(async () => {
       const sesionId = localStorage.getItem('sesionActivaId');
       if (!sesionId) return;
@@ -93,13 +230,10 @@ watch(qrProjected, (newVal) => {
         const res = await fetch(`${BASE_URL}/api/asistencia/ultimo-escaneo/${sesionId}`);
         if (res.ok) {
           const data = await res.json();
-          
           if (data.documento) {
-            // ¡Alguien lo escaneó! Buscamos quién fue
             const aprendiz = apprentices.value.find(a => a.doc === data.documento);
-            
             if (aprendiz) {
-              qrProjected.value = false; // Cerramos el QR automáticamente
+              qrProjected.value = false;
 
               if (data.accion === "ingreso_exitoso") {
                 aprendiz.status = "present";
@@ -108,27 +242,23 @@ watch(qrProjected, (newVal) => {
               } 
               else if (data.accion === "requiere_firma") {
                 aprendizSeleccionadoParaFirmar.value = { name: aprendiz.name, doc: aprendiz.doc };
-                showFirmaModal.value = true; // Saltamos a la firma
+                showFirmaModal.value = true;
               }
             }
           }
         }
-      } catch (error) {
-        // Silencio para no molestar la UI si hay latencia
-      }
+      } catch (error) {}
     }, 1500); 
   } else {
-    // Si cierran el QR, apagamos el oyente
     if (qrListenerInterval) clearInterval(qrListenerInterval);
   }
 });
 
 // ==========================================
-// 🚀 LÓGICA DE ASISTENCIA Y FIRMAS (PIN / NFC)
+// 🚀 LÓGICA DE ASISTENCIA Y FIRMAS
 // ==========================================
 const procesarValidacionPin = async (pinIngresado) => {
   isValidatingPin.value = true;
-  
   try {
     const sesionId = localStorage.getItem('sesionActivaId') || "";
     const response = await fetch(`${BASE_URL}/api/asistencia/validar-pin`, {
@@ -169,7 +299,7 @@ const procesarValidacionPin = async (pinIngresado) => {
     }
   } catch (error) {
     console.error("Error validando PIN:", error);
-    toast.error("Error de respuesta del nodo central.");
+    toast.error("Error de conexión con el servidor.");
   } finally {
     isValidatingPin.value = false;
   }
@@ -197,7 +327,6 @@ const habilitarSalidaClase = async () => {
 
 const procesarRegistroFirmaAsistencia = async (base64Signature) => {
   const sesionId = localStorage.getItem('sesionActivaId') || "";
-  
   try {
     const response = await fetch(`${BASE_URL}/api/asistencia/guardar-firma`, {
       method: "POST",
@@ -212,49 +341,46 @@ const procesarRegistroFirmaAsistencia = async (base64Signature) => {
 
     if (response.ok) {
       toast.success(`¡Firma de salida registrada para ${aprendizSeleccionadoParaFirmar.value.name}!`);
-      
       const aprendiz = apprentices.value.find(a => a.doc === aprendizSeleccionadoParaFirmar.value.doc);
       if(aprendiz) aprendiz.lastSeen = "Firma Completada";
-
       showFirmaModal.value = false;
     } else {
-      toast.error("Falló el empaquetado del registro en la memoria del servidor.");
+      toast.error("Falló el guardado del registro en el servidor.");
     }
   } catch (error) {
-    console.error(error);
     toast.error("Error de red al procesar la firma táctil.");
   }
 };
 
-const solicitarReporteAsistenciaPDF = async (idDeSesionCerrada) => {
-  toast.info("Ensamblando PDF con las firmas...");
+const enviarReporteSemanalManual = async () => {
+  toast.info("Procesando matriz de asistencia. Por favor, espera...");
   try {
-    const correo = localStorage.getItem('instructorEmail') || "ferley_tobon@soy.sena.edu.co";
-    const ficha = localStorage.getItem('fichaActiva') || "3465773";
-    const programa = localStorage.getItem('nombrePrograma') || "Analisis y Desarrollo de Software";
-    const instructor = localStorage.getItem('instructorName') || "Ferley Tobon";
+    const correo = localStorage.getItem('instructorEmail') || "correo@sena.edu.co";
+    const sesionId = localStorage.getItem('sesionActivaId') || ""; 
+    const textoHorario = `${horaInicio.value} a ${horaFin.value !== '--:--' ? horaFin.value : 'En curso'}`;
+    
+    const urlParams = new URLSearchParams({
+      numero_ficha: fichaActiva.value,
+      nombre_programa: nombrePrograma.value,
+      nombre_instructor: nombreInstructor.value,
+      correo_destino: correo,
+      nombre_ambiente: nombreAmbienteSeleccionado.value,
+      horario: textoHorario
+    });
 
-    const response = await fetch(`${BASE_URL}/api/asistencia/generar-reporte`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        sesion_id: idDeSesionCerrada,
-        numero_ficha: ficha,
-        nombre_programa: programa,
-        nombre_instructor: instructor,
-        correo_destino: correo,
-        competencia: "", 
-        resultado_aprendizaje: ""
-      })
+    if (sesionId) urlParams.append("sesion_activa", sesionId);
+
+    const response = await fetch(`${BASE_URL}/api/asistencia/matriz-semanal?${urlParams.toString()}`, { 
+      method: "POST" 
     });
 
     if (response.ok) {
-      toast.success("¡PDF generado en el servidor con éxito!");
+      toast.success(`¡Reporte solicitado! Llegará a ${correo} en unos instantes.`);
     } else {
-      toast.warning("Fallo al empaquetar el PDF en el servidor cloud.");
+      toast.warning("Fallo la estructura del envío en el servidor.");
     }
   } catch (error) {
-    toast.error("Fallo de red al solicitar el reporte final.");
+    toast.error("Fallo de red al solicitar el reporte.");
   }
 };
 
@@ -262,7 +388,7 @@ const solicitarReporteAsistenciaPDF = async (idDeSesionCerrada) => {
 // 🔌 OPERACIONES IOT (AULA)
 // ==========================================
 const toggleMasterPower = async () => {
-  if (!isPowerOn.value && !ambienteSeleccionadoId.value) {
+  if (!isPowerOn.value && (!ambienteSeleccionadoId.value || ambienteSeleccionadoId.value === "Sin Definir")) {
     toast.warning("¡Alerta! No se detectó un ambiente enlazado.");
     router.push("/route-selector"); 
     return; 
@@ -278,7 +404,15 @@ const toggleMasterPower = async () => {
     try {
       const emailInstructor = localStorage.getItem('instructorEmail') || "";
       
-      const responseSesion = await fetch(`${BASE_URL}/api/sesiones/iniciar?ficha=${fichaActiva.value}&email=${emailInstructor}&ambiente_id=${ambienteSeleccionadoId.value}`, { method: "POST" });
+      const responseSesion = await fetch(`${BASE_URL}/api/sesiones/iniciar`, { 
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ficha: fichaActiva.value,
+          email: emailInstructor,
+          ambiente_id: ambienteSeleccionadoId.value
+        })
+      });
 
       if (responseSesion.ok) {
         const data = await responseSesion.json();
@@ -308,8 +442,8 @@ const toggleMasterPower = async () => {
     toast.info("Apagando aula y guardando asistencias en Dataverse...");
     try {
       const sesionId = localStorage.getItem('sesionActivaId') || "";
-      
       const correo = localStorage.getItem('instructorEmail') || "correo@sena.edu.co";
+      
       const payloadCierre = {
         sesion_id: sesionId,
         numero_ficha: fichaActiva.value,
@@ -352,9 +486,8 @@ const toggleNodePower = (node) => {
 };
 
 // ==========================================
-// 🎛️ CONTROLADORES DE BOTONES (QR, PIN, NFC)
+// 🎛️ CONTROLADORES DE BOTONES E INTERFAZ
 // ==========================================
-
 const projectQR = () => {
   if (!isPowerOn.value) {
     toast.warning("Debes energizar el aula antes de proyectar el código QR.");
@@ -377,14 +510,9 @@ const toggleNFC = () => {
     return;
   }
   nfcScanning.value = !nfcScanning.value;
-  if (nfcScanning.value) {
-    toast.info("Lector NFC activado. Esperando tarjetas...");
-  } else {
-    toast.info("Lector NFC desactivado.");
-  }
+  toast.info(nfcScanning.value ? "Lector NFC activado." : "Lector NFC desactivado.");
 };
 
-// --- SUBSISTEMA DE ALERTAS Y MODALES ---
 const handleAlertResolution = (alertId) => {
   systemAlerts.value = systemAlerts.value.filter((alert) => alert.id !== alertId);
   toast.success("Alerta resuelta exitosamente.");
@@ -414,96 +542,94 @@ const cerrarSesion = () => {
     toast.warning("Primero debes apagar el aula y finalizar la sesión de clase actual.");
     return;
   }
-
   localStorage.clear();
-  
   toast.success("Sesión cerrada correctamente. Volviendo al inicio.");
   router.push("/route-selector"); 
 };
 
-const enviarReporteSemanalManual = async () => {
-  toast.info("Procesando matriz de asistencia. Por favor, espera...");
-  try {
-    const correo = localStorage.getItem('instructorEmail') || "ferley_tobon@soy.sena.edu.co";
-    const sesionId = localStorage.getItem('sesionActivaId') || ""; 
-    const textoHorario = `${horaInicio.value} a ${horaFin.value !== '--:--' ? horaFin.value : 'En curso'}`;
-    
-    const urlParams = new URLSearchParams({
-      numero_ficha: fichaActiva.value,
-      nombre_programa: nombrePrograma.value,
-      nombre_instructor: nombreInstructor.value,
-      correo_destino: correo,
-      nombre_ambiente: nombreAmbienteSeleccionado.value,
-      horario: textoHorario
-    });
 
-    if (sesionId) {
-      urlParams.append("sesion_activa", sesionId);
-    }
 
-    const response = await fetch(`${BASE_URL}/api/asistencia/matriz-semanal?${urlParams.toString()}`, { 
-      method: "POST" 
-    });
-
-    if (response.ok) {
-      toast.success(`¡Reporte solicitado! Llegará a ${correo} en unos instantes.`);
-    } else {
-      toast.warning("Fallo la estructura del envío en el servidor.");
-    }
-  } catch (error) {
-    toast.error("Fallo de red al solicitar el reporte.");
-  }
-};
-
-// --- CICLO DE VIDA ---
+// ==========================================
+// 🚀 CICLO DE VIDA
+// ==========================================
 onMounted(async () => {
+  // =========================================================================
+  // 1. ESCUCHADOR DE EVENTOS: Sincronización si la tablet inicia la clase
+  // =========================================================================
+  window.addEventListener('storage', async (event) => {
+    if (event.key === 'sesionActivaId' && event.newValue) {
+      console.log("⚡ Sesión detectada desde la tablet. Activando energía en el Dashboard...");
+      
+      // Encendido visual y persistencia
+      isPowerOn.value = true;
+      localStorage.setItem('isPowerOn', 'true');
+      
+      // Sincronización de variables de tiempo y salida
+      horaInicio.value = localStorage.getItem('horaInicio') || '--:--';
+      salidaHabilitada.value = false;
+      localStorage.setItem('salidaHabilitada', 'false');
+      
+      // Energización de los nodos (Control por estación)
+      if (roomNodes.value) {
+        roomNodes.value.forEach((node) => { node.energized = true; });
+      }
+      
+      // Re-enlace de identificadores físicos
+      ambienteSeleccionadoId.value = localStorage.getItem('kiosko_ambiente_id') || localStorage.getItem('ambienteActivoId');
+      nombreAmbienteSeleccionado.value = localStorage.getItem('kiosko_ambiente_nombre') || localStorage.getItem('ambienteActivoNombre');
+      
+      // Levantar WebSocket
+      conectarWebSocketDashboard();
+      
+      // 🚀 Descarga de alumnos y recuperación automática de estados
+      await recargarListadoAprendices();
+    }
+  });
+
+  // =========================================================================
+  // 2. SEGURIDAD: Validación de Rol
+  // =========================================================================
   if (!hasRole(["instructor", "dinamizador"])) {
     toast.error("Acceso denegado. Se requiere perfil de Instructor.");
     router.push("/route-selector");
     return;
   }
 
+  // =========================================================================
+  // 3. RELOJ MAESTRO
+  // =========================================================================
   setInterval(() => {
     currentTime.value = new Date().toLocaleTimeString();
   }, 1000);
 
-  fichaActiva.value = localStorage.getItem('fichaActiva') || "Sin Ficha";
-  nombrePrograma.value = localStorage.getItem('nombrePrograma') || "Programa no definido";
-  nombreInstructor.value = localStorage.getItem('nombreInstructor') || "Instructor";
+  // =========================================================================
+  // 4. FLUJO DE CARGA INICIAL
+  // =========================================================================
+  
+  // Iniciamos el canal bidireccional si hay un ambiente guardado
+  conectarWebSocketDashboard();
 
-  if (fichaActiva.value === "Sin Ficha") {
-    toast.error("No hay una ficha activa. Redirigiendo...");
-    router.push("/route-selector");
+  // CASO A: Recarga accidental de página (F5) con la clase ya iniciada
+  if (isPowerOn.value) {
+    // Esta única línea descarga la lista y pinta los verdes automáticamente
+    await recargarListadoAprendices();
     return;
   }
 
-  if (localStorage.getItem('sesionActivaId')) {
-    isPowerOn.value = true;
-  }
-
-  try {
-    const response = await fetch(`${BASE_URL}/api/fichas/${fichaActiva.value}/aprendices`);
-    if (!response.ok) throw new Error("No se encontraron aprendices.");
-
-    const data = await response.json();
-    apprentices.value = data.map((ap) => ({
-      id: ap.documento,
-      name: ap.nombre || 'Sin Nombre',
-      doc: ap.documento,
-      email: ap.correo,
-      status: "absent", 
-      lastSeen: "Esperando ingreso"
-    }));
-  } catch (error) {
-    console.error("Error consultando aprendices:", error);
-    toast.warning("El aula está lista, pero no hay aprendices registrados.");
-  } finally {
+  // CASO B: Modo Standby (No hay sesión ni ficha asignada aún)
+  if (fichaActiva.value === "Sin Ficha") {
+    console.log("Dashboard en Modo Standby: Esperando que el Kiosko inicie el flujo.");
     isLoading.value = false;
+    return; 
   }
+
+  // CASO C: Arranque normal desde la PC (El instructor configura todo desde el Dashboard)
+  await recargarListadoAprendices();
 });
 
 onUnmounted(() => {
   if (qrListenerInterval) clearInterval(qrListenerInterval);
+  if (wsDashboard) wsDashboard.close();
 });
 </script>
 
@@ -602,20 +728,12 @@ onUnmounted(() => {
 
       <section class="dash-col attendance-section">
         <div class="actions-group" v-if="hasPermission('gestionar_aula')">
-          <button
-            class="btn-action nfc"
-            :class="{ 'btn-active': nfcScanning }"
-            @click="toggleNFC"
-          >
+          <button class="btn-action nfc" :class="{ 'btn-active': nfcScanning }" @click="toggleNFC">
             <font-awesome-icon icon="fa-solid fa-wifi" />
             <span>{{ nfcScanning ? "ESCANEANDO" : "ACTIVAR NFC" }}</span>
           </button>
 
-          <button
-            class="btn-action qr"
-            :class="{ 'btn-active': qrProjected }"
-            @click="projectQR"
-          >
+          <button class="btn-action qr" :class="{ 'btn-active': qrProjected }" @click="projectQR">
             <font-awesome-icon icon="fa-solid fa-qrcode" />
             <span>MOSTRAR QR</span>
           </button>
@@ -687,7 +805,6 @@ onUnmounted(() => {
       @close="qrProjected = false"
     />
 
-    <!-- Ajustado a PinModal y procesarValidacionPin para que encaje con el script tuyo -->
     <PinModal 
       v-if="showPinModal"
       :isLoading="isValidatingPin" 

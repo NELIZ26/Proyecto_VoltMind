@@ -303,6 +303,9 @@ const resetMethods = () => {
 // ==========================================
 // LÓGICA GENERACIÓN DE PIN DINÁMICO
 // ==========================================
+// ==========================================
+// LÓGICA GENERACIÓN DE PIN DINÁMICO
+// ==========================================
 const generateOtp = async () => {
   resetMethods();
   isGeneratingOtp.value = true;
@@ -312,13 +315,18 @@ const generateOtp = async () => {
     // 🚦 DECISIÓN DE PAYLOAD BASADA EN EL ROL
     const payload = perfilLocal.value.role === 'instructor' 
       ? { 
-          identificador: perfilLocal.value.email, // Dato esperado por el schema backend
+          identificador: perfilLocal.value.email,
+          nombre: perfilLocal.value.name, // 🟢 Agregamos nombre del instructor (Opcional, pero buena práctica)
           rol: 'instructor' 
         }
       : { 
-          documento_aprendiz: perfilLocal.value.doc, // Dato esperado por el schema backend
+          documento_aprendiz: perfilLocal.value.doc, 
+          nombre: perfilLocal.value.name, // 🟢 ¡CRÍTICO PARA LA FIRMA!: Enviamos el nombre del estudiante
           rol: 'aprendiz' 
         };
+
+    console.log("📦 PAYLOAD QUE VAMOS A ENVIAR A FASTAPI:", payload);
+    console.log("🔍 ¿QUÉ HAY EN LOCALSTORAGE?:", localStorage.getItem('userData'));
 
     const response = await fetch(`${BASE_URL}/api/asistencia/generar-pin`, {
       method: "POST",
@@ -332,7 +340,7 @@ const generateOtp = async () => {
       
       otpMessage.value = perfilLocal.value.role === 'instructor' 
         ? "Ingresa este PIN en la tablet para iniciar el ambiente." 
-        : "Muestra este PIN en la pantalla del instructor.";
+        : "Digita este PIN en la Tablet para registrar tu asistencia.";
       
       otpSeconds.value = 60;
       countdownInterval = setInterval(() => {

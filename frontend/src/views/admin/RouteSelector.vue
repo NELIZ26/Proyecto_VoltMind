@@ -7,7 +7,30 @@
         <p>Selecciona tu entorno de trabajo</p>
       </div>
 
-      <div class="options-grid">
+      <!-- 🛡️ ESCUDO ANTI-ZOMBIES: Alerta de Sesión Atascada -->
+      <div v-if="sesionRecuperada" class="active-session-banner alert-warning" style="margin-bottom: 20px; padding: 15px; border-radius: 8px; background: #fff3cd; color: #856404; border: 1px solid #ffeeba;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+          <font-awesome-icon icon="fa-solid fa-triangle-exclamation" style="font-size: 1.5rem;" />
+          <div>
+            <strong style="display: block;">Clase anterior no finalizada</strong>
+            <span style="font-size: 0.9em;">Hora de registro: {{ horaInicioFormateada }}</span>
+          </div>
+        </div>
+        
+        <div style="display: flex; gap: 10px; margin-top: 10px;">
+          <button @click="retomarDashboard" class="btn-action-green" style="flex: 1; padding: 10px; border-radius: 4px; border: none; cursor: pointer; background: #28a745; color: white;">
+            Retomar Panel
+          </button>
+          <!-- 💥 BOTÓN ROJO PARA MATAR EL AULA FANTASMA -->
+          <button @click="forzarCierreSesion" class="btn-action-red" style="flex: 1; padding: 10px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            Forzar Cierre
+          </button>
+        </div>
+      </div>
+
+      <!-- Bloqueamos visualmente las opciones si hay una sesión zombie -->
+      <div class="options-grid" :style="{ opacity: sesionRecuperada ? '0.5' : '1', pointerEvents: sesionRecuperada ? 'none' : 'auto' }">
+        
         <!-- Opción 1: Panel de Control -->
         <button class="option-card" @click="goToDashboard">
           <div class="icon-wrapper bg-blue">
@@ -31,33 +54,98 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/user';
+import { useToast } from 'vue-toastification';
 
 const router = useRouter();
 const userStore = useUserStore();
+const toast = useToast();
 
-onMounted(() => {
-  // Rescatamos los datos del instructor que guardó el Login
+const sesionRecuperada = ref(false); 
+const horaInicioFormateada = ref('');
+const idSesionFantasma = ref(''); 
+
+onMounted(async () => {
   const nombreGuardado = localStorage.getItem('instructorName');
   const correoGuardado = localStorage.getItem('instructorEmail');
   const rolGuardado = localStorage.getItem('user_role');
 
   if (nombreGuardado && correoGuardado) {
-    // 🟢 Repoblamos Pinia para que el Dashboard tenga con qué buscar las fichas
     userStore.name = nombreGuardado;
     userStore.email = correoGuardado; 
     userStore.role = rolGuardado || 'instructor';
+
+    // 🛡️ PRIMER FILTRO: Revisar memoria local (Si el navegador quedó "sucio")
+    const sesionLocal = localStorage.getItem('sesionActivaId');
+    if (sesionLocal) {
+      console.warn("🧟 Zombie detectado en memoria local");
+      idSesionFantasma.value = sesionLocal;
+      horaInicioFormateada.value = localStorage.getItem('horaInicio') || 'Sesión anterior';
+      sesionRecuperada.value = true;
+      return; // Detenemos la ejecución aquí, no hace falta preguntar a Dataverse
+    }
+
+    // 📡 SEGUNDO FILTRO: Radar Backend (Por si la clase quedó "En Curso" en Dataverse)
+    try {
+      const radar = await fetch(`http://127.0.0.1:8000/api/sesiones/activa/${correoGuardado}`);
+      if (radar.ok) {
+        const dataRadar = await radar.json();
+        
+        if (dataRadar.activa) {
+          console.warn("🧟 Zombie detectado en Dataverse");
+          idSesionFantasma.value = dataRadar.sesion_id;
+          const fechaEntrada = new Date(dataRadar.hora_entrada);
+          horaInicioFormateada.value = fechaEntrada.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+          sesionRecuperada.value = true;
+        }
+      }
+    } catch (error) {
+      console.error("Error en el radar de sesiones:", error);
+    }
   } else {
-    // Si por alguna razón el instructor llegó aquí sin iniciar sesión, lo devolvemos
     router.push('/login');
   }
 });
 
+// 💥 FUNCIÓN PARA MATAR LA SESIÓN
+const forzarCierreSesion = async () => {
+  if (!idSesionFantasma.value) return;
+  
+  toast.info("Limpiando sesión atascada...");
+  
+  try {
+    const response = await fetch(`http://127.0.0.1:8000/api/sesiones/finalizar?sesion_id=${idSesionFantasma.value}`, {
+      method: "POST"
+    });
+
+    if (response.ok) {
+      // Limpiamos cualquier rastro local
+      localStorage.removeItem('sesionActivaId');
+      localStorage.removeItem('horaInicio');
+      localStorage.removeItem('fichaActiva');
+      localStorage.removeItem('nombrePrograma');
+      
+      sesionRecuperada.value = false;
+      toast.success("Limpieza completa. Ya puedes iniciar una nueva clase.");
+    } else {
+      toast.error("Error al cerrar en Dataverse.");
+    }
+  } catch (error) {
+    console.error("Error forzando cierre:", error);
+    toast.error("Fallo de red al intentar limpiar la sesión.");
+  }
+};
+
+const retomarDashboard = () => {
+  localStorage.setItem('sesionActivaId', idSesionFantasma.value);
+  localStorage.setItem('horaInicio', horaInicioFormateada.value);
+  router.push("/dashboard");
+};
+
 const goToDashboard = () => {
-  // Tu vista SelectFicha / Dashboard ahora sí tendrá el correo en Pinia para hacer el fetch
-  router.push('/select-ficha'); // O la ruta que use tu instructor para activar el aula
+  router.push('/select-ficha'); 
 };
 
 const goToCard = () => {
