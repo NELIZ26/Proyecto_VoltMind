@@ -129,8 +129,10 @@ import {
   faSignal,
   faChartLine,
   faChevronDown,
-  faDesktop,
-
+  faDesktop, 
+  faFlagCheckered,
+  faFileExcel,
+  faSpinner,
 } from "@fortawesome/free-solid-svg-icons";
 
 library.add(
@@ -221,8 +223,9 @@ library.add(
   faSignal,
   faChartLine,
   faChevronDown,
-  faDesktop, 
-
+  faFlagCheckered,
+  faFileExcel,
+  faSpinner
 );
 
 // ── 3. INICIALIZACIÓN DE LA INSTANCIA DE VUE ──

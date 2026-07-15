@@ -1,5 +1,13 @@
 {
   "appId": "com.sena.voltmind",
   "appName": "VoltMind",
-  "webDir": "dist"
+  "webDir": "dist",
+  "server": {
+    "cleartext": true
+  },
+  "plugins": {
+    "CapacitorHttp": {
+      "enabled": true
+    }
+  }
 }

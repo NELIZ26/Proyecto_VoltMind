@@ -12,8 +12,8 @@ import { PublicClientApplication, InteractionRequiredAuthError } from '@azure/ms
 const msalConfig = {
   auth: {
     // Llamamos a las variables de tu .env
-    clientId: import.meta.env.VITE_AZURE_CLIENT_ID,
-    authority: import.meta.env.VITE_AZURE_AUTHORITY,
+    clientId: import.meta.env.VITE_AZURE_CLIENT_ID || "TU_CLIENT_ID",
+    authority: import.meta.env.VITE_AZURE_AUTHORITY || "https://login.microsoftonline.com/common",
     redirectUri: window.location.origin,
   },
   cache: {

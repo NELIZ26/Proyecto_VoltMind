@@ -12,18 +12,19 @@ const authStore = useAuthStore();
 const isLoggingIn = ref(false);
 
 // 1. Configuración de MSAL
+import { Capacitor } from '@capacitor/core';
+import { App } from '@capacitor/app';
+
 const msalConfig = {
   auth: {
-    // Ahora Vite irá a buscar el ID correcto a tu archivo .env
-    clientId: import.meta.env.VITE_AZURE_CLIENT_ID, 
-    // Y también buscará tu inquilino específico en lugar del genérico
-    authority: import.meta.env.VITE_AZURE_AUTHORITY, 
-    redirectUri: window.location.origin, 
+    clientId: import.meta.env.VITE_AZURE_CLIENT_ID || "TU_CLIENT_ID", 
+    authority: import.meta.env.VITE_AZURE_AUTHORITY || "https://login.microsoftonline.com/common", 
+    redirectUri: Capacitor.isNativePlatform() ? "voltmind://callback" : window.location.origin, 
     navigateToLoginRequestUrl: false, 
   },
   cache: {
-    cacheLocation: "sessionStorage", 
-    storeAuthStateInCookie: false,
+    cacheLocation: "localStorage", 
+    storeAuthStateInCookie: true, 
   }
 };
 
@@ -45,7 +46,8 @@ const processLoginSuccess = async (account) => {
 
     try {
       // 🟢 CONSULTA AL BACKEND: Cruzamos el correo de Microsoft con Dataverse
-      const response = await fetch(`/api/usuarios/perfil?email=${userEmail}`);
+      const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+      const response = await fetch(`${BASE_URL}/api/usuarios/perfil?email=${userEmail}`);
       
       if (response.ok) {
         const perfilCompleto = await response.json();
@@ -94,19 +96,64 @@ const processLoginSuccess = async (account) => {
   }
 };
 
-// 3. Procesar el regreso de la redirección de Microsoft (Modificado para soportar la función async)
+// 3. Procesar el regreso de la redirección de Microsoft
 onMounted(async () => {
   try {
     await msalInstance.initialize();
     
-    const response = await msalInstance.handleRedirectPromise();
-    
-    if (response) {
-      await processLoginSuccess(response.account);
-    } else {
+    if (Capacitor.isNativePlatform()) {
+      // Función auxiliar para procesar la URL recibida
+      const processDeepLink = async (deepLinkUrl) => {
+        const url = new URL(deepLinkUrl);
+        const hashToProcess = url.hash ? url.hash : url.search; 
+        
+        try {
+          if (hashToProcess) {
+            window.location.hash = hashToProcess;
+          }
+
+          const response = await msalInstance.handleRedirectPromise(); 
+          if (response) {
+            await processLoginSuccess(response.account);
+          } else {
+            const checkAccounts = msalInstance.getAllAccounts();
+            if (checkAccounts.length > 0) {
+              await processLoginSuccess(checkAccounts[0]);
+            } else {
+              toast.error("MSAL omitió el login. Info: " + hashToProcess.substring(0, 30) + "...");
+            }
+          }
+        } catch (err) {
+          console.error("Error procesando hash del deep link:", err);
+          toast.error("Error MSAL: " + (err.message || "desconocido"));
+        }
+      };
+
+      const launchUrlData = await App.getLaunchUrl();
+      if (launchUrlData && launchUrlData.url && launchUrlData.url.includes('code=')) {
+        await processDeepLink(launchUrlData.url);
+      }
+
+      App.addListener('appUrlOpen', async (data) => {
+        if (data.url.includes('code=')) {
+          await processDeepLink(data.url);
+        }
+      });
+      
       const currentAccounts = msalInstance.getAllAccounts();
       if (currentAccounts.length > 0) {
         await processLoginSuccess(currentAccounts[0]);
+      }
+      
+    } else {
+      const response = await msalInstance.handleRedirectPromise();
+      if (response) {
+        await processLoginSuccess(response.account);
+      } else {
+        const currentAccounts = msalInstance.getAllAccounts();
+        if (currentAccounts.length > 0) {
+          await processLoginSuccess(currentAccounts[0]);
+        }
       }
     }
   } catch (error) {

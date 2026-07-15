@@ -37,7 +37,8 @@ const fichaActiva = ref(localStorage.getItem('fichaActiva') || "Sin Ficha");
 const cargarAmbientes = async () => {
   isLoadingAmbientes.value = true;
   try {
-    const res = await fetch("http://localhost:8000/api/sesiones/ambientes");
+    const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+    const res = await fetch(`${BASE_URL}/api/sesiones/ambientes`);
     if (res.ok) {
       ambientesDisponibles.value = await res.json();
     } else {
@@ -80,7 +81,8 @@ const conectarWebSocket = () => {
   if (!ambienteId.value) return;
 
   // 🟢 CORRECCIÓN 403: Usamos localhost en lugar de 127.0.0.1 para evitar bloqueos CORS
-  ws = new WebSocket(`ws://localhost:8000/api/ws/ambiente/${ambienteId.value}`);
+  const WS_URL = (import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000').replace(/^http/, 'ws');
+  ws = new WebSocket(`${WS_URL}/api/ws/ambiente/${ambienteId.value}`);
 
   ws.onopen = () => {
     console.log(`[Kiosko] 🟢 Conectado y escuchando al ambiente ${ambienteNombre.value}`);
@@ -155,7 +157,8 @@ const handleFichaSelected = async (ficha) => {
 
   try {
     // 1. Disparamos la creación de la sesión en FastAPI (Esto activa el WebSocket para el Dashboard)
-    const responseSesion = await fetch(`http://localhost:8000/api/sesiones/iniciar`, {
+    const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+    const responseSesion = await fetch(`${BASE_URL}/api/sesiones/iniciar`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -174,7 +177,8 @@ const handleFichaSelected = async (ficha) => {
       localStorage.setItem('horaInicio', new Date(data.hora_entrada).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }));
 
       // 2. Encendemos los relés IoT físicos
-      await fetch(`http://localhost:8000/api/iot/master`, {
+      const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+      await fetch(`${BASE_URL}/api/iot/master`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ estado: "1" })
@@ -220,7 +224,8 @@ const handlePinSubmit = async (pinValue) => {
   
   try {
     const sesionId = localStorage.getItem('sesionActivaId') || "";
-    const response = await fetch(`http://localhost:8000/api/asistencia/validar-pin`, {
+    const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+    const response = await fetch(`${BASE_URL}/api/asistencia/validar-pin`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ 
@@ -272,7 +277,8 @@ const procesarRegistroFirmaAsistencia = async (base64Signature) => {
   const sesionId = localStorage.getItem('sesionActivaId') || "";
   
   try {
-    const response = await fetch(`http://localhost:8000/api/asistencia/guardar-firma`, {
+    const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+    const response = await fetch(`${BASE_URL}/api/asistencia/guardar-firma`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

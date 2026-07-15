@@ -89,7 +89,8 @@ onMounted(async () => {
 
     // 📡 SEGUNDO FILTRO: Radar Backend (Por si la clase quedó "En Curso" en Dataverse)
     try {
-      const radar = await fetch(`http://127.0.0.1:8000/api/sesiones/activa/${correoGuardado}`);
+      const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+      const radar = await fetch(`${BASE_URL}/api/sesiones/activa/${correoGuardado}`);
       if (radar.ok) {
         const dataRadar = await radar.json();
         
@@ -116,7 +117,8 @@ const forzarCierreSesion = async () => {
   toast.info("Limpiando sesión atascada...");
   
   try {
-    const response = await fetch(`http://127.0.0.1:8000/api/sesiones/finalizar?sesion_id=${idSesionFantasma.value}`, {
+    const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+    const response = await fetch(`${BASE_URL}/api/sesiones/finalizar?sesion_id=${idSesionFantasma.value}`, {
       method: "POST"
     });
 
