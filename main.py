@@ -1,7 +1,7 @@
 # main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import fichas, aprendices, sesiones, asistencia, usuarios, ws_kiosko
+from routers import fichas, aprendices, sesiones, asistencia, usuarios, ws_kiosko, iot
 
 # ⏰ IMPORTACIÓN DEL PLANIFICADOR
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -26,6 +26,7 @@ app.include_router(sesiones.router)
 app.include_router(asistencia.router)
 app.include_router(usuarios.router)
 app.include_router(ws_kiosko.router)
+app.include_router(iot.router)
 
 
 # =================================================================
