@@ -19,9 +19,9 @@ const devLogins = [
   },
   {
     role: "instructor",
-    path: "/select-ficha", 
+    path: "/solicitud-complementaria",
     name: "Instructor de Ambiente",
-    desc: "Gestión local de energía, puente IoT y control de asistencia.",
+    desc: "Solicitud de fichas complementarias, gestión local de energía y asistencia.",
     icon: "chalkboard-user",
     color: "var(--sena-verde, #39a900)",
     glow: "rgba(57, 169, 0, 0.25)",

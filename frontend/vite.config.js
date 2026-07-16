@@ -11,7 +11,7 @@ export default defineConfig({
       targets: ['Android >= 9', 'iOS >= 11'],
       renderLegacyChunks: true,
     }),
-    basicSsl() 
+    // basicSsl() // Desactivado: forzaba HTTPS y Chrome bloqueaba con advertencia de certificado
   ],
   server: {
     host: true, 

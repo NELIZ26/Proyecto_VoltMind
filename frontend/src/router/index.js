@@ -37,6 +37,16 @@ const routes = [
     },
   },
   {
+    path: "/solicitud-complementaria",
+    name: "SolicitudComplementaria",
+    component: () => import("@/views/display/SolicitudComplementaria.vue"),
+    meta: {
+      title: "VoltMind - Solicitud de Ficha Complementaria",
+      requiresAuth: true,
+      roles: ["instructor"], // El instructor solicita; el admin crea la ficha
+    },
+  },
+  {
     path: "/dashboard",
     name: "Dashboard",
     component: () => import("@/views/display/DashboardInstru.vue"),
@@ -79,13 +89,20 @@ const routes = [
   {
     path: "/admin",
     component: () => import("@/layouts/AdminLayout.vue"),
-    meta: { requiresAuth: false }, // Sin restricción por ahora para facilitar pruebas
+    // Sección administrativa: solo el dinamizador (el instructor NO accede)
+    meta: { requiresAuth: true, roles: ["dinamizador"] },
     children: [
       {
         path: "dashboard",
         name: "AdminDashboard",
         component: () => import("@/views/admin/DashboardView.vue"),
         meta: { title: "VoltMind Admin - Dashboard" }
+      },
+      {
+        path: "complementarias",
+        name: "AdminComplementarias",
+        component: () => import("@/views/admin/FichasComplementariasView.vue"),
+        meta: { title: "VoltMind Admin - Fichas Complementarias" }
       },
       {
         path: "calculadora",

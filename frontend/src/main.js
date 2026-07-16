@@ -131,6 +131,18 @@ import {
   faChartLine,
   faChevronDown,
   faChartSimple,
+  faNetworkWired,
+  // Fichas Complementarias
+  faTableColumns,
+  faTableList,
+  faArrowUpRightFromSquare,
+  faFilePdf,
+  faPaperclip,
+  faFileCirclePlus,
+  faListCheck,
+  faFolder,
+  faFolderOpen,
+  faPaperPlane,
 } from "@fortawesome/free-solid-svg-icons";
 
 library.add(
@@ -139,6 +151,7 @@ library.add(
   faUsers,
   faIdCard,
   faIdBadge,
+  faListCheck,
   faAddressCard,
   faChalkboardUser,
   faPowerOff,
@@ -222,7 +235,18 @@ library.add(
   faSignal,
   faChartLine,
   faChevronDown,
-  faChartSimple
+  faChartSimple,
+  faTableColumns,
+  faTableList,
+  faArrowUpRightFromSquare,
+  faFilePdf,
+  faPaperclip,
+  faFileCirclePlus,
+  faListCheck,
+  faFolder,
+  faFolderOpen,
+  faPaperPlane,
+  faNetworkWired
 );
 
 // ── 3. INICIALIZACIÓN DE LA INSTANCIA DE VUE ──

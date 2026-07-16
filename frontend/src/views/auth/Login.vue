@@ -84,10 +84,11 @@ const processLoginSuccess = async (account) => {
     localStorage.setItem("instructorName", userName);
     localStorage.setItem("nombreInstructor", userName.split(' ')[0]); // Primer nombre para el saludo corta
     
-    toast.success(`Instructor Autenticado. Cargando panel operativo...`);
-    
-    // Cambiado directamente a la selección de ficha oficial
-    router.push("/select-ficha"); 
+    toast.success(`Instructor Autenticado. Cargando su área de trabajo...`);
+
+    // El instructor entra a SU vista (solicitudes de fichas complementarias);
+    // desde allí tiene el enlace "Panel de clase" hacia /select-ficha.
+    router.push("/solicitud-complementaria");
 
   } else {
     // SEGURIDAD: Bloquea dominios externos no autorizados
