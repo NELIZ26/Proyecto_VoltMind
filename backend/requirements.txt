@@ -32,3 +32,4 @@ urllib3==2.7.0
 uvicorn==0.48.0
 pyserial
 apscheduler
+python-multipart>=0.0.9        # Subida de archivos (Form/File) en fichas complementarias
