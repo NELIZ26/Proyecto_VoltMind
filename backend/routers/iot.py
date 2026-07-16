@@ -6,9 +6,14 @@ import time
 import serial
 import serial.tools.list_ports
 import logging
+import os
+from typing import Dict
 
 router = APIRouter(prefix="/api/iot", tags=["IoT"])
 logger = logging.getLogger("voltmind")
+
+# Determinamos si estamos en la nube (Azure App Service) o en local
+IS_CLOUD_MODE = bool(os.getenv("WEBSITE_SITE_NAME") or os.getenv("ENTORNO") == "produccion")
 
 # Global states
 telemetry_data = {
@@ -131,6 +136,11 @@ def serial_reader_thread():
 
 def send_serial_command(command: str) -> bool:
     global ser_conn
+    
+    if IS_CLOUD_MODE:
+        logger.info(f"☁️ [Cloud Mode] Comando '{command}' registrado. (Sincronización con Edge Device pendiente)")
+        return True
+
     # Intentamos adquirir el cerrojo con timeout de 2 segundos para evitar deadlocks en la API
     acquired = ser_lock.acquire(timeout=2.0)
     if not acquired:
@@ -153,8 +163,11 @@ def send_serial_command(command: str) -> bool:
     return False
 
 # Iniciar hilo de lectura serial en background al importar/iniciar
-reader_t = threading.Thread(target=serial_reader_thread, daemon=True)
-reader_t.start()
+if IS_CLOUD_MODE:
+    logger.info("INFO - Modo Nube: Lectura de puertos seriales deshabilitada. Esperando datos vía HTTP")
+else:
+    reader_t = threading.Thread(target=serial_reader_thread, daemon=True)
+    reader_t.start()
 
 @router.post("/relay")
 def control_relay(payload: RelayControl):
@@ -213,3 +226,19 @@ def get_telemetry():
         "telemetry": telemetry_data,
         "relay_states": relay_states
     }
+
+class TelemetryPushPayload(BaseModel):
+    telemetry: dict
+    # relay_states: dict (opcional, si el Edge device sincroniza los reles también, pero por ahora solo telemetría)
+
+@router.post("/telemetry/push")
+def push_telemetry(payload: TelemetryPushPayload):
+    """
+    Endpoint para que el Edge Device (Raspberry Pi) envíe los datos leídos del Arduino
+    a la nube.
+    """
+    global telemetry_data
+    for k, v in payload.telemetry.items():
+        telemetry_data[str(k)] = float(v)
+        
+    return {"status": "ok"}
