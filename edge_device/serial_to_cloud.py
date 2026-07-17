@@ -12,7 +12,7 @@ logger = logging.getLogger("EdgeDevice")
 
 # Configuración del Backend Local/Desplegado
 # Se puede sobreescribir con variable de entorno (Ejemplo: http://tu-ip-publica:8000)
-AZURE_API_BASE_URL = os.getenv("AZURE_API_BASE_URL", "http://127.0.0.1:8000")
+AZURE_API_BASE_URL = os.getenv("AZURE_API_BASE_URL", "https://voltmind-gxg9g6argxg5e9db.centralus-01.azurewebsites.net")
 TELEMETRY_URL = f"{AZURE_API_BASE_URL}/api/iot/telemetry/push"
 COMMANDS_URL = f"{AZURE_API_BASE_URL}/api/iot/commands/pending"
 
@@ -68,16 +68,15 @@ def main():
             line = ser.readline()
             if line:
                 decoded_line = line.decode('utf-8', errors='ignore').strip()
-                # Formato enviado por Arduino esperado: T:pin:valor (Ejemplo: T:3:120.50)
-                if decoded_line.startswith("T:"):
-                    parts = decoded_line[2:].split(":")
-                    if len(parts) == 2:
-                        pin = parts[0]
-                        val = parts[1]
-                        try:
-                            telemetry_data[pin] = float(val)
-                        except ValueError:
-                            pass
+                # Formato enviado por Arduino: pin:valor (Ejemplo: 3:120.50)
+                parts = decoded_line.split(":")
+                if len(parts) == 2:
+                    pin = parts[0]
+                    val = parts[1]
+                    try:
+                        telemetry_data[pin] = float(val)
+                    except ValueError:
+                        pass
             
             # Revisar si es momento de enviar los datos a Azure
             current_time = time.time()
