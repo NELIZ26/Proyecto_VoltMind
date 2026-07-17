@@ -191,7 +191,8 @@ let wsDashboard = null;
 const conectarWebSocketDashboard = () => {
   if (!ambienteSeleccionadoId.value || ambienteSeleccionadoId.value === "Sin Definir") return;
 
-  wsDashboard = new WebSocket(`ws://127.0.0.1:8000/api/ws/ambiente/${ambienteSeleccionadoId.value}`);
+  const WS_URL = BASE_URL.replace(/^http/, 'ws');
+  wsDashboard = new WebSocket(`${WS_URL}/api/ws/ambiente/${ambienteSeleccionadoId.value}`);
 
   wsDashboard.onopen = () => {
     console.log(`[Dashboard] 🟢 Escuchando al ambiente ${nombreAmbienteSeleccionado.value}`);

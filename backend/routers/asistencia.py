@@ -270,6 +270,20 @@ async def validar_pin(datos: PinValidate):
 @router.post("/habilitar-salida/{sesion_id}")
 async def habilitar_salida(sesion_id: str):
     await redis_client.setex(f"sesion:{sesion_id}:salida_activa", 43200, "1")
+    
+    # 📢 WEBSOCKET: Avisar a la Tablet (y Dashboard) que el modo salida empezó
+    try:
+        ambiente_id = await redis_client.get(f"sesion:{sesion_id}:ambiente")
+        if ambiente_id:
+            from services.websocket_manager import manager
+            await manager.broadcast_to_ambiente(ambiente_id, {
+                "tipo": "CAMBIO_ESTADO",
+                "nuevo_estado": "MODO_SALIDA"
+            })
+            log.info(f"📢 [WebSocket] Estado MODO_SALIDA propagado al ambiente {ambiente_id}")
+    except Exception as e:
+        log.error(f"❌ Error al propagar MODO_SALIDA por WebSocket: {e}")
+
     log.info(f"Salida y firmas habilitadas para la sesión {sesion_id}")
     return {"mensaje": "Salida habilitada. Los aprendices ya pueden firmar."}
 
