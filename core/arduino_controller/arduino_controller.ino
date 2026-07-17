@@ -97,12 +97,12 @@ void loop() {
     float watts8 = calcularWatts(sensor8);
 
     // Enviar datos por serial
-    Serial.print("3:"); Serial.println(watts3);
-    Serial.print("4:"); Serial.println(watts4);
-    Serial.print("5:"); Serial.println(watts5);
-    Serial.print("6:"); Serial.println(watts6);
-    Serial.print("7:"); Serial.println(watts7);
-    Serial.print("8:"); Serial.println(watts8);
+    Serial.print("T:3:"); Serial.println(watts3);
+    Serial.print("T:4:"); Serial.println(watts4);
+    Serial.print("T:5:"); Serial.println(watts5);
+    Serial.print("T:6:"); Serial.println(watts6);
+    Serial.print("T:7:"); Serial.println(watts7);
+    Serial.print("T:8:"); Serial.println(watts8);
   }
 }
 
