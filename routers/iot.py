@@ -35,6 +35,8 @@ relay_states = {
     "R8": 0
 }
 
+pending_commands = []
+
 ser_conn = None
 ser_lock = threading.Lock()
 running = True
@@ -135,10 +137,11 @@ def serial_reader_thread():
             time.sleep(2)
 
 def send_serial_command(command: str) -> bool:
-    global ser_conn
+    global ser_conn, pending_commands
     
     if IS_CLOUD_MODE:
-        logger.info(f"☁️ [Cloud Mode] Comando '{command}' registrado. (Sincronización con Edge Device pendiente)")
+        pending_commands.append(command)
+        logger.info(f"☁️ [Cloud Mode] Comando '{command}' encolado. ({len(pending_commands)} pendientes)")
         return True
 
     # Intentamos adquirir el cerrojo con timeout de 2 segundos para evitar deadlocks en la API
@@ -242,3 +245,14 @@ def push_telemetry(payload: TelemetryPushPayload):
         telemetry_data[str(k)] = float(v)
         
     return {"status": "ok"}
+
+@router.get("/commands/pending")
+def get_pending_commands():
+    """
+    Endpoint para que el Edge Device solicite los comandos encolados y los ejecute localmente.
+    """
+    global pending_commands
+    commands_to_send = pending_commands.copy()
+    pending_commands.clear()
+    
+    return {"commands": commands_to_send}
