@@ -7,23 +7,22 @@
         <p>Selecciona tu entorno de trabajo</p>
       </div>
 
-      <!-- 🛡️ ESCUDO ANTI-ZOMBIES: Alerta de Sesión Atascada -->
-      <div v-if="sesionRecuperada" class="active-session-banner alert-warning" style="margin-bottom: 20px; padding: 15px; border-radius: 8px; background: #fff3cd; color: #856404; border: 1px solid #ffeeba;">
+      <!-- 🟢 AVISO DE CLASE ACTIVA (Reemplaza al escudo zombie) -->
+      <div v-if="sesionRecuperada" class="active-session-banner alert-success" style="margin-bottom: 20px; padding: 15px; border-radius: 8px; background: #d4edda; color: #155724; border: 1px solid #c3e6cb; text-align: left;">
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-          <font-awesome-icon icon="fa-solid fa-triangle-exclamation" style="font-size: 1.5rem;" />
+          <font-awesome-icon icon="fa-solid fa-chalkboard-user" style="font-size: 1.5rem;" />
           <div>
-            <strong style="display: block;">Clase anterior no finalizada</strong>
-            <span style="font-size: 0.9em;">Hora de registro: {{ horaInicioFormateada }}</span>
+            <strong style="display: block;">¡Tienes una clase activa en curso!</strong>
+            <span style="font-size: 0.9em;">Iniciada a las: {{ horaInicioFormateada }}</span>
           </div>
         </div>
         
         <div style="display: flex; gap: 10px; margin-top: 10px;">
-          <button @click="retomarDashboard" class="btn-action-green" style="flex: 1; padding: 10px; border-radius: 4px; border: none; cursor: pointer; background: #28a745; color: white;">
-            Retomar Panel
+          <button @click="retomarDashboard" class="btn-action-green" style="flex: 2; padding: 10px; border-radius: 4px; border: none; cursor: pointer; background: #28a745; color: white; font-weight: bold; font-size: 1rem;">
+            Ir al Panel de Control <font-awesome-icon icon="fa-solid fa-arrow-right" style="margin-left: 5px;" />
           </button>
-          <!-- 💥 BOTÓN ROJO PARA MATAR EL AULA FANTASMA -->
-          <button @click="forzarCierreSesion" class="btn-action-red" style="flex: 1; padding: 10px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer;">
-            Forzar Cierre
+          <button @click="forzarCierreSesion" class="btn-action-red" style="flex: 1; padding: 10px; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">
+            Finalizar
           </button>
         </div>
       </div>
@@ -181,6 +180,7 @@ const goToCard = () => {
   display: flex;
   gap: 2rem;
   justify-content: center;
+  flex-wrap: wrap;
 }
 .option-card {
   background: var(--fondo-tarjetas);
@@ -215,4 +215,23 @@ const goToCard = () => {
 .bg-green { background-color: var(--sena-verde); }
 .option-card h3 { color: var(--texto-principal); margin: 0 0 0.5rem 0; font-size: 1.2rem; }
 .option-card p { color: var(--texto-secundario); font-size: 0.9rem; margin: 0; }
+
+@media (max-width: 600px) {
+  .options-grid {
+    flex-direction: column;
+    align-items: center;
+    gap: 1.5rem;
+  }
+  .option-card {
+    width: 100%;
+    max-width: 320px;
+    padding: 1.5rem;
+  }
+  .selector-container {
+    padding: 1.5rem;
+  }
+  .brand-header {
+    margin-bottom: 2rem;
+  }
+}
 </style>

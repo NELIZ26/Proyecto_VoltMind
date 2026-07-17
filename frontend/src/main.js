@@ -223,6 +223,7 @@ library.add(
   faSignal,
   faChartLine,
   faChevronDown,
+  faDesktop,
   faFlagCheckered,
   faFileExcel,
   faSpinner
