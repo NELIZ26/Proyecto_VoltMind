@@ -119,3 +119,38 @@ button {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* ==========================================================================
+   5. RESPONSIVE UTILITIES & MEDIA QUERIES
+   ========================================================================== */
+
+/* Tablet & Mobile (max-width: 992px) */
+@media (max-width: 992px) {
+  body {
+    font-size: 15px;
+  }
+}
+
+/* Mobile Devices (max-width: 768px) */
+@media (max-width: 768px) {
+  body {
+    font-size: 14px;
+  }
+  
+  .btn-primary {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+
+  .icon-margin {
+    margin-right: 8px;
+  }
+}
+
+/* Small Mobile Devices (max-width: 480px) */
+@media (max-width: 480px) {
+  .btn-primary {
+    width: 100%;
+    padding: 12px;
+  }
+}

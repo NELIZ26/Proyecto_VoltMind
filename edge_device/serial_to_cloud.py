@@ -12,7 +12,9 @@ logger = logging.getLogger("EdgeDevice")
 
 # Configuración del Backend en Azure
 # Se puede sobreescribir con variable de entorno
-AZURE_BACKEND_URL = os.getenv("AZURE_BACKEND_URL", "https://<tu-app-service>.azurewebsites.net/api/iot/telemetry/push")
+AZURE_API_BASE_URL = os.getenv("AZURE_API_BASE_URL", "https://voltmind-gxg9g6argxg5e9db.centralus-01.azurewebsites.net")
+TELEMETRY_URL = f"{AZURE_API_BASE_URL}/api/iot/telemetry/push"
+COMMANDS_URL = f"{AZURE_API_BASE_URL}/api/iot/commands/pending"
 
 def get_serial_port():
     """Busca el puerto del Arduino, ignorando puertos Bluetooth (BTHENUM)"""
@@ -37,7 +39,7 @@ def get_serial_port():
     return None
 
 def main():
-    logger.info(f"🚀 Iniciando Edge Device. Enviando datos a: {AZURE_BACKEND_URL}")
+    logger.info(f"🚀 Iniciando Edge Device. Enviando datos a: {TELEMETRY_URL}")
     
     ser = None
     telemetry_data = {}
@@ -79,23 +81,35 @@ def main():
             
             # Revisar si es momento de enviar los datos a Azure
             current_time = time.time()
-            if current_time - last_push_time >= PUSH_INTERVAL and telemetry_data:
-                payload = {
-                    "telemetry": telemetry_data
-                }
+            if current_time - last_push_time >= PUSH_INTERVAL:
+                # 1. Enviar Telemetría (solo si hay datos)
+                if telemetry_data:
+                    payload = {"telemetry": telemetry_data}
+                    try:
+                        response = requests.post(TELEMETRY_URL, json=payload, timeout=3.0)
+                        if response.status_code == 200:
+                            pass # logger.info(f"☁️ [Azure Push] OK - {telemetry_data}")
+                        else:
+                            logger.warning(f"☁️ [Azure Push] Falló con status {response.status_code}: {response.text}")
+                    except requests.exceptions.RequestException as req_err:
+                        logger.error(f"☁️ [Azure Push] Error de red: {req_err}")
                 
+                # 2. Consultar Comandos Pendientes
                 try:
-                    response = requests.post(AZURE_BACKEND_URL, json=payload, timeout=3.0)
-                    if response.status_code == 200:
-                        logger.info(f"☁️ [Azure Push] OK - {telemetry_data}")
+                    cmd_res = requests.get(COMMANDS_URL, timeout=3.0)
+                    if cmd_res.status_code == 200:
+                        data = cmd_res.json()
+                        commands = data.get("commands", [])
+                        for cmd in commands:
+                            logger.info(f"⚡ [Azure Pull] Ejecutando comando recibido: {cmd}")
+                            if ser and ser.is_open:
+                                ser.write(f"{cmd}\n".encode('utf-8'))
                     else:
-                        logger.warning(f"☁️ [Azure Push] Falló con status {response.status_code}: {response.text}")
+                        logger.warning(f"☁️ [Azure Pull] Falló con status {cmd_res.status_code}")
                 except requests.exceptions.RequestException as req_err:
-                    logger.error(f"☁️ [Azure Push] Error de red: {req_err}")
-                
+                    logger.error(f"☁️ [Azure Pull] Error de red consultando comandos: {req_err}")
+
                 last_push_time = current_time
-                # Limpiamos el diccionario (opcional) para enviar solo datos frescos
-                # telemetry_data.clear() 
 
         except serial.SerialException as se:
             logger.error(f"🔌 Desconexión del puerto serial: {se}")

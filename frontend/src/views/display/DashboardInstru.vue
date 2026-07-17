@@ -17,6 +17,7 @@ import { useRole } from "@/composables/useRole";
 // IMPORTACIÓN DE GRÁFICOS
 import SpeedometerChart from "@/components/charts/SpeedometerChart.vue";
 import DynamicMeterBar from "@/components/charts/DynamicMeterBar.vue";
+import ThermometerChart from "@/components/ThermometerChart.vue";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 const toast = useToast();
@@ -65,6 +66,52 @@ const systemAlerts = ref([
 ]);
 const activeModal = ref(null);
 const selectedApprentice = ref(null);
+
+const thermometers = ref([
+  { id: 1, value: 24.5 },
+  { id: 2, value: 25.0 }
+]);
+
+const getTempHeight = (val) => {
+  const min = 15;
+  const max = 35;
+  let pct = ((val - min) / (max - min)) * 100;
+  if (pct < 10) pct = 10;
+  if (pct > 100) pct = 100;
+  return pct + "%";
+};
+
+const getTempColor = (val) => {
+  if (val < 20) return "#3b82f6"; // Azul frío
+  if (val > 26) return "#ef4444"; // Rojo calor
+  return "#22c55e"; // Verde ok
+};
+
+watch(() => thermometers.value, (newVals) => {
+  const isHot = newVals.some(t => t.value > 26);
+  const isCold = newVals.some(t => t.value < 20);
+
+  // Filtrar alertas existentes de temperatura
+  systemAlerts.value = systemAlerts.value.filter(a => a.source !== "Sensores de Temperatura");
+
+  if (isHot) {
+    systemAlerts.value.push({
+      id: Date.now(),
+      severity: "error", // Aparecerá roja
+      message: "Temperatura alta. Sugerencia: Encender / Ajustar AC.",
+      source: "Sensores de Temperatura",
+      timestamp: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+    });
+  } else if (isCold) {
+    systemAlerts.value.push({
+      id: Date.now(),
+      severity: "info", // Aparecerá azul o neutral
+      message: "Temperatura muy baja. Sugerencia: Regular / Apagar AC.",
+      source: "Sensores de Temperatura",
+      timestamp: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+    });
+  }
+}, { deep: true });
 
 const meters = ref([
   { id: 1, label: "Iluminación Aula", value: 120 },
@@ -642,19 +689,25 @@ const pollTelemetry = async () => {
     if (res.ok) {
       const data = await res.json();
       const tel = data.telemetry || {};
-      const states = data.relay_states || {};
-
       // Estabilizar lecturas: Los sensores ACS712 a veces envían 0W erróneamente en AC.
-      // Si el relé está encendido, ignoramos las caídas abruptas a 0 y mantenemos el último valor real.
+      // Si el relé está encendido LOCALMENTE, ignoramos las caídas abruptas a 0 y mantenemos el último valor real.
       Object.keys(tel).forEach(key => {
         const val = parseFloat(tel[key] || 0);
-        const relayState = states[`R${key}`]; 
+        
+        // Mapear el sensor a su estado local (frontend)
+        let isRelayOnLocally = false;
+        if (key === "5") isRelayOnLocally = lightStates.value[0]?.energized;
+        else if (key === "6") isRelayOnLocally = lightStates.value[1]?.energized;
+        else if (key === "7") isRelayOnLocally = lightStates.value[2]?.energized;
+        else if (key === "8") isRelayOnLocally = lightStates.value[3]?.energized;
+        else if (key === "3") isRelayOnLocally = roomNodes.value[0]?.energized;
+        else if (key === "4") isRelayOnLocally = roomNodes.value[1]?.energized;
         
         if (val > 0) {
           telemetryCache.value[key] = val;
         } else if (val === 0) {
-          if (relayState === 1 && isPowerOn.value) {
-            // El relé está ON, ignoramos este "0" como ruido del sensor y mantenemos el caché
+          if (isRelayOnLocally && isPowerOn.value) {
+            // El relé está ON localmente, ignoramos este "0" como ruido del sensor y mantenemos el caché
           } else {
             // El relé está OFF, forzamos a 0
             telemetryCache.value[key] = 0;
@@ -705,6 +758,13 @@ const pollTelemetry = async () => {
           if (states[relayKey] !== undefined) {
             light.energized = states[relayKey] === 1;
           }
+        });
+
+        // Simulación de temperatura si el aula está encendida
+        thermometers.value.forEach(t => {
+          t.value = parseFloat((t.value + (Math.random() - 0.5)).toFixed(1));
+          if (t.value > 30) t.value = 30;
+          if (t.value < 18) t.value = 18;
         });
       }
     }
@@ -942,7 +1002,7 @@ onUnmounted(() => {
                 <SpeedometerChart
                   :title="m.label"
                   :currentValue="isPowerOn ? m.value : 0"
-                  :maxValue="m.id === 1 ? 500 : 2000"
+                  :maxValue="m.id === 1 ? 250 : 2000"
                   unit="W"
                 />
               </div>
@@ -1056,6 +1116,16 @@ onUnmounted(() => {
         </div>
 
         <AlertPanel title="ALERTAS DEL AMBIENTE" icon="fa-solid fa-triangle-exclamation" :alerts="systemAlerts" @resolve="handleAlertResolution" />
+
+        <!-- GRÁFICAS DE TEMPERATURA USANDO CHART.JS -->
+        <div class="module-card">
+          <h2 class="module-title"><font-awesome-icon icon="fa-solid fa-temperature-half" /> CLIMATIZACIÓN (TEMP)</h2>
+          <div class="temp-charts-grid">
+            <div class="chart-box" v-for="t in thermometers" :key="t.id">
+              <ThermometerChart :currentValue="t.value" :label="'ZONA ' + t.id" />
+            </div>
+          </div>
+        </div>
       </section>
 
       <section class="dash-footer-table" v-if="hasRole(['instructor', 'dinamizador'])">
@@ -1263,6 +1333,12 @@ onUnmounted(() => {
 .stat-box-integrated span { font-size: 1rem; font-weight: 800; font-family: monospace; }
 .min-stat span { color: var(--sena-amarillo); }
 .max-stat span { color: #ef4444; }
+
+/* ==========================================
+   TERMÓMETROS CHART.JS
+   ========================================== */
+.temp-charts-grid { display: flex; flex-wrap: wrap; gap: 1rem; padding-top: 1rem; }
+.chart-box { flex: 1 1 150px; min-width: 0; background: var(--fondo-app); border-radius: 12px; border: 1px solid var(--borde); padding: 1rem 0; }
 
 /* ==========================================
    BOTONERA LATERAL (3 COLUMNAS)
