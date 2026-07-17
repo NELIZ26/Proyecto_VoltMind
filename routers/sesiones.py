@@ -3,7 +3,7 @@ from routers.asistencia import redis_client
 from fastapi import APIRouter, HTTPException
 from services.websocket_manager import manager
 # 🟢 Importamos la nueva función 'obtener_ambientes' desde tus servicios
-from services.sesiones import registrar_fin_sesion, registrar_inicio_sesion, obtener_ambientes
+from services.sesiones import registrar_fin_sesion, registrar_inicio_sesion, obtener_ambientes, obtener_sesion_activa_por_email
 
 # Configuramos el prefijo para que las rutas sean limpias
 router = APIRouter(prefix="/api/sesiones", tags=["Control de Sesiones"])
@@ -20,6 +20,20 @@ async def listar_ambientes():
         print("\n================ ERROR DATAVERSE AMBIENTES ================")
         print(str(e))
         print("==========================================================\n")
+        raise HTTPException(status_code=400, detail=str(e))
+
+# ==========================================
+# 🟢 NUEVA RUTA: Radar de Sesión Activa
+# ==========================================
+@router.get("/activa/{correo}")
+async def radar_sesion_activa(correo: str):
+    try:
+        resultado = await obtener_sesion_activa_por_email(correo)
+        return resultado
+    except Exception as e:
+        print("\n================ ERROR RADAR SESION ================")
+        print(str(e))
+        print("====================================================\n")
         raise HTTPException(status_code=400, detail=str(e))
 
 # ==========================================
