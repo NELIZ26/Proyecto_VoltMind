@@ -13,6 +13,46 @@ class Jornada(int, Enum):
     TARDE = 430120001
     NOCHE = 430120002
 
+async def obtener_sesion_activa_por_email(email: str) -> dict:
+    client = obtener_cliente()
+    email_seguro = sanitizar_odata(email.lower())
+    
+    # 1. Buscar el ID del instructor
+    url_instructor = f"cr6a3_instructors?$filter=cr6a3_correo_institucional eq '{email_seguro}'&$select=cr6a3_instructorid"
+    resp_instructor = await client.get(url_instructor)
+    datos_instructor = resp_instructor.json()
+    
+    if not datos_instructor.get("value"):
+        return {"activa": False, "mensaje": "Instructor no encontrado"}
+        
+    instructor_id = datos_instructor["value"][0]["cr6a3_instructorid"]
+    
+    # 2. Buscar si tiene una sesión ACTIVA
+    # EstadoSesion.ACTIVA.value es 430120000
+    url_sesion = (
+        f"cr6a3_sesiones_de_clases?$filter=_cr6a3_instructor_value eq '{instructor_id}' "
+        f"and cr6a3_estado_de_sesion eq {EstadoSesion.ACTIVA.value}"
+        f"&$select=cr6a3_sesiones_de_claseid,cr6a3_hora_entrada,_cr6a3_ficha_value,_cr6a3_ambiente_formacion_value"
+        f"&$expand=cr6a3_Ficha($select=cr6a3_numero_ficha)"
+    )
+    resp_sesion = await client.get(url_sesion)
+    datos_sesion = resp_sesion.json()
+    
+    sesiones = datos_sesion.get("value", [])
+    if not sesiones:
+        return {"activa": False}
+        
+    sesion_activa = sesiones[0]
+    ficha = sesion_activa.get("cr6a3_Ficha", {})
+    
+    return {
+        "activa": True,
+        "sesion_id": sesion_activa.get("cr6a3_sesiones_de_claseid"),
+        "hora_entrada": sesion_activa.get("cr6a3_hora_entrada"),
+        "ficha_numero": ficha.get("cr6a3_numero_ficha", "Sin Ficha"),
+        "ambiente_id": sesion_activa.get("_cr6a3_ambiente_formacion_value", "")
+    }
+
 async def registrar_inicio_sesion(ficha: str, email: str, ambiente_id: str = None) -> dict:
     client = obtener_cliente()
     

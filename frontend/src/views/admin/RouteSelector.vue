@@ -63,8 +63,10 @@ const userStore = useUserStore();
 const toast = useToast();
 
 const sesionRecuperada = ref(false); 
+const idSesionFantasma = ref(null);
 const horaInicioFormateada = ref('');
-const idSesionFantasma = ref(''); 
+const fichaFantasma = ref('');
+const ambienteFantasma = ref('');
 
 onMounted(async () => {
   const nombreGuardado = localStorage.getItem('instructorName');
@@ -98,6 +100,8 @@ onMounted(async () => {
           idSesionFantasma.value = dataRadar.sesion_id;
           const fechaEntrada = new Date(dataRadar.hora_entrada);
           horaInicioFormateada.value = fechaEntrada.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+          fichaFantasma.value = dataRadar.ficha_numero;
+          ambienteFantasma.value = dataRadar.ambiente_id;
           sesionRecuperada.value = true;
         }
       }
@@ -142,6 +146,10 @@ const forzarCierreSesion = async () => {
 const retomarDashboard = () => {
   localStorage.setItem('sesionActivaId', idSesionFantasma.value);
   localStorage.setItem('horaInicio', horaInicioFormateada.value);
+  localStorage.setItem('isPowerOn', 'true');
+  if (fichaFantasma.value) localStorage.setItem('fichaActiva', fichaFantasma.value);
+  if (ambienteFantasma.value) localStorage.setItem('ambienteActivoId', ambienteFantasma.value);
+  
   router.push("/dashboard");
 };
 
