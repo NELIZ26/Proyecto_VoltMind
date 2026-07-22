@@ -256,3 +256,43 @@ def get_pending_commands():
     pending_commands.clear()
     
     return {"commands": commands_to_send}
+
+class HilaConsumo(BaseModel):
+    sensor_id: str
+    consumo_clase: float
+    consumo_extra: float
+
+class SessionConsumptionPayload(BaseModel):
+    session_id: str
+    hilas: list[HilaConsumo]
+
+@router.post("/session/close")
+async def save_session_consumption(payload: SessionConsumptionPayload):
+    from services.dataverse import obtener_cliente
+    client = obtener_cliente()
+    
+    total_clase = 0.0
+    total_extra = 0.0
+    
+    for hila in payload.hilas:
+        total_clase += hila.consumo_clase
+        total_extra += hila.consumo_extra
+        
+        # Guardar en cr6a3_consumo_electrico
+        datos_hila = {
+            "cr6a3_identificador_medidor": f"Sensor {hila.sensor_id}",
+            "cr6a3_lectura_acumulada_kmh": hila.consumo_clase + hila.consumo_extra,
+            "cr6a3_codigo_sesion@odata.bind": f"/cr6a3_sesiones_de_clases({payload.session_id})"
+        }
+        await client.post("cr6a3_consumo_electricos", json=datos_hila)
+    
+    # Actualizar la sesión con los totales
+    totales_sesion = {
+        "cr6a3_consumo_clase_kwh": total_clase,
+        "cr6a3_consumo_extra_kwh": total_extra,
+        "cr6a3_consumo_energetico_total_kwh": total_clase + total_extra
+    }
+    await client.patch(f"cr6a3_sesiones_de_clases({payload.session_id})", json=totales_sesion)
+    
+    return {"status": "ok"}
+

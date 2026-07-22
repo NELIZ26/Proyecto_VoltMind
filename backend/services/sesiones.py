@@ -128,8 +128,8 @@ async def registrar_fin_sesion(sesion_id: str) -> dict:
     hora_salida_iso = ahora.isoformat()
     
     minutos_extra = 0
+    hora_limite = ahora
     if jornada_valor:
-        hora_limite = ahora
         if jornada_valor == Jornada.MANANA.value: 
             hora_limite = ahora.replace(hour=12, minute=0, second=0, microsecond=0)
         elif jornada_valor == Jornada.TARDE.value: 
@@ -140,11 +140,18 @@ async def registrar_fin_sesion(sesion_id: str) -> dict:
         if ahora > hora_limite:
             minutos_extra = int((ahora - hora_limite).total_seconds() / 60)
 
+    hora_limite_utc = hora_limite.astimezone(ZoneInfo("UTC"))
+
     datos_cierre = {
         "cr6a3_hora_salida": hora_salida_iso,
         "cr6a3_estado_de_sesion": EstadoSesion.FINALIZADA.value,
         "cr6a3_tiempo_extra_minutos": minutos_extra
     }
+
+    # NUEVO: Enviar comando a la Raspberry Pi con la hora límite en UTC para SQLite
+    from routers.iot import send_serial_command
+    comando_cierre = f"CLOSE_SESSION:{sesion_id}:{hora_limite_utc.strftime('%Y-%m-%d %H:%M:%S')}"
+    send_serial_command(comando_cierre)
 
     resp_cierre = await client.patch(f"cr6a3_sesiones_de_clases({sesion_segura})", json=datos_cierre)
     if resp_cierre.status_code == 204: 
