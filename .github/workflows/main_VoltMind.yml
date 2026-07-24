@@ -48,6 +48,6 @@ jobs:
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapps
         with:
-          app-name: 'VoltMind'
-          slot-name: 'production'
+          app-name: 'VoltMind2'
+          slot-name: 'Production'
           publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE }}
