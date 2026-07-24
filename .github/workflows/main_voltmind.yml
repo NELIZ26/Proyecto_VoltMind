@@ -70,6 +70,6 @@ jobs:
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
-          app-name: 'VoltMind'
+          app-name: 'VoltMind2'
           slot-name: 'Production'
           
