@@ -59,17 +59,11 @@ jobs:
         with:
           name: python-app
       
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_7A0C0448B3D04FDCA229B9D4A05D9C99 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_DF684A1B02EA4C04859972F3473920FD }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_DD2EFFB10B4244ACB29EBA6A395C753C }}
-
       - name: 'Deploy to Azure Web App'
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
           app-name: 'VoltMind2'
           slot-name: 'Production'
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_VOLTMIND2 }}
           
