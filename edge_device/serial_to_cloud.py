@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - [%(levelname)s] - 
 logger = logging.getLogger("EdgeDevice")
 
 # Configuración del Backend Local/Desplegado
-AZURE_API_BASE_URL = os.getenv("AZURE_API_BASE_URL", "https://voltmind-gxg9g6argxg5e9db.centralus-01.azurewebsites.net")
+AZURE_API_BASE_URL = os.getenv("AZURE_API_BASE_URL", "https://voltmind2-fmh3b5esa0htdxf8.centralus-01.azurewebsites.net")
 TELEMETRY_URL = f"{AZURE_API_BASE_URL}/api/iot/telemetry/push"
 COMMANDS_URL = f"{AZURE_API_BASE_URL}/api/iot/commands/pending"
 
