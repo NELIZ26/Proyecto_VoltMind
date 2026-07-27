@@ -3,6 +3,9 @@ import { createApp } from "vue";
 import { createPinia } from "pinia";
 import router from "@/router"; // Mantiene tu importación limpia con alias
 import App from "@/App.vue";
+import { inject } from '@vercel/analytics';
+
+inject();
 
 // ── INYECCIÓN DE ESTILOS GLOBALES ──
 import "@/style.css"; // Sistema de estilos centralizado: variables, utilidades, animaciones
