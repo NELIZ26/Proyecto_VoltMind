@@ -79,7 +79,7 @@ const processLoginSuccess = async (account) => {
       toast.error("Error de conexión con el servidor central al validar tu perfil.");
     }
 
-  } else if (domain === 'sena.edu.co' || domain === 'voltmind746.onmicrosoft.com') {
+  } else if (domain === 'sena.edu.co' || domain === 'voltmind436.onmicrosoft.com') {
     // RUTA DEL INSTRUCTOR
     localStorage.setItem("user_role", "instructor");
     localStorage.setItem("instructorEmail", userEmail); 
