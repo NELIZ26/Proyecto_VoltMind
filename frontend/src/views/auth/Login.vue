@@ -88,7 +88,7 @@ const processLoginSuccess = async (account) => {
     
     // 🟢 ACTUALIZADO: Mensaje y enrutamiento hacia la vista de selección
     toast.success(`Instructor Autenticado. Cargando opciones de entorno...`);
-    router.push("/route-selector"); 
+    router.push("/select-ficha"); 
 
   } else {
     // SEGURIDAD: Bloquea dominios externos no autorizados

@@ -1,5 +1,5 @@
 # services/dataverse.py
-from email.utils import quote
+from urllib.parse import quote
 import os
 import msal
 import httpx
@@ -82,11 +82,10 @@ async def consultar_dataverse(query: str) -> dict:
 def sanitizar_odata(texto: str) -> str:
     """
     Limpia el texto ingresado por el usuario para evitar inyecciones OData.
-    1. Duplica las comillas simples para neutralizarlas.
-    2. Codifica el texto a formato URL (%20, etc.).
+    Solo escapa comillas simples, httpx se encarga de codificar a URL.
     """
     if not texto:
         return ""
         
     texto_limpio = texto.replace("'", "''")
-    return quote(texto_limpio)
+    return texto_limpio
