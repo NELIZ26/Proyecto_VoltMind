@@ -128,6 +128,30 @@ def main():
     # Diccionario para ir acumulando los Watts de cada sensor durante los 5 minutos
     power_accumulators = {} 
     
+    # TAREA CADA 5 MINUTOS: Guardar Consumo Local (SQLite)
+    def flush_accumulators_to_db(interval_seconds):
+        nonlocal power_accumulators
+        if not power_accumulators:
+            return
+        try:
+            conn = sqlite3.connect("voltmind_local.db")
+            cursor = conn.cursor()
+            for sensor_pin, data in power_accumulators.items():
+                if data['count'] > 0:
+                    avg_watts = data['sum'] / data['count']
+                    horas = interval_seconds / 3600.0
+                    kwh_consumido = (avg_watts / 1000.0) * horas
+                    cursor.execute('''
+                        INSERT INTO consumo_local (sensor_id, promedio_watts, consumo_kwh)
+                        VALUES (?, ?, ?)
+                    ''', (sensor_pin, round(avg_watts, 2), round(kwh_consumido, 6)))
+            conn.commit()
+            conn.close()
+            logger.info("💾 [SQLite] Consumo local guardado exitosamente.")
+        except Exception as e:
+            logger.error(f"❌ [SQLite] Error guardando en BD local: {e}")
+        power_accumulators = {}
+    
     while True:
         if not ser or not ser.is_open:
             port = get_serial_port()
@@ -225,6 +249,11 @@ def main():
                                     if ser and ser.is_open:
                                         ser.write("M:0\n".encode('utf-8'))
                                         
+                                    # 🟢 NUEVO: Guardar consumo acumulado antes de cerrar
+                                    elapsed_since_last_save = current_time - last_db_save_time
+                                    flush_accumulators_to_db(elapsed_since_last_save)
+                                    last_db_save_time = current_time
+                                        
                                     # Calculamos los consumos
                                     calcular_y_enviar_consumos(session_id, hora_limite_sql)
                             else:
@@ -241,34 +270,7 @@ def main():
             # 2. TAREA CADA 5 MINUTOS: Guardar Consumo Local (SQLite)
             # =================================================================
             if current_time - last_db_save_time >= DB_SAVE_INTERVAL:
-                try:
-                    conn = sqlite3.connect("voltmind_local.db")
-                    cursor = conn.cursor()
-                    
-                    for sensor_pin, data in power_accumulators.items():
-                        if data['count'] > 0:
-                            # Promedio de Watts en estos 5 minutos
-                            avg_watts = data['sum'] / data['count']
-                            
-                            # Fórmula: kWh = (Watts / 1000) * Horas
-                            # 5 minutos equivalen a (5 / 60) horas o (300 segundos / 3600)
-                            horas = DB_SAVE_INTERVAL / 3600.0
-                            kwh_consumido = (avg_watts / 1000.0) * horas
-                            
-                            cursor.execute('''
-                                INSERT INTO consumo_local (sensor_id, promedio_watts, consumo_kwh)
-                                VALUES (?, ?, ?)
-                            ''', (sensor_pin, round(avg_watts, 2), round(kwh_consumido, 6)))
-                            
-                    conn.commit()
-                    conn.close()
-                    logger.info("💾 [SQLite] Lote de consumo de 5 minutos guardado exitosamente.")
-                    
-                except Exception as e:
-                    logger.error(f"❌ [SQLite] Error guardando en BD local: {e}")
-                
-                # Reiniciar los acumuladores para los próximos 5 minutos
-                power_accumulators = {}
+                flush_accumulators_to_db(DB_SAVE_INTERVAL)
                 last_db_save_time = current_time
 
         except serial.SerialException as se:
