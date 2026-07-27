@@ -39,17 +39,23 @@ def init_local_db():
         logger.error(f"❌ Error al inicializar SQLite: {e}")
 
 def get_serial_port():
-    """Busca el puerto del Arduino, ignorando puertos Bluetooth (BTHENUM)"""
+    """Busca el puerto del Arduino o el puerto Bluetooth (rfcomm0)"""
     ports = list(serial.tools.list_ports.comports())
+    
+    # 1. Prioridad Absoluta: Si existe un puerto Bluetooth rfcomm (Linux/Raspberry)
+    for p in ports:
+        if "rfcomm" in p.device.lower():
+            return p.device
+            
+    # 2. Búsqueda de puertos USB directos
     for p in ports:
         hwid = str(p.hwid).upper()
-        if "BTHENUM" in hwid:
-            continue
         if "USB" in hwid or "ACM" in p.device or "USB" in p.device:
             return p.device
         if "ARDUINO" in str(p.description).upper():
             return p.device
             
+    # 3. Fallback
     for p in ports:
         if "BTHENUM" not in str(p.hwid).upper():
             return p.device
@@ -148,6 +154,28 @@ def main():
                 if len(parts) == 2:
                     pin = parts[0]
                     val = parts[1]
+                    
+                    if pin == "RFID":
+                        uid = val
+                        logger.info(f"🔑 Tarjeta RFID detectada: {uid}")
+                        try:
+                            # Hacemos la validación en el backend
+                            res = requests.post(
+                                f"{API_URL}/api/iot/rfid",
+                                json={"uid": uid},
+                                timeout=3
+                            )
+                            if res.status_code == 200 and res.json().get("success"):
+                                logger.info("✅ Acceso Concedido")
+                                if ser: ser.write(b"BUZZER:1\n")
+                            else:
+                                logger.warning("❌ Acceso Denegado")
+                                if ser: ser.write(b"BUZZER:0\n")
+                        except Exception as e:
+                            logger.error(f"Error validando RFID: {e}")
+                            if ser: ser.write(b"BUZZER:0\n")
+                        continue # Saltamos la lógica de telemetría
+
                     try:
                         watts = float(val)
                         telemetry_data[pin] = watts

@@ -368,8 +368,55 @@ const generateOtp = async () => {
 // ==========================================
 // LÓGICA QR Y NFC (Mantén tus funciones actuales)
 // ==========================================
-const startQrScan = () => { /* tu código QR */ };
-const onQrDetect = async (detectedCodes) => { /* tu código QR */ };
+const startQrScan = () => {
+  resetMethods();
+  isScanningQr.value = true;
+};
+
+const onQrDetect = async (detectedCodes) => {
+  const code = Array.isArray(detectedCodes) ? detectedCodes[0]?.rawValue : detectedCodes;
+  if (!code) return;
+
+  isScanningQr.value = false;
+  statusMsg.value = "Validando código QR...";
+  statusType.value = "info";
+
+  try {
+    const payload = {
+      token_qr: code,
+      documento_aprendiz: perfilLocal.value.doc,
+      rol: perfilLocal.value.role
+    };
+
+    const response = await fetch(`${BASE_URL}/api/asistencia/validar-qr`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      isValidated.value = true;
+      showStatus("Validación Exitosa", "success", 5000);
+      toast.success(data.mensaje || "¡Asistencia registrada!");
+    } else {
+      const errorData = await response.json();
+      showStatus("Error de validación", "error");
+      toast.error(errorData.detail || "Código QR inválido o expirado.");
+    }
+  } catch (error) {
+    console.error(error);
+    showStatus("Error de conexión", "error");
+    toast.error("Error conectando con el servidor VoltMind.");
+  }
+};
+
+const onCameraError = (error) => {
+  isScanningQr.value = false;
+  toast.error(`Error de cámara: ${error.name}`);
+  console.error(error);
+};
+
 const triggerNfcTransmission = () => { /* tu código NFC */ };
 const handleExitCard = () => { 
   // OJO: Solo el instructor debería volver al selector. El aprendiz debería hacer logout.
