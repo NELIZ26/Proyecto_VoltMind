@@ -251,5 +251,6 @@ def main():
             logger.error(f"❌ Error inesperado: {e}")
             time.sleep(2)
 
+
 if __name__ == "__main__":
     main()

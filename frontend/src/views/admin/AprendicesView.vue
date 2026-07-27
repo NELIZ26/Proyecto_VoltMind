@@ -83,7 +83,7 @@
         <div class="filters-row">
           <div class="search-box">
             <font-awesome-icon icon="fa-solid fa-magnifying-glass" class="search-icon" />
-            <input type="text" v-model="searchQuery" placeholder="Buscar por Nombre, Documento..." />
+            <input type="text" v-model="searchQuery" placeholder="Digital el documento de indentidad del atleta para su ingreso" />
           </div>
           <select class="form-select" v-model="selectedFicha">
             <option value="">Todos las Fichas</option>
