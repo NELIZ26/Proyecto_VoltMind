@@ -11,6 +11,7 @@ from schemas.asistencia import FirmaCreate, CierreSesion, PinCreate, PinValidate
 from services.asistencia_service import procesar_cierre_y_persistencia, obtener_asistencia_semanal_dataverse
 # 🟢 Asegúrate de tener el manager importado en la parte superior de tu archivo asistencia.py
 from services.websocket_manager import manager
+from routers.iot import queue_buzzer_command
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://127.0.0.1:6379/0")
 redis_client = redis.from_url(REDIS_URL, decode_responses=True, protocol=2)
@@ -251,6 +252,9 @@ async def validar_pin(datos: PinValidate):
                     "documento": doc_aprendiz,
                     "nombre": nombre_usuario
                 })
+                
+            # 🔊 Activar el buzzer al registrar el PIN
+            queue_buzzer_command(1)
 
             return {
                 "accion": "ingreso_exitoso", 
@@ -314,6 +318,9 @@ async def validar_qr(datos: QrValidate):
         await redis_client.sadd(clave_ingresos, datos.documento_aprendiz)
         await redis_client.expire(clave_ingresos, 43200)
         await redis_client.delete(clave_redis)
+        
+        # 🔊 Activar el buzzer al registrar el QR
+        queue_buzzer_command(1)
         
         payload_ingreso = {"documento": datos.documento_aprendiz, "accion": "ingreso_exitoso"}
         await redis_client.setex(f"ultimo_scan:{sesion_id}", 5, json.dumps(payload_ingreso))
