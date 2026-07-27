@@ -161,7 +161,7 @@ def main():
                         try:
                             # Hacemos la validación en el backend
                             res = requests.post(
-                                f"{API_URL}/api/iot/rfid",
+                                f"{AZURE_API_BASE_URL}/api/iot/rfid",
                                 json={"uid": uid},
                                 timeout=3
                             )
