@@ -11,18 +11,18 @@ router = APIRouter(
 @router.get("/{correo_instructor}")
 async def obtener_fichas_por_instructor(correo_instructor: str):
     try:
-        # 🛡️ PASO 0: Sanitizar la entrada y forzar MINÚSCULAS (El exorcismo + La armadura)
-        correo_limpio = correo_instructor.lower() # 🟢 Conversión obligatoria para Dataverse
-        correo_seguro = sanitizar_odata(correo_limpio)
+        # 🛡️ PASO 0: Sanitizar la entrada (Se elimina el lower() para respetar mayúsculas y minúsculas)
+        correo_seguro = sanitizar_odata(correo_instructor)
         log.info(f"Iniciando consulta de fichas para el instructor: {correo_seguro}")
 
         # Cliente Dataverse
         client = obtener_cliente()
 
-        # PASO 1: Buscar instructor (usando el correo limpio)
+        # PASO 1: Buscar instructor (coincidencia exacta o en minúsculas)
+        correo_lower = correo_seguro.lower()
         url_instructor = (
             f"cr6a3_instructors?"
-            f"$filter=cr6a3_correo_institucional eq '{correo_seguro}'"
+            f"$filter=cr6a3_correo_institucional eq '{correo_seguro}' or cr6a3_correo_institucional eq '{correo_lower}'"
             f"&$select=cr6a3_instructorid,cr6a3_nombre_completo"
         )
 
