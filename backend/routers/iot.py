@@ -257,6 +257,31 @@ def get_pending_commands():
     
     return {"commands": commands_to_send}
 
+def queue_buzzer_command(status: int):
+    """
+    Helper function to queue a buzzer command (1=Success, 0=Error) from other routers
+    """
+    global pending_commands
+    command = f"BUZZER:{status}"
+    pending_commands.append(command)
+    logger.info(f"🔊 Comando de Buzzer encolado: {command}")
+
+class RFIDPayload(BaseModel):
+    uid: str
+
+@router.post("/rfid")
+async def validate_rfid(payload: RFIDPayload):
+    """
+    Endpoint para validar una tarjeta RFID física enviada por el Edge Device.
+    Responde con success=True para hacer sonar el buzzer.
+    """
+    logger.info(f"💳 Solicitud de validación RFID recibida: UID={payload.uid}")
+    
+    # Aquí iría la lógica real contra Dataverse. Por ahora:
+    # TODO: Implementar búsqueda en Dataverse y registro de asistencia.
+    
+    return {"success": True, "message": "Acceso concedido (Simulado)"}
+
 class HilaConsumo(BaseModel):
     sensor_id: str
     consumo_clase: float

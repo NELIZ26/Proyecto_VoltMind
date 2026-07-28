@@ -1,6 +1,8 @@
 // =================================================================
-// VoltMind - Arduino Controller (Relay & ACS712 Telemetry)
+// VoltMind - Arduino Controller (Relay & ACS712 Telemetry & RFID & Buzzer)
 // =================================================================
+#include <SPI.h>
+#include <MFRC522.h>
 
 // Pines de los relés (Salidas Digitales)
 const int rele3 = 7; // Banco 1
@@ -25,6 +27,15 @@ const float SENSIBILIDAD_ACS712 = 0.185; // 185mV/A para modelo de 5A. 0.100 par
 unsigned long tiempoAnterior = 0;
 const long intervaloEnvio = 2000; // Enviar lecturas cada 2 segundos
 
+// =================================================================
+// Hardware Adicional (RFID & Buzzer)
+// =================================================================
+#define RST_PIN 9
+#define SS_PIN 10
+MFRC522 mfrc522(SS_PIN, RST_PIN);
+
+const int buzzerPin = 8;
+
 void setup() {
   // Inicializar comunicación serial a 9600 baudios
   Serial.begin(9600);
@@ -44,6 +55,13 @@ void setup() {
   digitalWrite(rele6, HIGH);
   digitalWrite(rele7, HIGH);
   digitalWrite(rele8, HIGH);
+
+  // Configurar RFID
+  SPI.begin();
+  mfrc522.PCD_Init();
+
+  // Configurar Buzzer
+  pinMode(buzzerPin, OUTPUT);
 }
 
 void loop() {
@@ -80,6 +98,15 @@ void loop() {
         digitalWrite(rele6, valorPin);
         digitalWrite(rele7, valorPin);
         digitalWrite(rele8, valorPin);
+      } else if (idStr == "BUZZER") {
+        // Comandos de feedback sonoro desde el servidor
+        if (estado == 1) { // Éxito (Dos pitidos cortos)
+          tone(buzzerPin, 2000, 100);
+          delay(150);
+          tone(buzzerPin, 2000, 100);
+        } else if (estado == 0) { // Error (Un pitido largo y grave)
+          tone(buzzerPin, 500, 1000);
+        }
       }
     }
   }
@@ -103,6 +130,26 @@ void loop() {
     Serial.print("6:"); Serial.println(watts6);
     Serial.print("7:"); Serial.println(watts7);
     Serial.print("8:"); Serial.println(watts8);
+  }
+
+  // 3. Leer tarjeta RFID
+  if (mfrc522.PICC_IsNewCardPresent() && mfrc522.PICC_ReadCardSerial()) {
+    String uidString = "";
+    for (byte i = 0; i < mfrc522.uid.size; i++) {
+      uidString += String(mfrc522.uid.uidByte[i] < 0x10 ? "0" : "");
+      uidString += String(mfrc522.uid.uidByte[i], HEX);
+    }
+    uidString.toUpperCase();
+
+    // Enviar el UID leido por Serial (lo escuchará la Raspberry o PC)
+    Serial.print("RFID:");
+    Serial.println(uidString);
+
+    // Pitido corto de confirmación de lectura local
+    tone(buzzerPin, 2500, 150);
+
+    // Detener la lectura para no enviar el mismo ID repetidas veces muy rápido
+    mfrc522.PICC_HaltA();
   }
 }
 
