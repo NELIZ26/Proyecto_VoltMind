@@ -101,11 +101,11 @@ void loop() {
       } else if (idStr == "BUZZER") {
         // Comandos de feedback sonoro desde el servidor
         if (estado == 1) { // Éxito (Dos pitidos cortos)
-          tone(buzzerPin, 2000, 100);
-          delay(150);
-          tone(buzzerPin, 2000, 100);
+          tone(buzzerPin, 2500, 150);
+          delay(200);
+          tone(buzzerPin, 2500, 150);
         } else if (estado == 0) { // Error (Un pitido largo y grave)
-          tone(buzzerPin, 500, 1000);
+          tone(buzzerPin, 1000, 800);
         }
       }
     }
