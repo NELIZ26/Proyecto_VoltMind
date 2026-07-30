@@ -3,6 +3,8 @@ import base64
 from datetime import datetime
 from fastapi import HTTPException, status
 import httpx
+from services.dataverse import obtener_cliente, sanitizar_odata
+
 # 🟢 ESTA ES LA ÚNICA LÍNEA DE LOG QUE DEBES USAR:
 from core.logger import log
 
@@ -320,3 +322,60 @@ async def crear_alerta_en_dataverse(payload: dict):
         log.error(f"❌ Error Dataverse (Alertas): {exc.response.text}")
     except Exception as e:
         log.error(f"❌ Fallo de red al registrar alerta: {e}")
+
+
+
+        #nuevo codigo#
+
+async def obtener_historial_aprendiz(documento: str):
+
+    try:
+        documento_limpio = sanitizar_odata(documento.strip())
+
+        client = obtener_cliente()
+
+        url = (
+            f"cr6a3_aprendizs?"
+            f"$filter=cr6a3_documento_de_identidad eq '{documento_limpio}'"
+            f"&$select=cr6a3_faltas_totales,cr6a3_faltas_consecutivas"
+        )
+
+        res = await client.get(url)
+
+        log.info(f"Consulta historial aprendiz: {url}")
+
+        if res.status_code != 200:
+            return {
+                "faltas_totales": 0,
+                "faltas_consecutivas": 0,
+                "history": []
+            }
+
+        datos = res.json().get("value", [])
+
+        if not datos:
+            return {
+                "faltas_totales": 0,
+                "faltas_consecutivas": 0,
+                "history": []
+            }
+
+        aprendiz = datos[0]
+
+        return {
+            "faltas_totales": aprendiz.get("cr6a3_faltas_totales", 0),
+            "faltas_consecutivas": aprendiz.get("cr6a3_faltas_consecutivas", 0),
+            "history": []
+        }
+
+    except Exception as e:
+        log.error(
+            f"Error consultando historial del aprendiz {documento}: {str(e)}",
+            exc_info=True
+        )
+
+        return {
+            "faltas_totales": 0,
+            "faltas_consecutivas": 0,
+            "history": []
+        }
