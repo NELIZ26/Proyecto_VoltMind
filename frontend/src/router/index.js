@@ -1,16 +1,21 @@
-import { createRouter, createWebHistory } from "vue-router"; 
+import { createRouter, createWebHistory } from "vue-router"; // <-- Cambiado aquí
 
 const routes = [
   {
     path: "/",
-    redirect: "/login", // Apuntamos directo al login
+    redirect: "/login", // Apuntamos directo al login por ahora
   },
   {
     path: "/login",
     name: "Login",
-    // 🟢 CORREGIDO: Ahora sí apunta al componente de Login real
     component: () => import("@/views/auth/Login.vue"),
     meta: { title: "VoltMind Access - Iniciar Sesión", requiresAuth: false },
+  },
+  {
+    path: "/route-selector",
+    name: "RouteSelector",
+    component: () => import("@/views/auth/routeSelector.vue"),
+    meta: { title: "Entorno de Desarrollo - Sandbox", requiresAuth: false },
   },
   {
     path: "/select-ficha",
@@ -23,25 +28,22 @@ const routes = [
     },
   },
   {
-    path: "/route-selector",
-    name: "RouteSelector",
-    component: () => import("@/views/admin/RouteSelector.vue"),
-    meta: {
-      title: "VoltMind - Selección de Entorno",
-      requiresAuth: true,
-      roles: ["instructor"], // 🛡️ Bloqueo RBAC: Solo instructores pasan aquí
-    },
-  },
-  // ==========================================
-  // 🟢 NUEVA RUTA: Kiosko (Tablet del Aula)
-  // ==========================================
-  {
     path: "/tablet",
     name: "TabletView",
     component: () => import("@/views/display/TabletView.vue"),
     meta: {
       title: "VoltMind - Modo Tablet",
-      requiresAuth: false, // La tablet de la pared no necesita login tradicional
+      requiresAuth: false,
+    },
+  },
+  {
+    path: "/solicitud-complementaria",
+    name: "SolicitudComplementaria",
+    component: () => import("@/views/display/SolicitudComplementaria.vue"),
+    meta: {
+      title: "VoltMind - Solicitud de Ficha Complementaria",
+      requiresAuth: true,
+      roles: ["instructor"], // El instructor solicita; el admin crea la ficha
     },
   },
   {
@@ -61,13 +63,13 @@ const routes = [
     meta: {
       title: "VoltMind - Consola Global",
       requiresAuth: true,
-      roles: ["dinamizador", "instructor"], // Acceso exclusivo Superadmin
+      roles: ["dinamizador"], // Acceso exclusivo Superadmin
     },
   },
   {
     path: "/dashboard-seguridad",
     name: "DashboardSeguridad",
-    component: () => import("@/views/display/DashboardCelador.vue"),
+    component: () => import("@/views/display/DashboardCelador.vue"), // Este será el que crearemos luego
     meta: {
       title: "VoltMind - Panel de Seguridad",
       requiresAuth: true,
@@ -81,19 +83,26 @@ const routes = [
     meta: {
       title: "VoltMind - Carnet Digital",
       requiresAuth: true,
-      roles: ["aprendiz", "instructor"],
+      roles: ["aprendiz"],
     },
   },
   {
     path: "/admin",
     component: () => import("@/layouts/AdminLayout.vue"),
-    meta: { requiresAuth: false }, // Sin restricción por ahora para facilitar pruebas
+    // Sección administrativa: solo el dinamizador (el instructor NO accede)
+    meta: { requiresAuth: true, roles: ["dinamizador"] },
     children: [
       {
         path: "dashboard",
         name: "AdminDashboard",
         component: () => import("@/views/admin/DashboardView.vue"),
         meta: { title: "VoltMind Admin - Dashboard" }
+      },
+      {
+        path: "complementarias",
+        name: "AdminComplementarias",
+        component: () => import("@/views/admin/FichasComplementariasView.vue"),
+        meta: { title: "VoltMind Admin - Fichas Complementarias" }
       },
       {
         path: "calculadora",
@@ -134,7 +143,6 @@ const routes = [
     ]
   },
   {
-    // Ruta comodín: Si escriben una URL que no existe, los manda al login
     path: "/:pathMatch(.*)*",
     redirect: "/login",
   },

@@ -3,7 +3,7 @@
     <div class="sidebar-header">
       <div class="logo-duo">
         <img src="@/assets/LogoSena.png" alt="SENA" class="logo-sena" />
-        <img src="@/assets/VoltMindAccess1.svg" alt="VoltMind" class="logo-volt" />
+        <img src="@/assets/VoltMindAccess.svg" alt="VoltMind" class="logo-volt" />
       </div>
       <div class="brand-text">
         <h1 class="brand-title"><span class="text-volt">Volt</span><span class="text-mind">Mind</span></h1>
@@ -37,6 +37,15 @@
             <font-awesome-icon icon="fa-solid fa-graduation-cap" fixed-width />
           </div>
           <span class="menu-text">Gestión de Fichas</span>
+        </router-link>
+      </li>
+
+      <li>
+        <router-link to="/admin/complementarias" class="menu-link" @click="handleMenuClick">
+          <div class="icon-box">
+            <font-awesome-icon icon="fa-solid fa-file-circle-plus" fixed-width />
+          </div>
+          <span class="menu-text">Fichas Complementarias</span>
         </router-link>
       </li>
 

@@ -3,8 +3,6 @@ import { ref, onMounted, onUnmounted, watch } from 'vue';
 import { useToast } from 'vue-toastification';
 import { useKioskStore } from '@/stores/kioskStore';
 
-
-
 const toast = useToast();
 const kioskStore = useKioskStore();
 
@@ -21,13 +19,6 @@ const isListeningNfc = ref(false);
 
 const horaInicio = ref(localStorage.getItem('horaInicio') || '--:--');
 const horaFin = ref(localStorage.getItem('horaFin') || '--:--');
-
-const props = defineProps({
-  ambienteNombre: {
-    type: String,
-    default: "Ambiente Desconocido"
-  }
-});
 
 let timeInterval;
 
@@ -53,16 +44,7 @@ const updateTime = () => {
 onMounted(() => {
   updateTime();
   timeInterval = setInterval(updateTime, 1000);
-  
-  // 🟢 CORRECCIÓN: Leemos el ID real del ambiente (el GUID de Dataverse) desde la memoria
-  const ambienteIdReal = localStorage.getItem('kiosko_ambiente_id') || localStorage.getItem('ambienteActivoId');
-  
-  if (ambienteIdReal) {
-    kioskStore.connectWebSocket(ambienteIdReal);
-    console.log(`🔌 Kiosko conectado dinámicamente a la sala: ${ambienteIdReal}`);
-  } else {
-    console.warn("⚠️ No se detectó un ID de ambiente para el WebSocket. El Kiosko estará sordo.");
-  }
+  kioskStore.connectWebSocket("402"); // Ambiente fijo por ahora
 });
 
 // Vigilar firma forzada por el instructor
@@ -96,9 +78,9 @@ const toggleNfcListening = () => {
     <header class="dash-top-bar">
       <div class="dash-left">
         <img src="@/assets/LogoSena.png" alt="SENA" class="h-logo" />
-        <img src="@/assets/VoltMindAccess1.svg" alt="VoltMind" class="h-logo volt-logo" />
+        <img src="@/assets/VoltMindAccess.svg" alt="VoltMind" class="h-logo volt-logo" />
         <div class="dash-title-area">
-          <h1>{{ ambienteNombre }}</h1>
+          <h1>AMBIENTE 402</h1>
           <p>Ficha: {{ fichaActiva }} | Instructor: {{ nombreInstructor }} | {{ currentTime }}</p>
         </div>
       </div>

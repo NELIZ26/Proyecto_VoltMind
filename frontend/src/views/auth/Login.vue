@@ -12,19 +12,18 @@ const authStore = useAuthStore();
 const isLoggingIn = ref(false);
 
 // 1. Configuración de MSAL
-import { Capacitor } from '@capacitor/core';
-import { App } from '@capacitor/app';
-
 const msalConfig = {
   auth: {
-    clientId: import.meta.env.VITE_AZURE_CLIENT_ID || "TU_CLIENT_ID", 
-    authority: import.meta.env.VITE_AZURE_AUTHORITY || "https://login.microsoftonline.com/common", 
-    redirectUri: Capacitor.isNativePlatform() ? "voltmind://callback" : window.location.origin, 
+    // Ahora Vite irá a buscar el ID correcto a tu archivo .env
+    clientId: import.meta.env.VITE_AZURE_CLIENT_ID, 
+    // Y también buscará tu inquilino específico en lugar del genérico
+    authority: import.meta.env.VITE_AZURE_AUTHORITY, 
+    redirectUri: window.location.origin, 
     navigateToLoginRequestUrl: false, 
   },
   cache: {
-    cacheLocation: "localStorage", 
-    storeAuthStateInCookie: true, 
+    cacheLocation: "sessionStorage", 
+    storeAuthStateInCookie: false,
   }
 };
 
@@ -46,8 +45,7 @@ const processLoginSuccess = async (account) => {
 
     try {
       // 🟢 CONSULTA AL BACKEND: Cruzamos el correo de Microsoft con Dataverse
-      const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
-      const response = await fetch(`${BASE_URL}/api/usuarios/perfil?email=${userEmail}`);
+      const response = await fetch(`/api/usuarios/perfil?email=${userEmail}`);
       
       if (response.ok) {
         const perfilCompleto = await response.json();
@@ -79,16 +77,18 @@ const processLoginSuccess = async (account) => {
       toast.error("Error de conexión con el servidor central al validar tu perfil.");
     }
 
-  } else if (domain === 'sena.edu.co' || domain === 'voltmind436.onmicrosoft.com') {
+  } else if (domain === 'sena.edu.co' || domain === 'voltmind746.onmicrosoft.com') {
     // RUTA DEL INSTRUCTOR
     localStorage.setItem("user_role", "instructor");
     localStorage.setItem("instructorEmail", userEmail); 
     localStorage.setItem("instructorName", userName);
     localStorage.setItem("nombreInstructor", userName.split(' ')[0]); // Primer nombre para el saludo corta
     
-    // 🟢 ACTUALIZADO: Mensaje y enrutamiento hacia la vista de selección de entorno
-    toast.success(`Instructor Autenticado. Cargando opciones de entorno...`);
-    router.push("/route-selector"); 
+    toast.success(`Instructor Autenticado. Cargando su área de trabajo...`);
+
+    // El instructor entra a SU vista (solicitudes de fichas complementarias);
+    // desde allí tiene el enlace "Panel de clase" hacia /select-ficha.
+    router.push("/solicitud-complementaria");
 
   } else {
     // SEGURIDAD: Bloquea dominios externos no autorizados
@@ -96,64 +96,19 @@ const processLoginSuccess = async (account) => {
   }
 };
 
-// 3. Procesar el regreso de la redirección de Microsoft
+// 3. Procesar el regreso de la redirección de Microsoft (Modificado para soportar la función async)
 onMounted(async () => {
   try {
     await msalInstance.initialize();
     
-    if (Capacitor.isNativePlatform()) {
-      // Función auxiliar para procesar la URL recibida
-      const processDeepLink = async (deepLinkUrl) => {
-        const url = new URL(deepLinkUrl);
-        const hashToProcess = url.hash ? url.hash : url.search; 
-        
-        try {
-          if (hashToProcess) {
-            window.location.hash = hashToProcess;
-          }
-
-          const response = await msalInstance.handleRedirectPromise(); 
-          if (response) {
-            await processLoginSuccess(response.account);
-          } else {
-            const checkAccounts = msalInstance.getAllAccounts();
-            if (checkAccounts.length > 0) {
-              await processLoginSuccess(checkAccounts[0]);
-            } else {
-              toast.error("MSAL omitió el login. Info: " + hashToProcess.substring(0, 30) + "...");
-            }
-          }
-        } catch (err) {
-          console.error("Error procesando hash del deep link:", err);
-          toast.error("Error MSAL: " + (err.message || "desconocido"));
-        }
-      };
-
-      const launchUrlData = await App.getLaunchUrl();
-      if (launchUrlData && launchUrlData.url && launchUrlData.url.includes('code=')) {
-        await processDeepLink(launchUrlData.url);
-      }
-
-      App.addListener('appUrlOpen', async (data) => {
-        if (data.url.includes('code=')) {
-          await processDeepLink(data.url);
-        }
-      });
-      
+    const response = await msalInstance.handleRedirectPromise();
+    
+    if (response) {
+      await processLoginSuccess(response.account);
+    } else {
       const currentAccounts = msalInstance.getAllAccounts();
       if (currentAccounts.length > 0) {
         await processLoginSuccess(currentAccounts[0]);
-      }
-      
-    } else {
-      const response = await msalInstance.handleRedirectPromise();
-      if (response) {
-        await processLoginSuccess(response.account);
-      } else {
-        const currentAccounts = msalInstance.getAllAccounts();
-        if (currentAccounts.length > 0) {
-          await processLoginSuccess(currentAccounts[0]);
-        }
       }
     }
   } catch (error) {
@@ -180,7 +135,6 @@ const handleAzureLogin = async () => {
   }
 };
 </script>
-
 <template>
   <div class="login-shell">
     <div class="login-card">
@@ -190,7 +144,7 @@ const handleAzureLogin = async () => {
       <header class="login-header">
         <div class="brand-assets">
           <img
-            src="@/assets/VoltMindAccess1.svg"
+            src="@/assets/VoltMindAccess.svg"
             alt="VoltMind Logo"
             class="logo-voltmind"
           />
@@ -199,7 +153,8 @@ const handleAzureLogin = async () => {
         </div>
         <h1>VoltMind Access</h1>
         <p class="subtitle">
-          Gestión IoT de Asistencia y Eficiencia Energética para Ambientes de Formación
+          Gestión IoT de Asistencia y Eficiencia Energética para Ambientes de
+          Formación
         </p>
       </header>
 
@@ -214,7 +169,8 @@ const handleAzureLogin = async () => {
           <div class="notice-text">
             <span>SISTEMA DE CONTROL RESTRINGIDO</span>
             <p>
-              Acceso exclusivo para Instructores y Personal Administrativo autorizado.
+              Acceso exclusivo para Instructores y Personal Administrativo
+              autorizado.
             </p>
           </div>
         </div>

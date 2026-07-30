@@ -3,9 +3,6 @@ import { createApp } from "vue";
 import { createPinia } from "pinia";
 import router from "@/router"; // Mantiene tu importación limpia con alias
 import App from "@/App.vue";
-import { inject } from '@vercel/analytics';
-
-inject();
 
 // ── INYECCIÓN DE ESTILOS GLOBALES ──
 import "@/style.css"; // Sistema de estilos centralizado: variables, utilidades, animaciones
@@ -101,6 +98,7 @@ import {
   faLink,
   faUserPlus,
   faXmark,
+  faClipboardUser,
   faMagnifyingGlass,
   faClockRotateLeft,
   faBuilding,
@@ -132,10 +130,19 @@ import {
   faSignal,
   faChartLine,
   faChevronDown,
-  faDesktop, 
-  faFlagCheckered,
-  faFileExcel,
-  faSpinner,
+  faChartSimple,
+  faNetworkWired,
+  // Fichas Complementarias
+  faTableColumns,
+  faTableList,
+  faArrowUpRightFromSquare,
+  faFilePdf,
+  faPaperclip,
+  faFileCirclePlus,
+  faListCheck,
+  faFolder,
+  faFolderOpen,
+  faPaperPlane,
 } from "@fortawesome/free-solid-svg-icons";
 
 library.add(
@@ -144,6 +151,7 @@ library.add(
   faUsers,
   faIdCard,
   faIdBadge,
+  faListCheck,
   faAddressCard,
   faChalkboardUser,
   faPowerOff,
@@ -195,6 +203,7 @@ library.add(
   faLink,
   faUserPlus,
   faXmark,
+  faClipboardUser,
   faMagnifyingGlass,
   faClockRotateLeft,
   faBuilding,
@@ -226,10 +235,18 @@ library.add(
   faSignal,
   faChartLine,
   faChevronDown,
-  faDesktop,
-  faFlagCheckered,
-  faFileExcel,
-  faSpinner
+  faChartSimple,
+  faTableColumns,
+  faTableList,
+  faArrowUpRightFromSquare,
+  faFilePdf,
+  faPaperclip,
+  faFileCirclePlus,
+  faListCheck,
+  faFolder,
+  faFolderOpen,
+  faPaperPlane,
+  faNetworkWired
 );
 
 // ── 3. INICIALIZACIÓN DE LA INSTANCIA DE VUE ──
