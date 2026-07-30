@@ -70,7 +70,7 @@ onMounted(() => {
           <img src="@/assets/LogoSena.png" alt="SENA" class="logo-sena" />
           <div class="logo-divider" />
           <img
-            src="@/assets/VoltMindAccess.svg"
+            src="@/assets/VoltMindAccess1.svg"
             alt="VoltMind"
             class="logo-volt"
           />
