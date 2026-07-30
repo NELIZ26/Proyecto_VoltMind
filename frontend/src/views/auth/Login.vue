@@ -86,7 +86,7 @@ const processLoginSuccess = async (account) => {
     localStorage.setItem("instructorName", userName);
     localStorage.setItem("nombreInstructor", userName.split(' ')[0]); // Primer nombre para el saludo corta
     
-    // 🟢 ACTUALIZADO: Mensaje y enrutamiento hacia la vista de selección
+    // 🟢 ACTUALIZADO: Mensaje y enrutamiento hacia la vista de selección de entorno
     toast.success(`Instructor Autenticado. Cargando opciones de entorno...`);
     router.push("/route-selector"); 
 
@@ -190,7 +190,7 @@ const handleAzureLogin = async () => {
       <header class="login-header">
         <div class="brand-assets">
           <img
-            src="@/assets/VoltMindAccess.svg"
+            src="@/assets/VoltMindAccess1.svg"
             alt="VoltMind Logo"
             class="logo-voltmind"
           />

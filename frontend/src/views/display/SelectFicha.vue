@@ -127,7 +127,7 @@ const confirmarAmbienteYContinuar = () => {
     <div class="select-container">
       <header class="select-header">
         <div class="brand-assets-header">
-          <img src="@/assets/VoltMindAccess.svg" alt="VoltMind Logo" class="logo-voltmind" />
+          <img src="@/assets/VoltMindAccess1.svg" alt="VoltMind Logo" class="logo-voltmind" />
           <div class="brand-divider"></div>
           <img src="@/assets/LogoSena.png" alt="SENA Logo" class="logo-sena" />
         </div>
