@@ -96,7 +96,7 @@ const toggleNfcListening = () => {
     <header class="dash-top-bar">
       <div class="dash-left">
         <img src="@/assets/LogoSena.png" alt="SENA" class="h-logo" />
-        <img src="@/assets/VoltMindAccess.svg" alt="VoltMind" class="h-logo volt-logo" />
+        <img src="@/assets/VoltMindAccess1.svg" alt="VoltMind" class="h-logo volt-logo" />
         <div class="dash-title-area">
           <h1>{{ ambienteNombre }}</h1>
           <p>Ficha: {{ fichaActiva }} | Instructor: {{ nombreInstructor }} | {{ currentTime }}</p>

@@ -44,7 +44,7 @@ const handleNfcClick = () => {
     </div>
 
     <div class="header-logos">
-      <img src="@/assets/VoltMindAccess.svg" alt="VoltMind" class="logo-volt" />
+      <img src="@/assets/VoltMindAccess1.svg" alt="VoltMind" class="logo-volt" />
       <div class="logo-divider"></div>
       <img src="@/assets/LogoSena.png" alt="SENA" class="logo-sena" />
     </div>

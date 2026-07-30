@@ -74,7 +74,7 @@ const simulateLogin = (devAccount) => {
       <header class="selector-header">
         <div class="brand-wrapper">
           <img
-            src="@/assets/VoltMindAccess.svg"
+            src="@/assets/VoltMindAccess1.svg"
             alt="VoltMind"
             class="brand-logo"
           />

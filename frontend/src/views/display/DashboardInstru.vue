@@ -937,7 +937,7 @@ onUnmounted(() => {
         <div class="logo-duo">
           <img src="@/assets/LogoSena.png" alt="SENA" class="logo-sena" />
           <div class="logo-divider" />
-          <img src="@/assets/VoltMindAccess.svg" alt="VoltMind" class="logo-volt" />
+          <img src="@/assets/VoltMindAccess1.svg" alt="VoltMind" class="logo-volt" />
         </div>
         <div class="environment-badge">
           <h1> <span style="font-size: 0.6em; color: #666; display: block; text-transform: uppercase;">
