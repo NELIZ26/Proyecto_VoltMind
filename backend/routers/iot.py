@@ -306,8 +306,8 @@ async def save_session_consumption(payload: SessionConsumptionPayload):
         # Guardar en cr6a3_consumo_electrico
         datos_hila = {
             "cr6a3_identificador_medidor": f"Sensor {hila.sensor_id}",
-            "cr6a3_lectura_acumulada_kmh": hila.consumo_clase + hila.consumo_extra,
-            "cr6a3_codigo_sesion@odata.bind": f"/cr6a3_sesiones_de_clases({payload.session_id})"
+            "cr6a3_lectura_acumulada_kwh": hila.consumo_clase + hila.consumo_extra,
+            "cr6a3_Codigo_Sesion@odata.bind": f"/cr6a3_sesiones_de_clases({payload.session_id})"
         }
         await client.post("cr6a3_consumo_electricos", json=datos_hila)
     

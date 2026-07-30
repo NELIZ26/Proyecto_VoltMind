@@ -128,6 +128,32 @@ def main():
     # Diccionario para ir acumulando los Watts de cada sensor durante los 5 minutos
     power_accumulators = {} 
     
+<<<<<<< HEAD
+        # TAREA CADA 5 MINUTOS: Guardar Consumo Local (SQLite)
+    def flush_accumulators_to_db(interval_seconds):
+            nonlocal power_accumulators
+            if not power_accumulators:
+                return
+            try:
+                conn = sqlite3.connect("voltmind_local.db")
+                cursor = conn.cursor()
+                for sensor_pin, data in power_accumulators.items():
+                    if data['count'] > 0:
+                        avg_watts = data['sum'] / data['count']
+                        horas = interval_seconds / 3600.0
+                        kwh_consumido = (avg_watts / 1000.0) * horas
+                        cursor.execute('''
+                            INSERT INTO consumo_local (sensor_id, promedio_watts, consumo_kwh)
+                            VALUES (?, ?, ?)
+                        ''', (sensor_pin, round(avg_watts, 2), round(kwh_consumido, 6)))
+                conn.commit()
+                conn.close()
+                logger.info("💾 [SQLite] Consumo local guardado exitosamente.")
+            except Exception as e:
+                logger.error(f"❌ [SQLite] Error guardando en BD local: {e}")
+            power_accumulators = {}
+
+=======
     # TAREA CADA 5 MINUTOS: Guardar Consumo Local (SQLite)
     def flush_accumulators_to_db(interval_seconds):
         nonlocal power_accumulators
@@ -152,29 +178,57 @@ def main():
             logger.error(f"❌ [SQLite] Error guardando en BD local: {e}")
         power_accumulators = {}
     
+>>>>>>> d0998f3d49aa12c14f4bc8a053d1c82ed9b371e5
     while True:
-        if not ser or not ser.is_open:
-            port = get_serial_port()
-            if port:
-                try:
-                    ser = serial.Serial(port, 9600, timeout=1)
-                    logger.info(f"✅ Conectado al Arduino en el puerto {port}")
-                    time.sleep(2)
-                except Exception as e:
-                    logger.error(f"❌ Error conectando a {port}: {e}")
+            if not ser or not ser.is_open:
+                port = get_serial_port()
+                if port:
+                    try:
+                        ser = serial.Serial(port, 9600, timeout=1)
+                        logger.info(f"✅ Conectado al Arduino en el puerto {port}")
+                        time.sleep(2)
+                    except Exception as e:
+                        logger.error(f"❌ Error conectando a {port}: {e}")
+                        time.sleep(5)
+                        continue
+                else:
+                    logger.warning("⚠️ No se detectó Arduino. Reintentando en 5s...")
                     time.sleep(5)
                     continue
-            else:
-                logger.warning("⚠️ No se detectó Arduino. Reintentando en 5s...")
-                time.sleep(5)
-                continue
+                    
+            try:
+                line = ser.readline()
+                if line:
+                    decoded_line = line.decode('utf-8', errors='ignore').strip()
+                    parts = decoded_line.split(":")
+                    if len(parts) == 2:
+                        pin = parts[0]
+                        val = parts[1]
+                        try:
+                            watts = float(val)
+                            telemetry_data[pin] = watts
+                            if pin not in power_accumulators:
+                                power_accumulators[pin] = {'sum': 0.0, 'count': 0}
+                            power_accumulators[pin]['sum'] += watts
+                            power_accumulators[pin]['count'] += 1
+                        except ValueError:
+                            pass
                 
-        try:
-            line = ser.readline()
-            if line:
-                decoded_line = line.decode('utf-8', errors='ignore').strip()
-                parts = decoded_line.split(":")
+                current_time = time.time()
                 
+<<<<<<< HEAD
+                # 1. TAREA CADA 2 SEGUNDOS: Actualizar Frontend en Azure
+                if current_time - last_push_time >= PUSH_INTERVAL:
+                    if telemetry_data:
+                        payload = {"telemetry": telemetry_data}
+                        try:
+                            response = requests.post(TELEMETRY_URL, json=payload, timeout=3.0)
+                            if response.status_code != 200:
+                                logger.warning(f"☁️ [Azure Push] Falló con status {response.status_code}: {response.text}")
+                        except requests.exceptions.RequestException as req_err:
+                            logger.error(f"☁️ [Azure Push] Error de red: {req_err}")
+                    
+=======
                 if len(parts) == 2:
                     pin = parts[0]
                     val = parts[1]
@@ -200,55 +254,37 @@ def main():
                             if ser: ser.write(b"BUZZER:0\n")
                         continue # Saltamos la lógica de telemetría
 
+>>>>>>> d0998f3d49aa12c14f4bc8a053d1c82ed9b371e5
                     try:
-                        watts = float(val)
-                        telemetry_data[pin] = watts
-                        
-                        # --- NUEVA LÓGICA: Acumular para el promedio de 5 minutos ---
-                        if pin not in power_accumulators:
-                            power_accumulators[pin] = {'sum': 0.0, 'count': 0}
-                        
-                        power_accumulators[pin]['sum'] += watts
-                        power_accumulators[pin]['count'] += 1
-                        
-                    except ValueError:
-                        pass
-            
-            current_time = time.time()
-            
-            # =================================================================
-            # 1. TAREA CADA 2 SEGUNDOS: Actualizar Frontend en Azure
-            # =================================================================
-            if current_time - last_push_time >= PUSH_INTERVAL:
-                if telemetry_data:
-                    payload = {"telemetry": telemetry_data}
-                    try:
-                        response = requests.post(TELEMETRY_URL, json=payload, timeout=3.0)
-                        if response.status_code != 200:
-                            logger.warning(f"☁️ [Azure Push] Falló con status {response.status_code}: {response.text}")
-                    except requests.exceptions.RequestException as req_err:
-                        logger.error(f"☁️ [Azure Push] Error de red: {req_err}")
-                
-                try:
-                    cmd_res = requests.get(COMMANDS_URL, timeout=3.0)
-                    if cmd_res.status_code == 200:
-                        data = cmd_res.json()
-                        commands = data.get("commands", [])
-                        for cmd in commands:
-                            logger.info(f"⚡ [Azure Pull] Ejecutando comando recibido: {cmd}")
-                            
-                            # --- NUEVA LÓGICA: Detección de Cierre de Sesión ---
-                            if cmd.startswith("CLOSE_SESSION:"):
-                                parts = cmd.split(":", 2)
-                                if len(parts) == 3:
-                                    _, session_id, hora_limite_iso = parts
-                                    # Convertimos el ISO a string de SQLite (YYYY-MM-DD HH:MM:SS)
-                                    hora_limite_sql = hora_limite_iso.replace("T", " ")[:19] 
-                                    
-                                    # Apagamos el Arduino
-                                    if ser and ser.is_open:
-                                        ser.write("M:0\n".encode('utf-8'))
+                        cmd_res = requests.get(COMMANDS_URL, timeout=3.0)
+                        if cmd_res.status_code == 200:
+                            data = cmd_res.json()
+                            commands = data.get("commands", [])
+                            for cmd in commands:
+                                logger.info(f"⚡ [Azure Pull] Ejecutando comando recibido: {cmd}")
+                                if cmd.startswith("CLOSE_SESSION:"):
+                                    parts = cmd.split(":", 2)
+                                    if len(parts) == 3:
+                                        _, session_id, hora_limite_iso = parts
+                                        hora_limite_sql = hora_limite_iso.replace("T", " ")[:19] 
+                                        if ser and ser.is_open:
+                                            ser.write("M:0\n".encode('utf-8'))
                                         
+<<<<<<< HEAD
+                                        # 🟢 NUEVO: Guardar consumo acumulado antes de cerrar
+                                        elapsed_since_last_save = current_time - last_db_save_time
+                                        flush_accumulators_to_db(elapsed_since_last_save)
+                                        last_db_save_time = current_time
+                                        
+                                        calcular_y_enviar_consumos(session_id, hora_limite_sql)
+                                else:
+                                    if ser and ser.is_open:
+                                        ser.write(f"{cmd}\n".encode('utf-8'))
+                        else:
+                            logger.warning(f"☁️ [Azure Pull] Falló con status {cmd_res.status_code}")
+                    except requests.exceptions.RequestException as req_err:
+                        logger.error(f"☁️ [Azure Pull] Error de red: {req_err}")
+=======
                                     # 🟢 NUEVO: Guardar consumo acumulado antes de cerrar
                                     elapsed_since_last_save = current_time - last_db_save_time
                                     flush_accumulators_to_db(elapsed_since_last_save)
@@ -263,9 +299,16 @@ def main():
                         logger.warning(f"☁️ [Azure Pull] Falló con status {cmd_res.status_code}")
                 except requests.exceptions.RequestException as req_err:
                     logger.error(f"☁️ [Azure Pull] Error de red: {req_err}")
+>>>>>>> d0998f3d49aa12c14f4bc8a053d1c82ed9b371e5
 
-                last_push_time = current_time
+                    last_push_time = current_time
 
+<<<<<<< HEAD
+                # 2. TAREA CADA 5 MINUTOS: Guardar Consumo Local (SQLite)
+                if current_time - last_db_save_time >= DB_SAVE_INTERVAL:
+                    flush_accumulators_to_db(DB_SAVE_INTERVAL)
+                    last_db_save_time = current_time
+=======
             # =================================================================
             # 2. TAREA CADA 5 MINUTOS: Guardar Consumo Local (SQLite)
             # =================================================================
@@ -280,7 +323,15 @@ def main():
         except Exception as e:
             logger.error(f"❌ Error inesperado: {e}")
             time.sleep(2)
+>>>>>>> d0998f3d49aa12c14f4bc8a053d1c82ed9b371e5
 
+            except serial.SerialException as se:
+                logger.error(f"🔌 Desconexión del puerto serial: {se}")
+                ser = None
+                time.sleep(2)
+            except Exception as e:
+                logger.error(f"❌ Error inesperado: {e}")
+                time.sleep(2)
 
 if __name__ == "__main__":
     main()
