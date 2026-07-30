@@ -26,7 +26,7 @@ from pathlib import Path
 from fastapi import HTTPException
 
 from services.dataverse import (
-    cliente_dataverse,
+    obtener_cliente,
     TENANT_ID,
     CLIENT_ID,
     CLIENT_SECRET,
@@ -121,14 +121,14 @@ async def crear_notificacion(
             return nueva
 
     # --- MODO DATAVERSE ---
-    async with await cliente_dataverse() as client:
-        res = await client.post(TABLA_NOTIFICACIONES, json=_a_cuerpo_dataverse(nueva))
-        if res.status_code != 204:
-            print("ERROR DATAVERSE CREAR NOTIFICACIÓN:", res.text)
-            raise HTTPException(status_code=400, detail="No se pudo crear la notificación en Dataverse.")
-        entity_url = res.headers.get("OData-EntityId", "")
-        nueva["id"] = entity_url.split("(")[-1].replace(")", "") if "(" in entity_url else ""
-        return nueva
+    client = obtener_cliente()
+    res = await client.post(TABLA_NOTIFICACIONES, json=_a_cuerpo_dataverse(nueva))
+    if res.status_code != 204:
+        print("ERROR DATAVERSE CREAR NOTIFICACIÓN:", res.text)
+        raise HTTPException(status_code=400, detail="No se pudo crear la notificación en Dataverse.")
+    entity_url = res.headers.get("OData-EntityId", "")
+    nueva["id"] = entity_url.split("(")[-1].replace(")", "") if "(" in entity_url else ""
+    return nueva
 
 
 async def listar_notificaciones(
@@ -140,16 +140,16 @@ async def listar_notificaciones(
         notificaciones = _cargar_db()["notificaciones"]
     else:
         # --- MODO DATAVERSE ---
-        async with await cliente_dataverse() as client:
-            columnas = ",".join([_ID_DV, *_CAMPOS_DV.values()])
-            res = await client.get(f"{TABLA_NOTIFICACIONES}?$select={columnas}")
-            if res.status_code != 200:
-                print("ERROR DATAVERSE NOTIFICACIONES:", res.text)
-                raise HTTPException(
-                    status_code=res.status_code,
-                    detail="Error al consultar las notificaciones en Dataverse.",
-                )
-            notificaciones = [_desde_fila_dataverse(f) for f in res.json().get("value", [])]
+        client = obtener_cliente()
+        columnas = ",".join([_ID_DV, *_CAMPOS_DV.values()])
+        res = await client.get(f"{TABLA_NOTIFICACIONES}?$select={columnas}")
+        if res.status_code != 200:
+            print("ERROR DATAVERSE NOTIFICACIONES:", res.text)
+            raise HTTPException(
+                status_code=res.status_code,
+                detail="Error al consultar las notificaciones en Dataverse.",
+            )
+        notificaciones = [_desde_fila_dataverse(f) for f in res.json().get("value", [])]
 
     # Filtros en memoria: mismo contrato en ambos modos y volumen bajo.
     if destinatario:
@@ -174,11 +174,11 @@ async def marcar_leida(notificacion_id: str) -> dict:
             raise HTTPException(status_code=404, detail="La notificación no existe.")
 
     # --- MODO DATAVERSE ---
-    async with await cliente_dataverse() as client:
-        res = await client.patch(
-            f"{TABLA_NOTIFICACIONES}({notificacion_id})",
-            json={_CAMPOS_DV["leida"]: True},
-        )
-        if res.status_code != 204:
-            raise HTTPException(status_code=400, detail="No se pudo marcar la notificación en Dataverse.")
-        return {"id": notificacion_id, "leida": True}
+    client = obtener_cliente()
+    res = await client.patch(
+        f"{TABLA_NOTIFICACIONES}({notificacion_id})",
+        json={_CAMPOS_DV["leida"]: True},
+    )
+    if res.status_code != 204:
+        raise HTTPException(status_code=400, detail="No se pudo marcar la notificación en Dataverse.")
+    return {"id": notificacion_id, "leida": True}

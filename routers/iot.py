@@ -26,9 +26,9 @@ telemetry_data = {
 ser = None
 try:
     ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
-    print(f"✅ Conectado al Arduino en el puerto: {SERIAL_PORT}")
+    print(f"[OK] Conectado al Arduino en el puerto: {SERIAL_PORT}")
 except Exception as e:
-    print(f"❌ Error abriendo el puerto USB {SERIAL_PORT}: {e}")
+    print(f"[ERROR] Error abriendo el puerto USB {SERIAL_PORT}: {e}")
 
 # Hilo en segundo plano para leer los datos del Arduino
 def read_serial_data():
@@ -49,7 +49,7 @@ def read_serial_data():
                             # Auto-apagado de emergencia simulado (si es necesario)
                             PICO_MAXIMO = 100.0
                             if watts > PICO_MAXIMO:
-                                print(f"⚠️ PICO ALTO en Línea {sensor_id}: {watts}W. ¡Apagando Relé de emergencia!")
+                                print(f"[WARNING] PICO ALTO en Línea {sensor_id}: {watts}W. ¡Apagando Relé de emergencia!")
                                 # Enviar orden de apagado al Arduino
                                 ser.write(f"{sensor_id}:0\n".encode('utf-8'))
             except Exception as e:
@@ -73,7 +73,7 @@ class MasterCommand(BaseModel):
 async def toggle_relay(command: RelayCommand):
     """ Enciende o apaga un relé específico (1, 2, o 3) """
     if not ser or not ser.is_open:
-        print(f"🔧 MODO SIMULACIÓN: Comando enviado -> Relé {command.rele}: {'ENCENDER' if command.estado == '1' else 'APAGAR'}")
+        print(f"[SIMULATOR] MODO SIMULACIÓN: Comando enviado -> Relé {command.rele}: {'ENCENDER' if command.estado == '1' else 'APAGAR'}")
         return {"status": "success", "message": f"[Simulado] Relé {command.rele} configurado a {command.estado}"}
     
     # Enviar el comando al Arduino (Ej: "1:1\n")
@@ -87,7 +87,7 @@ async def toggle_relay(command: RelayCommand):
 async def toggle_master(command: MasterCommand):
     """ Enciende o apaga TODOS los relés """
     if not ser or not ser.is_open:
-        print(f"🔧 MODO SIMULACIÓN: Comando enviado -> MASTER: {'ENCENDER' if command.estado == '1' else 'APAGAR'}")
+        print(f"[SIMULATOR] MODO SIMULACIÓN: Comando enviado -> MASTER: {'ENCENDER' if command.estado == '1' else 'APAGAR'}")
         return {"status": "success", "message": f"[Simulado] Estado maestro configurado a {command.estado}"}
     
     # Enviar el comando M al Arduino (Ej: "M:1\n")

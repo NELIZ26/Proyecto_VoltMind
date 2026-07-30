@@ -30,7 +30,7 @@ from fastapi import HTTPException
 
 from schemas.complementarias import ESTADOS_SOLICITUD
 from services.dataverse import (
-    cliente_dataverse,
+    obtener_cliente,
     TENANT_ID,
     CLIENT_ID,
     CLIENT_SECRET,
@@ -404,13 +404,13 @@ async def _guardar_campos(solicitud_id: str, campos: dict, error_dataverse: str)
             raise HTTPException(status_code=404, detail="La solicitud no existe.")
 
     # --- MODO DATAVERSE ---
-    async with await cliente_dataverse() as client:
-        res = await client.patch(
-            f"{TABLA_COMPLEMENTARIAS}({solicitud_id})",
-            json=_a_cuerpo_dataverse(campos),
-        )
-        if res.status_code != 204:
-            raise HTTPException(status_code=400, detail=error_dataverse)
+    client = obtener_cliente()
+    res = await client.patch(
+        f"{TABLA_COMPLEMENTARIAS}({solicitud_id})",
+        json=_a_cuerpo_dataverse(campos),
+    )
+    if res.status_code != 204:
+        raise HTTPException(status_code=400, detail=error_dataverse)
 
 
 async def _registrar_archivos(solicitud_id: str, meta: list[dict]) -> None:
@@ -454,16 +454,16 @@ async def listar_solicitudes(
         solicitudes = _cargar_db()["solicitudes"]
     else:
         # --- MODO DATAVERSE ---
-        async with await cliente_dataverse() as client:
-            columnas = ",".join([_ID_DV, *_CAMPOS_DV.values()])
-            res = await client.get(f"{TABLA_COMPLEMENTARIAS}?$select={columnas}")
-            if res.status_code != 200:
-                print("ERROR DATAVERSE COMPLEMENTARIAS:", res.text)
-                raise HTTPException(
-                    status_code=res.status_code,
-                    detail="Error al consultar las fichas complementarias en Dataverse.",
-                )
-            solicitudes = [_desde_fila_dataverse(f) for f in res.json().get("value", [])]
+        client = obtener_cliente()
+        columnas = ",".join([_ID_DV, *_CAMPOS_DV.values()])
+        res = await client.get(f"{TABLA_COMPLEMENTARIAS}?$select={columnas}")
+        if res.status_code != 200:
+            print("ERROR DATAVERSE COMPLEMENTARIAS:", res.text)
+            raise HTTPException(
+                status_code=res.status_code,
+                detail="Error al consultar las fichas complementarias en Dataverse.",
+            )
+        solicitudes = [_desde_fila_dataverse(f) for f in res.json().get("value", [])]
 
     # Filtros en memoria: el volumen es bajo (decenas de solicitudes por trimestre)
     # y así el contrato es idéntico en ambos modos.
@@ -498,12 +498,12 @@ async def obtener_solicitud(solicitud_id: str) -> dict:
         raise HTTPException(status_code=404, detail="La solicitud no existe.")
 
     # --- MODO DATAVERSE ---
-    async with await cliente_dataverse() as client:
-        columnas = ",".join([_ID_DV, *_CAMPOS_DV.values()])
-        res = await client.get(f"{TABLA_COMPLEMENTARIAS}({solicitud_id})?$select={columnas}")
-        if res.status_code != 200:
-            raise HTTPException(status_code=404, detail="La solicitud no existe en Dataverse.")
-        return _desde_fila_dataverse(res.json())
+    client = obtener_cliente()
+    columnas = ",".join([_ID_DV, *_CAMPOS_DV.values()])
+    res = await client.get(f"{TABLA_COMPLEMENTARIAS}({solicitud_id})?$select={columnas}")
+    if res.status_code != 200:
+        raise HTTPException(status_code=404, detail="La solicitud no existe en Dataverse.")
+    return _desde_fila_dataverse(res.json())
 
 
 async def _notificar_solicitud_pendiente(solicitud: dict) -> None:
@@ -642,15 +642,15 @@ async def crear_solicitud(datos: dict) -> dict:
     # --- MODO DATAVERSE ---
     existentes = await listar_solicitudes()
     _validar_ficha_duplicada(existentes, datos)
-    async with await cliente_dataverse() as client:
-        cuerpo = _a_cuerpo_dataverse({**datos, "fecha_creacion": date.today().isoformat()})
-        res = await client.post(TABLA_COMPLEMENTARIAS, json=cuerpo)
-        if res.status_code != 204:
-            print("ERROR DATAVERSE CREAR COMPLEMENTARIA:", res.text)
-            raise HTTPException(status_code=400, detail="No se pudo crear la solicitud en Dataverse.")
-        entity_url = res.headers.get("OData-EntityId", "")
-        nuevo_id = entity_url.split("(")[-1].replace(")", "") if "(" in entity_url else ""
-        nueva = {"id": nuevo_id, **datos}
+    client = obtener_cliente()
+    cuerpo = _a_cuerpo_dataverse({**datos, "fecha_creacion": date.today().isoformat()})
+    res = await client.post(TABLA_COMPLEMENTARIAS, json=cuerpo)
+    if res.status_code != 204:
+        print("ERROR DATAVERSE CREAR COMPLEMENTARIA:", res.text)
+        raise HTTPException(status_code=400, detail="No se pudo crear la solicitud en Dataverse.")
+    entity_url = res.headers.get("OData-EntityId", "")
+    nuevo_id = entity_url.split("(")[-1].replace(")", "") if "(" in entity_url else ""
+    nueva = {"id": nuevo_id, **datos}
     await _notificar_solicitud_pendiente(nueva)
     return nueva
 
@@ -686,11 +686,11 @@ async def actualizar_solicitud(solicitud_id: str, datos: dict) -> dict:
         _validar_ficha_duplicada(existentes, datos, excluir_id=solicitud_id)
     # Para detectar la transición a "Publicada" se necesita el estado previo
     previa = await obtener_solicitud(solicitud_id) if datos.get("estado") == "Publicada" else None
-    async with await cliente_dataverse() as client:
-        cuerpo = _a_cuerpo_dataverse(datos)
-        res = await client.patch(f"{TABLA_COMPLEMENTARIAS}({solicitud_id})", json=cuerpo)
-        if res.status_code != 204:
-            raise HTTPException(status_code=400, detail="No se pudo actualizar la solicitud en Dataverse.")
+    client = obtener_cliente()
+    cuerpo = _a_cuerpo_dataverse(datos)
+    res = await client.patch(f"{TABLA_COMPLEMENTARIAS}({solicitud_id})", json=cuerpo)
+    if res.status_code != 204:
+        raise HTTPException(status_code=400, detail="No se pudo actualizar la solicitud en Dataverse.")
     if previa is not None and previa.get("estado") != "Publicada":
         await _avisar_publicacion_sin_fallar({**previa, **datos, "id": solicitud_id})
     return {"id": solicitud_id, **datos}
@@ -709,10 +709,10 @@ async def eliminar_solicitud(solicitud_id: str) -> dict:
         return {"mensaje": "Solicitud eliminada con éxito."}
 
     # --- MODO DATAVERSE ---
-    async with await cliente_dataverse() as client:
-        res = await client.delete(f"{TABLA_COMPLEMENTARIAS}({solicitud_id})")
-        if res.status_code != 204:
-            raise HTTPException(status_code=400, detail="No se pudo eliminar la solicitud en Dataverse.")
+    client = obtener_cliente()
+    res = await client.delete(f"{TABLA_COMPLEMENTARIAS}({solicitud_id})")
+    if res.status_code != 204:
+        raise HTTPException(status_code=400, detail="No se pudo eliminar la solicitud en Dataverse.")
     _eliminar_archivos_solicitud(solicitud_id)
     return {"mensaje": "Solicitud eliminada con éxito."}
 
