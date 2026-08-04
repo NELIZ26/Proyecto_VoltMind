@@ -44,7 +44,9 @@ async def consultar_aprendices_por_ficha(numero_ficha: str) -> list:
     columnas = (
         "cr6a3_documento_de_identidad,"
         "cr6a3_correo_electronico,"
-        "cr6a3_nombre_completo"
+        "cr6a3_nombre_completo,"
+        "cr6a3_faltas_totales,"
+        "cr6a3_faltas_consecutivas"
     )
 
     url_aprendices = (
@@ -72,7 +74,9 @@ async def consultar_aprendices_por_ficha(numero_ficha: str) -> list:
         {
             "documento": ap.get("cr6a3_documento_de_identidad"),
             "correo": ap.get("cr6a3_correo_electronico"),
-            "nombre": ap.get("cr6a3_nombre_completo")
+            "nombre": ap.get("cr6a3_nombre_completo"),
+            "faltas_totales": ap.get("cr6a3_faltas_totales") or 0,
+            "faltas_consecutivas": ap.get("cr6a3_faltas_consecutivas") or 0
         }
         for ap in datos_aprendices
     ]
