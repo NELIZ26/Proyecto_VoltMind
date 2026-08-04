@@ -704,6 +704,7 @@ const pollTelemetry = async () => {
     if (res.ok) {
       const data = await res.json();
       const tel = data.telemetry || {};
+      const states = data.relay_states || {};
       // Estabilizar lecturas: Los sensores ACS712 a veces envían 0W erróneamente en AC.
       // Si el relé está encendido LOCALMENTE, ignoramos las caídas abruptas a 0 y mantenemos el último valor real.
       Object.keys(tel).forEach(key => {
@@ -951,7 +952,7 @@ onUnmounted(() => {
         <div class="logo-duo">
           <img src="@/assets/LogoSena.png" alt="SENA" class="logo-sena" />
           <div class="logo-divider" />
-          <img src="@/assets/VoltMindAccess.svg" alt="VoltMind" class="logo-volt" />
+          <img src="@/assets/VoltMindAccess1.svg" alt="VoltMind" class="logo-volt" />
         </div>
         <div class="environment-badge">
           <h1> <span style="font-size: 0.6em; color: #666; display: block; text-transform: uppercase;">
