@@ -55,15 +55,7 @@ const horaFin = ref(localStorage.getItem('horaFin') || '--:--');
 const tiempoExtra = ref(localStorage.getItem('tiempoExtra') || '0 min');
 
 // --- ALERTAS, MODALES Y NODOS IOT ---
-const systemAlerts = ref([
-  {
-    id: 1,
-    severity: "warning",
-    message: "Alerta de Deserción: Validación Dataverse pendiente.",
-    source: "Asistencia",
-    timestamp: "Hoy",
-  },
-]);
+const systemAlerts = ref([]);
 const activeModal = ref(null);
 const selectedApprentice = ref(null);
 
@@ -111,6 +103,21 @@ watch(() => thermometers.value, (newVals) => {
       timestamp: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
     });
   }
+}, { deep: true });
+
+watch(() => apprentices.value, (newVals) => {
+  systemAlerts.value = systemAlerts.value.filter(a => a.source !== "Asistencia");
+  newVals.forEach(ap => {
+    if (ap.faltasConsecutivas > 2 && ap.status !== 'present') {
+      systemAlerts.value.push({
+        id: `desertion_${ap.id}`,
+        severity: "warning",
+        message: `Riesgo de Deserción: ${ap.name} tiene ${ap.faltasConsecutivas} faltas consecutivas.`,
+        source: "Asistencia",
+        timestamp: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+      });
+    }
+  });
 }, { deep: true });
 
 const meters = ref([
@@ -268,7 +275,9 @@ const recargarListadoAprendices = async () => {
       doc: ap.documento,
       email: ap.correo,
       status: "absent", 
-      lastSeen: "Esperando ingreso"
+      lastSeen: "Esperando ingreso",
+      absences: ap.faltas_totales || 0,
+      faltasConsecutivas: ap.faltas_consecutivas || 0
     }));
 
     // 🟢 LA SOLUCIÓN DEFINITIVA: Sincronización automática
@@ -398,10 +407,6 @@ const habilitarSalidaClase = async () => {
       localStorage.setItem('salidaHabilitada', 'true'); 
       qrProjected.value = false;
       
-      const currentTimeStr = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
-      horaFin.value = currentTimeStr;
-      localStorage.setItem('horaFin', currentTimeStr);
-
       toast.success("¡Clase finalizada! Ya puedes registrar las firmas de los presentes.");
     }
   } catch (error) {
@@ -481,6 +486,11 @@ const toggleMasterPower = async () => {
     return; 
   }
 
+  if (isPowerOn.value && !salidaHabilitada.value) {
+    toast.warning("Primero debes 'FINALIZAR CLASE' para que los aprendices firmen, antes de apagar el sistema.");
+    return;
+  }
+
   isTogglingPower.value = true;
   isPowerOn.value = !isPowerOn.value;
   roomNodes.value.forEach((node) => { node.energized = isPowerOn.value; });
@@ -543,6 +553,10 @@ const toggleMasterPower = async () => {
     }).catch(err => console.warn("Error al encender hardware por serial:", err));
   
   } else {
+    const currentTimeStr = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+    horaFin.value = currentTimeStr;
+    localStorage.setItem('horaFin', currentTimeStr);
+
     toast.info("Apagando aula...");
     stopTelemetryPolling();
     try {

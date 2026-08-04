@@ -305,17 +305,17 @@ async def save_session_consumption(payload: SessionConsumptionPayload):
         
         # Guardar en cr6a3_consumo_electrico
         datos_hila = {
-            "cr6a3_identificador_medidor": f"Sensor {hila.sensor_id}",
-            "cr6a3_lectura_acumulada_kwh": hila.consumo_clase + hila.consumo_extra,
+            "cr6a3_identificador_medidor": hila.sensor_id,
+            "cr6a3_lectura_acumulada_kwh": round(hila.consumo_clase + hila.consumo_extra, 6),
             "cr6a3_Codigo_Sesion@odata.bind": f"/cr6a3_sesiones_de_clases({payload.session_id})"
         }
         await client.post("cr6a3_consumo_electricos", json=datos_hila)
     
     # Actualizar la sesión con los totales
     totales_sesion = {
-        "cr6a3_consumo_clase_kwh": total_clase,
-        "cr6a3_consumo_extra_kwh": total_extra,
-        "cr6a3_consumo_energetico_total_kwh": total_clase + total_extra
+        "cr6a3_consumo_clase_kwh": round(total_clase, 6),
+        "cr6a3_consumo_extra_kwh": round(total_extra, 6),
+        "cr6a3_consumo_energetico_total_kwh": round(total_clase + total_extra, 6)
     }
     await client.patch(f"cr6a3_sesiones_de_clases({payload.session_id})", json=totales_sesion)
     
