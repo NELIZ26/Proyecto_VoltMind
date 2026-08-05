@@ -58,6 +58,14 @@ def obtener_cliente() -> httpx.AsyncClient:
     """Retorna la instancia global del cliente HTTP."""
     return _cliente_dataverse_global
 
+async def cliente_dataverse() -> httpx.AsyncClient:
+    """Compatibilidad hacia atrás para módulos que aún usan el cliente no global."""
+    return httpx.AsyncClient(
+        base_url=f"{DATAVERSE_URL}/api/data/v9.2/",
+        auth=DataverseAuth(),
+        timeout=15.0
+    )
+
 # Adaptación de la función existente
 async def consultar_dataverse(query: str) -> dict:
     # Ahora usamos el cliente global sin cerrarlo

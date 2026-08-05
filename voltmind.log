@@ -3136,3 +3136,11 @@ httpx.ReadTimeout
 2026-06-25 17:04:31,306 - INFO - Instructor autenticado exitosamente: Ferley Tobon (ID: 85f87e10-3a5c-f111-a826-7ced8db137e0)
 2026-06-25 17:04:31,476 - INFO - HTTP Request: GET https://org375d75d4.crm2.dynamics.com/api/data/v9.2/cr6a3_fichas?$filter=_cr6a3_instructorasignado_value%20eq%20'85f87e10-3a5c-f111-a826-7ced8db137e0'&$select=cr6a3_numero_ficha,cr6a3_nombre_programa "HTTP/1.1 200 OK"
 2026-06-25 17:04:31,477 - INFO - Fichas recuperadas con éxito. Total: 2 para el instructor Ferley Tobon
+2026-08-05 11:08:13,752 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-08-05 11:08:21,908 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-08-05 11:08:21,912 - INFO - Added job "tarea_automatica_matriz_semanal" to job store "default"
+2026-08-05 11:08:21,912 - INFO - Scheduler started
+2026-08-05 11:11:40,155 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-08-05 11:11:48,559 - INFO - Adding job tentatively -- it will be properly scheduled when the scheduler starts
+2026-08-05 11:11:48,562 - INFO - Added job "tarea_automatica_matriz_semanal" to job store "default"
+2026-08-05 11:11:48,563 - INFO - Scheduler started
