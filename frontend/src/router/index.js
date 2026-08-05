@@ -166,6 +166,38 @@ const routes = [
     ]
   },
   {
+    path: "/programador-academico",
+    component: () => import("@/layouts/ProgramadorAcademicoLayout.vue"),
+    meta: { requiresAuth: true, roles: ["programador_academico"] },
+    children: [
+      {
+        path: "tituladas",
+        name: "AcademicoTituladas",
+        component: () => import("@/views/admin/FichasTituladasView.vue"),
+        meta: { title: "VoltMind - Fichas Tituladas" }
+      },
+      {
+        path: "tituladas/:id",
+        name: "AcademicoTituladaDetalle",
+        component: () => import("@/views/admin/FichaTituladaDetalleView.vue"),
+        meta: { title: "VoltMind - Detalle de Ficha Titulada" }
+      }
+    ]
+  },
+  {
+    path: "/programador-complementarios",
+    component: () => import("@/layouts/ProgramadorComplementariosLayout.vue"),
+    meta: { requiresAuth: true, roles: ["programador_complementarios"] },
+    children: [
+      {
+        path: "fichas",
+        name: "ComplementariosFichas",
+        component: () => import("@/views/admin/FichasComplementariasView.vue"),
+        meta: { title: "VoltMind - Fichas Complementarias" }
+      }
+    ]
+  },
+  {
     path: "/:pathMatch(.*)*",
     redirect: "/login",
   },
@@ -184,6 +216,7 @@ router.beforeEach((to, from, next) => {
   }
   return next();
 
+  return next();
   // 2. Verificación de Roles
   const userRole = localStorage.getItem("user_role"); // Lee el rol inyectado por el Simulador
 
