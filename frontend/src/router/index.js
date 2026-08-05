@@ -182,6 +182,7 @@ router.beforeEach((to, from, next) => {
   if (to.meta.title) {
     document.title = to.meta.title;
   }
+  return next();
 
   // 2. Verificación de Roles
   const userRole = localStorage.getItem("user_role"); // Lee el rol inyectado por el Simulador
