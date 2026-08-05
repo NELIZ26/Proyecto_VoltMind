@@ -43,7 +43,7 @@ const routes = [
     meta: {
       title: "VoltMind - Solicitud de Ficha Complementaria",
       requiresAuth: true,
-      roles: ["instructor"], // El instructor solicita; el admin crea la ficha
+      roles: [""], // El instructor solicita; el admin crea la ficha
     },
   },
   {

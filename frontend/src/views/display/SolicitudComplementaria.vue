@@ -665,8 +665,8 @@ import {
 } from '@/stores/complementarias';
 import { complementariasService } from '@/services/complementariasService';
 import NotificacionesBell from '@/components/admin/NotificacionesBell.vue';
-import imagenCampo from '@/image/Campo.png';
-import imagenPaz from '@/image/Paz.png';
+//import imagenCampo from '@/image/Campo.png';
+//import imagenPaz from '@/image/Paz.png';
 
 const TAMANO_MAXIMO_MB = 10; // Debe coincidir con el límite del backend
 const CLAVE_CORREO = 'voltmind_correo_instructor';
@@ -807,7 +807,7 @@ const correoConsulta = ref(
 
 // ── Hero institucional (carrusel de afiches, solo visual) ──
 // "posicion" es el recorte inteligente: qué franja del afiche muestra el banner
-const AFICHES = [
+/*const AFICHES = [
   {
     src: imagenCampo,
     alt: 'Afiche del SENA y Fondo Emprender: convocatorias abiertas para emprendedores del campo',
@@ -840,7 +840,7 @@ const reanudarCarrusel = () => {
   // Sin auto-avance si ya corre o si el usuario pidió menos movimiento
   if (temporizadorCarrusel || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   temporizadorCarrusel = setInterval(() => cambiarAfiche(1), 6000);
-};
+};*/
 
 // ── Barra fija de acceso a SOFIA Plus ──
 const mostrarBarraSofia = ref(true);
