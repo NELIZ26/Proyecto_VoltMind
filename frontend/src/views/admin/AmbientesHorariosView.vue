@@ -461,55 +461,47 @@ const getDisciplineClass = (discipline) => {
   margin-bottom: 1.5rem;
 }
 
-/* Matrix Estilos Específicos */
+/* Matrix Estilos Específicos (Adaptados del Calendario) */
 .matrix-wrapper {
   width: 100%;
-  max-height: 550px;
   overflow-x: auto;
-  overflow-y: auto;
-  border: 1px solid var(--borde);
   border-radius: 12px;
 }
 
 .grid-matrix {
   display: grid;
-  /* El grid-template-columns se maneja de forma dinámica en el HTML */
-  min-width: fit-content;
+  gap: 4px;
+  min-width: 860px;
 }
 
 .matrix-cell {
-  background-color: var(--fondo-tarjetas);
-  border-right: 1px solid var(--borde);
-  border-bottom: 1px solid var(--borde);
+  /* Las celdas ya no usan bordes colapsados como tabla, sino cajas individuales */
 }
 
 .header-cell {
-  background-color: var(--fondo-tarjetas);
+  text-align: center;
+  font-size: 0.68rem;
   font-weight: 800;
+  letter-spacing: 0.5px;
+  color: var(--texto-secundario);
+  padding: 0.4rem 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 55px;
   position: sticky;
   top: 0;
   z-index: 2;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.03);
+  background-color: var(--fondo-tarjetas);
 }
 
 .corner-cell {
-  font-size: 1.05rem;
-  color: var(--texto-secundario);
-  text-transform: uppercase;
-  position: sticky;
+  font-size: 0.85rem;
   left: 0;
-  top: 0;
   z-index: 3;
-  box-shadow: 2px 2px 5px rgba(0,0,0,0.03);
 }
 
 .time-cell {
-  font-size: 0.85rem;
-  color: var(--sena-verde, #1e7e34);
+  color: var(--texto-secundario);
 }
 
 .time-icon {
@@ -517,51 +509,63 @@ const getDisciplineClass = (discipline) => {
 }
 
 .room-cell {
+  background: var(--fondo-app);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 16px;
-  background-color: var(--fondo-app);
+  padding: 10px;
   position: sticky;
   left: 0;
   z-index: 1;
-  box-shadow: 2px 0 5px rgba(0,0,0,0.03);
 }
 
 .room-name {
-  color: var(--sena-azul-oscuro);
-  font-size: 1.1rem;
+  color: var(--texto-secundario);
+  font-size: 0.85rem;
   text-align: center;
   font-weight: 800;
 }
 
 .room-capacity {
-  font-size: 0.9rem;
+  font-size: 0.72rem;
   color: var(--texto-secundario);
-  margin-top: 6px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  margin-top: 4px;
   font-weight: 600;
 }
 
 .data-cell {
-  padding: 8px;
+  background: var(--fondo-app);
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  min-height: 86px;
+  padding: 6px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  /* Allow vertical scroll if many sessions overlap in one cell */
+  gap: 4px;
   overflow-y: auto;
 }
 
 .session-card {
-  border-radius: 8px;
+  border: none;
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 0.64rem;
+  text-align: left;
+  cursor: pointer;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  padding: 8px 10px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  gap: 2px;
+  font-family: inherit;
+  line-height: 1.25;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.session-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 48, 64, 0.18);
 }
 
 .compact-session {
@@ -570,24 +574,23 @@ const getDisciplineClass = (discipline) => {
 }
 
 .session-time {
-  font-size: 0.75rem;
+  font-size: 0.64rem;
   font-weight: 800;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   opacity: 0.85;
 }
 
 .session-ficha {
+  font-size: 0.66rem;
   font-weight: 800;
-  font-size: 0.85rem;
-  margin-bottom: 4px;
 }
 
 .session-instructor {
-  font-size: 0.75rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+  color: var(--texto-secundario);
 }
 
 .empty-cell {
@@ -597,38 +600,35 @@ const getDisciplineClass = (discipline) => {
   justify-content: center;
   color: #adb5bd;
   font-style: italic;
-  font-size: 0.95rem;
+  font-size: 0.72rem;
   font-weight: 500;
 }
 
-/* Discipline Colors */
-/* Green */
+/* Discipline Colors (Estilo Chips) */
 .card-software {
-  background-color: #e8f5e9;
-  border: 1px solid #c8e6c9;
-  border-left: 5px solid #4caf50;
-  color: #2e7d32;
+  background-color: rgba(76, 175, 80, 0.14);
+  border-left: 3px solid #4caf50;
+  color: var(--texto-principal);
 }
-/* Purple */
 .card-design {
-  background-color: #f3e5f5;
-  border: 1px solid #e1bee7;
-  border-left: 5px solid #ab47bc;
-  color: #6a1b9a;
+  background-color: rgba(171, 71, 188, 0.14);
+  border-left: 3px solid #ab47bc;
+  color: var(--texto-principal);
 }
-/* Blue */
 .card-hardware {
-  background-color: #e1f5fe;
-  border: 1px solid #b3e5fc;
-  border-left: 5px solid #29b6f6;
-  color: #0277bd;
+  background-color: rgba(41, 182, 246, 0.14);
+  border-left: 3px solid #29b6f6;
+  color: var(--texto-principal);
 }
-/* Yellow */
 .card-language {
-  background-color: #fff8e1;
-  border: 1px solid #ffecb3;
-  border-left: 5px solid #ffca28;
-  color: #f57f17;
+  background-color: rgba(255, 202, 40, 0.14);
+  border-left: 3px solid #ffca28;
+  color: var(--texto-principal);
+}
+.card-default {
+  background-color: rgba(108, 117, 125, 0.14);
+  border-left: 3px solid #6c757d;
+  color: var(--texto-principal);
 }
 
 /* ==========================================================================
