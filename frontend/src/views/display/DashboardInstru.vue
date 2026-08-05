@@ -49,7 +49,7 @@ const horaInicio = ref(localStorage.getItem('horaInicio') || '--:--');
 const horaFin = ref(localStorage.getItem('horaFin') || '--:--');
 const tiempoExtra = ref(localStorage.getItem('tiempoExtra') || '0 min');
 
-// --- ESTADOS DE ALERTAS Y MODALES ---
+// --- ALERTAS, MODALES Y NODOS IOT ---
 const systemAlerts = ref([
   {
     id: 1,
@@ -62,6 +62,68 @@ const systemAlerts = ref([
 const activeModal = ref(null);
 const selectedApprentice = ref(null);
 
+const thermometers = ref([
+  { id: 1, value: 24.5 },
+  { id: 2, value: 25.0 }
+]);
+
+const getTempHeight = (val) => {
+  const min = 15;
+  const max = 35;
+  let pct = ((val - min) / (max - min)) * 100;
+  if (pct < 10) pct = 10;
+  if (pct > 100) pct = 100;
+  return pct + "%";
+};
+
+const getTempColor = (val) => {
+  if (val < 20) return "#3b82f6"; // Azul frío
+  if (val > 26) return "#ef4444"; // Rojo calor
+  return "#22c55e"; // Verde ok
+};
+
+watch(() => thermometers.value, (newVals) => {
+  const isHot = newVals.some(t => t.value > 26);
+  const isCold = newVals.some(t => t.value < 20);
+
+  // Filtrar alertas existentes de temperatura
+  systemAlerts.value = systemAlerts.value.filter(a => a.source !== "Sensores de Temperatura");
+
+  if (isHot) {
+    systemAlerts.value.push({
+      id: Date.now(),
+      severity: "error", // Aparecerá roja
+      message: "Temperatura alta. Sugerencia: Encender / Ajustar AC.",
+      source: "Sensores de Temperatura",
+      timestamp: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+    });
+  } else if (isCold) {
+    systemAlerts.value.push({
+      id: Date.now(),
+      severity: "info", // Aparecerá azul o neutral
+      message: "Temperatura muy baja. Sugerencia: Regular / Apagar AC.",
+      source: "Sensores de Temperatura",
+      timestamp: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+    });
+  }
+}, { deep: true });
+
+watch(() => apprentices.value, (newVals) => {
+  systemAlerts.value = systemAlerts.value.filter(a => a.source !== "Asistencia");
+  newVals.forEach(ap => {
+    if (ap.faltasConsecutivas > 2 && ap.status !== 'present') {
+      systemAlerts.value.push({
+        id: `desertion_${ap.id}`,
+        severity: "warning",
+        message: `Riesgo de Deserción: ${ap.name} tiene ${ap.faltasConsecutivas} faltas consecutivas.`,
+        source: "Asistencia",
+        timestamp: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
+      });
+    }
+  });
+}, { deep: true });
+
+>>>>>>> origin/development
 const meters = ref([
   { id: 1, label: "Iluminación Aula", value: 120 },
   { id: 2, label: "Bancos de Cómputo", value: 850 },
@@ -77,7 +139,118 @@ const roomNodes = ref(
 );
 
 // ==========================================
-// 📡 TELEPATÍA DEL QR (1 a 1)
+// 📡 CEREBRO WEBSOCKET (DOBLE VÍA CON KIOSKO)
+// ==========================================
+let wsDashboard = null;
+
+const conectarWebSocketDashboard = () => {
+  if (!ambienteSeleccionadoId.value || ambienteSeleccionadoId.value === "Sin Definir") return;
+
+  const WS_URL = BASE_URL.replace(/^http/, 'ws');
+  wsDashboard = new WebSocket(`${WS_URL}/api/ws/ambiente/${ambienteSeleccionadoId.value}`);
+
+  wsDashboard.onopen = () => {
+    console.log(`[Dashboard] 🟢 Escuchando al ambiente ${nombreAmbienteSeleccionado.value}`);
+  };
+
+  wsDashboard.onmessage = (event) => {
+    const mensaje = JSON.parse(event.data);
+    
+    // 1. El Kiosko encendió el aula
+    if (mensaje.tipo === "SESION_INICIADA") {
+      if (!isPowerOn.value) { 
+        toast.success("Aula energizada remotamente desde la Terminal Kiosko.");
+        isPowerOn.value = true;
+        
+        // Encendemos los nodos visualmente
+        roomNodes.value.forEach((node) => { node.energized = true; });
+
+        // Sincronizamos la memoria local
+        localStorage.setItem('sesionActivaId', mensaje.sesion_id);
+        localStorage.setItem('isPowerOn', 'true');
+        
+        const fechaEntrada = mensaje.hora ? new Date(mensaje.hora) : new Date();
+        horaInicio.value = fechaEntrada.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+        localStorage.setItem('horaInicio', horaInicio.value);
+
+        // Cargamos la lista operativa
+        recargarListadoAprendices();
+
+        // 🔌 Iniciar sondeo de telemetría de hardware
+        startTelemetryPolling();
+      }
+    } 
+    // 2. Un aprendiz ingresó su PIN en el Kiosko
+    else if (mensaje.tipo === "APRENDIZ_INGRESO") {
+      const aprendiz = apprentices.value.find(ap => String(ap.doc) === String(mensaje.documento));
+      if (aprendiz) {
+        aprendiz.status = "present";
+        aprendiz.lastSeen = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+        toast.info(`Ingreso desde Kiosko: ${mensaje.nombre}`);
+      }
+    }
+    // 🟢 NUEVA REGLA 3: Capturar cuando el aprendiz completa su firma táctil
+    else if (mensaje.tipo === "APRENDIZ_FIRMA") {
+      const aprendiz = apprentices.value.find(ap => String(ap.doc) === String(mensaje.documento));
+      if (aprendiz) {
+        // Actualizamos el estado visual exactamente como lo haría el proceso local
+        aprendiz.lastSeen = "Firma Completada";
+        toast.success(`Firma registrada para: ${aprendiz.name}`);
+      }
+    }
+  };
+
+  wsDashboard.onclose = () => {
+    console.warn("[Dashboard] 🔴 Conexión perdida. Reconectando...");
+    setTimeout(conectarWebSocketDashboard, 3000);
+  };
+};
+
+// ==========================================
+// 🔄 FUNCIONES DE CARGA Y SINCRONIZACIÓN
+// ==========================================
+const recargarListadoAprendices = async () => {
+  if (fichaActiva.value === "Sin Ficha") return;
+  isLoading.value = true;
+  try {
+    const response = await fetch(`${BASE_URL}/api/fichas/${fichaActiva.value}/aprendices`);
+    if (!response.ok) throw new Error("No se encontraron aprendices.");
+
+    const data = await response.json();
+    apprentices.value = data.map((ap) => ({
+      id: ap.documento,
+      name: ap.nombre || 'Sin Nombre',
+      doc: ap.documento,
+      email: ap.correo,
+      status: "absent", 
+      lastSeen: "Esperando ingreso",
+      absences: ap.faltas_totales || 0,
+      faltasConsecutivas: ap.faltas_consecutivas || 0
+    }));
+
+    // 🟢 LA SOLUCIÓN DEFINITIVA: Sincronización automática
+    // Apenas termine de armar la lista visual, busca si hay una sesión activa
+    // y recupera a los que ya habían entrado (incluso si se inició desde la tablet).
+    
+    console.log("✅ Lista de Dataverse cargada. Total alumnos:", apprentices.value.length);
+    
+    const sesionActivaId = localStorage.getItem('sesionActivaId');
+    if (sesionActivaId && apprentices.value.length > 0) {
+      await recuperarEstadoClase(sesionActivaId);
+    } else {
+      console.log("⚠️ No se ejecutó la recuperación porque falta el ID de sesión o la lista está vacía.");
+    }
+
+  } catch (error) {
+    console.error("Error consultando aprendices:", error);
+    toast.warning("El aula está lista, pero no hay aprendices registrados.");
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+// ==========================================
+// 📡 TELEPATÍA DEL QR (Mantiene soporte local)
 // ==========================================
 let qrListenerInterval = null;
 
@@ -268,6 +441,10 @@ const toggleMasterPower = async () => {
     return; 
   }
 
+  if (isPowerOn.value && !salidaHabilitada.value) {
+    toast.warning("Primero debes 'FINALIZAR CLASE' para que los aprendices firmen, antes de apagar el sistema.");
+    return;
+  }
   isPowerOn.value = !isPowerOn.value;
   roomNodes.value.forEach((node) => { node.energized = isPowerOn.value; });
 
@@ -305,7 +482,12 @@ const toggleMasterPower = async () => {
     }
   
   } else {
+    const currentTimeStr = new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' });
+    horaFin.value = currentTimeStr;
+    localStorage.setItem('horaFin', currentTimeStr);
+
     toast.info("Apagando aula y guardando asistencias en Dataverse...");
+    if (typeof stopTelemetryPolling === 'function') stopTelemetryPolling();
     try {
       const sesionId = localStorage.getItem('sesionActivaId') || "";
       

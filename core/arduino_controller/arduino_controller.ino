@@ -1,6 +1,7 @@
 // Pines de los relés (Salidas Digitales)
 const int rele1 = 7;
 const int rele2 = 8;
+const int buzzerPin = 9;
 
 // Pines de los sensores de corriente ACS712 (Entradas Analógicas)
 const int sensor1 = A0; // Sensor 1 (ej: Iluminación)
@@ -50,6 +51,15 @@ void loop() {
         // Master: Aplica el comando a todos
         digitalWrite(rele1, valorPin);
         digitalWrite(rele2, valorPin);
+      } else if (idStr == "BUZZER") {
+        // Comandos de feedback sonoro desde el servidor
+        if (estado == 1) { // Éxito (Dos pitidos cortos)
+          tone(buzzerPin, 2500, 150);
+          delay(200);
+          tone(buzzerPin, 2500, 150);
+        } else if (estado == 0) { // Error (Un pitido largo y grave)
+          tone(buzzerPin, 1000, 800);
+        }
       }
     }
   }
