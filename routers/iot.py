@@ -3,6 +3,9 @@ from pydantic import BaseModel
 import serial
 import threading
 import time
+import logging
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/api/iot",
@@ -21,6 +24,8 @@ BAUD_RATE = 9600
 telemetry_data = {
     "1": 0.0
 }
+relay_states = {}
+pending_commands = []
 
 # Inicializamos el puerto serial (lo intentamos abrir)
 ser = None
@@ -99,5 +104,99 @@ async def toggle_master(command: MasterCommand):
 
 @router.get("/telemetry")
 async def get_telemetry():
-    """ Devuelve la última lectura de telemetría (consumo en Watts) """
-    return telemetry_data
+    """ Devuelve la última lectura de telemetría (consumo en Watts) y los estados de relés """
+    return {
+        "telemetry": telemetry_data,
+        "relay_states": relay_states
+    }
+
+class TelemetryPushPayload(BaseModel):
+    telemetry: dict
+    # relay_states: dict (opcional, si el Edge device sincroniza los reles también, pero por ahora solo telemetría)
+
+@router.post("/telemetry/push")
+def push_telemetry(payload: TelemetryPushPayload):
+    """
+    Endpoint para que el Edge Device (Raspberry Pi) envíe los datos leídos del Arduino
+    a la nube.
+    """
+    global telemetry_data
+    for k, v in payload.telemetry.items():
+        telemetry_data[str(k)] = float(v)
+        
+    return {"status": "ok"}
+
+@router.get("/commands/pending")
+def get_pending_commands():
+    """
+    Endpoint para que el Edge Device solicite los comandos encolados y los ejecute localmente.
+    """
+    global pending_commands
+    commands_to_send = pending_commands.copy()
+    pending_commands.clear()
+    
+    return {"commands": commands_to_send}
+
+def queue_buzzer_command(status: int):
+    """
+    Helper function to queue a buzzer command (1=Success, 0=Error) from other routers
+    """
+    global pending_commands
+    command = f"BUZZER:{status}"
+    pending_commands.append(command)
+    logger.info(f"🔊 Comando de Buzzer encolado: {command}")
+
+class RFIDPayload(BaseModel):
+    uid: str
+
+@router.post("/rfid")
+async def validate_rfid(payload: RFIDPayload):
+    """
+    Endpoint para validar una tarjeta RFID física enviada por el Edge Device.
+    Responde con success=True para hacer sonar el buzzer.
+    """
+    logger.info(f"💳 Solicitud de validación RFID recibida: UID={payload.uid}")
+    
+    # Aquí iría la lógica real contra Dataverse. Por ahora:
+    # TODO: Implementar búsqueda en Dataverse y registro de asistencia.
+    
+    return {"success": True, "message": "Acceso concedido (Simulado)"}
+
+class HilaConsumo(BaseModel):
+    sensor_id: str
+    consumo_clase: float
+    consumo_extra: float
+
+class SessionConsumptionPayload(BaseModel):
+    session_id: str
+    hilas: list[HilaConsumo]
+
+@router.post("/session/close")
+async def save_session_consumption(payload: SessionConsumptionPayload):
+    from services.dataverse import obtener_cliente
+    client = obtener_cliente()
+    
+    total_clase = 0.0
+    total_extra = 0.0
+    
+    for hila in payload.hilas:
+        total_clase += hila.consumo_clase
+        total_extra += hila.consumo_extra
+        
+        # Guardar en cr6a3_consumo_electrico
+        datos_hila = {
+            "cr6a3_identificador_medidor": hila.sensor_id,
+            "cr6a3_lectura_acumulada_kwh": round(hila.consumo_clase + hila.consumo_extra, 6),
+            "cr6a3_Codigo_Sesion@odata.bind": f"/cr6a3_sesiones_de_clases({payload.session_id})"
+        }
+        await client.post("cr6a3_consumo_electricos", json=datos_hila)
+    
+    # Actualizar la sesión con los totales
+    totales_sesion = {
+        "cr6a3_consumo_clase_kwh": round(total_clase, 6),
+        "cr6a3_consumo_extra_kwh": round(total_extra, 6),
+        "cr6a3_consumo_energetico_total_kwh": round(total_clase + total_extra, 6)
+    }
+    await client.patch(f"cr6a3_sesiones_de_clases({payload.session_id})", json=totales_sesion)
+    
+    return {"status": "ok"}
