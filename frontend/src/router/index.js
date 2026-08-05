@@ -57,6 +57,17 @@ const routes = [
     },
   },
   {
+    path: "/mi-programacion",
+    name: "MiProgramacion",
+    component: () => import("@/views/display/MiProgramacionView.vue"),
+    meta: {
+      title: "VoltMind - Mi Programación",
+      requiresAuth: true,
+      // Calendario personal del instructor; el dinamizador puede consultarlo para verificar
+      roles: ["instructor", "dinamizador"],
+    },
+  },
+  {
     path: "/dashboard-admin",
     name: "DashboardAdmin",
     component: () => import("@/views/display/DashboardCST.vue"),
@@ -115,6 +126,18 @@ const routes = [
         name: "AdminFichas",
         component: () => import("@/views/admin/GestionFichasView.vue"),
         meta: { title: "VoltMind Admin - Fichas" }
+      },
+      {
+        path: "tituladas",
+        name: "AdminTituladas",
+        component: () => import("@/views/admin/FichasTituladasView.vue"),
+        meta: { title: "VoltMind Admin - Fichas Tituladas" }
+      },
+      {
+        path: "tituladas/:id",
+        name: "AdminTituladaDetalle",
+        component: () => import("@/views/admin/FichaTituladaDetalleView.vue"),
+        meta: { title: "VoltMind Admin - Detalle de Ficha Titulada" }
       },
       {
         path: "instructores",

@@ -143,6 +143,8 @@ import {
   faFolder,
   faFolderOpen,
   faPaperPlane,
+  // Fichas Tituladas
+  faLayerGroup,
 } from "@fortawesome/free-solid-svg-icons";
 
 library.add(
@@ -246,7 +248,8 @@ library.add(
   faFolder,
   faFolderOpen,
   faPaperPlane,
-  faNetworkWired
+  faNetworkWired,
+  faLayerGroup
 );
 
 // ── 3. INICIALIZACIÓN DE LA INSTANCIA DE VUE ──
