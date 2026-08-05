@@ -398,6 +398,74 @@
         }
       ],
       "archivos": []
+    },
+    {
+      "id": "fic-7276f744",
+      "codigo": "3215485",
+      "programa": "Inteligencia Artificial",
+      "nivel": "Técnico",
+      "jornada": "Noche",
+      "sede": "Principal Puerto Asís",
+      "municipio": "Puerto Asis",
+      "instructor_titular_id": "",
+      "fecha_inicio": "2026-09-01",
+      "fecha_fin": "2026-12-13",
+      "numero_aprendices": 30,
+      "competencias": [
+        {
+          "id": "c-d50dc658",
+          "nombre": "Inducción",
+          "tipo": "Inducción",
+          "horas": 30
+        },
+        {
+          "id": "c-7fb75d25",
+          "nombre": "Introduccion a la IA",
+          "tipo": "Técnica",
+          "horas": 50
+        },
+        {
+          "id": "c-84c21fe4",
+          "nombre": "Matematicas",
+          "tipo": "Básica",
+          "horas": 30
+        },
+        {
+          "id": "c-1b8797fe",
+          "nombre": "Ingles",
+          "tipo": "Transversal",
+          "horas": 59
+        },
+        {
+          "id": "c-17cd1212",
+          "nombre": "Etica",
+          "tipo": "Básica",
+          "horas": 79
+        }
+      ],
+      "archivos": []
+    },
+    {
+      "id": "fic-9c8194b9",
+      "codigo": "3216544",
+      "programa": "Gestion Empresarial",
+      "nivel": "Tecnólogo",
+      "jornada": "Mañana",
+      "sede": "Principal Puerto Asís",
+      "municipio": "Puerto Asis",
+      "instructor_titular_id": "inst-jir",
+      "fecha_inicio": "2026-03-05",
+      "fecha_fin": "2026-09-30",
+      "numero_aprendices": 25,
+      "competencias": [
+        {
+          "id": "c-575c40ee",
+          "nombre": "Inducción",
+          "tipo": "Inducción",
+          "horas": 30
+        }
+      ],
+      "archivos": []
     }
   ],
   "asignaciones": [
@@ -590,6 +658,46 @@
       "fecha_inicio": "2026-08-21",
       "fecha_fin": "2026-08-25",
       "horas": 18
+    },
+    {
+      "id": "asig-4c57ab6e",
+      "ficha_id": "fic-deportes",
+      "instructor_id": "inst-rer",
+      "competencia_id": "f1-c6",
+      "ambiente_id": "amb-102",
+      "fecha_inicio": "2026-09-23",
+      "fecha_fin": "2026-10-01",
+      "horas": 42
+    },
+    {
+      "id": "asig-e8292707",
+      "ficha_id": "fic-7276f744",
+      "instructor_id": "inst-slo",
+      "competencia_id": "c-d50dc658",
+      "ambiente_id": "amb-101",
+      "fecha_inicio": "2026-09-01",
+      "fecha_fin": "2026-09-07",
+      "horas": 30
+    },
+    {
+      "id": "asig-4598b412",
+      "ficha_id": "fic-7276f744",
+      "instructor_id": "inst-slo",
+      "competencia_id": "c-7fb75d25",
+      "ambiente_id": "amb-101",
+      "fecha_inicio": "2026-09-08",
+      "fecha_fin": "2026-09-11",
+      "horas": 24
+    },
+    {
+      "id": "asig-480a76aa",
+      "ficha_id": "fic-7276f744",
+      "instructor_id": "inst-rer",
+      "competencia_id": "c-84c21fe4",
+      "ambiente_id": "amb-101",
+      "fecha_inicio": "2026-09-14",
+      "fecha_fin": "2026-09-18",
+      "horas": 30
     }
   ],
   "programas": [
@@ -785,6 +893,52 @@
           "nombre": "DEPORTES",
           "tipo": "Técnica",
           "horas": 7
+        }
+      ]
+    },
+    {
+      "id": "prog-4b841e2b",
+      "nombre": "Inteligencia Artificial",
+      "version": "1",
+      "nivel": "Técnico",
+      "competencias": [
+        {
+          "nombre": "Inducción",
+          "tipo": "Inducción",
+          "horas": 30
+        },
+        {
+          "nombre": "Introduccion a la IA",
+          "tipo": "Técnica",
+          "horas": 50
+        },
+        {
+          "nombre": "Matematicas",
+          "tipo": "Básica",
+          "horas": 30
+        },
+        {
+          "nombre": "Ingles",
+          "tipo": "Transversal",
+          "horas": 59
+        },
+        {
+          "nombre": "Etica",
+          "tipo": "Básica",
+          "horas": 79
+        }
+      ]
+    },
+    {
+      "id": "prog-6ccaecf7",
+      "nombre": "Gestion Empresarial",
+      "version": "1",
+      "nivel": "Tecnólogo",
+      "competencias": [
+        {
+          "nombre": "Inducción",
+          "tipo": "Inducción",
+          "horas": 30
         }
       ]
     }
