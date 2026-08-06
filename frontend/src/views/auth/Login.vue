@@ -144,7 +144,7 @@ const handleAzureLogin = async () => {
       <header class="login-header">
         <div class="brand-assets">
           <img
-            src="@/assets/VoltMindAccess.svg"
+            src="@/assets/VoltMindAccess1.svg"
             alt="VoltMind Logo"
             class="logo-voltmind"
           />

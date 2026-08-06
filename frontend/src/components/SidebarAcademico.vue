@@ -3,7 +3,7 @@
     <div class="sidebar-header">
       <div class="logo-duo">
         <img src="@/assets/LogoSena.png" alt="SENA" class="logo-sena" />
-        <img src="@/assets/VoltMindAccess.svg" alt="VoltMind" class="logo-volt" />
+        <img src="@/assets/VoltMindAccess1.svg" alt="VoltMind" class="logo-volt" />
       </div>
       <div class="brand-text">
         <h1 class="brand-title"><span class="text-volt">Volt</span><span class="text-mind">Mind</span></h1>
