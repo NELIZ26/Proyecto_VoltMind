@@ -109,12 +109,7 @@ const routes = [
         component: () => import("@/views/admin/DashboardView.vue"),
         meta: { title: "VoltMind Admin - Dashboard" }
       },
-      {
-        path: "complementarias",
-        name: "AdminComplementarias",
-        component: () => import("@/views/admin/FichasComplementariasView.vue"),
-        meta: { title: "VoltMind Admin - Fichas Complementarias" }
-      },
+
       {
         path: "calculadora",
         name: "AdminCalculadora",
@@ -127,18 +122,7 @@ const routes = [
         component: () => import("@/views/admin/GestionFichasView.vue"),
         meta: { title: "VoltMind Admin - Fichas" }
       },
-      {
-        path: "tituladas",
-        name: "AdminTituladas",
-        component: () => import("@/views/admin/FichasTituladasView.vue"),
-        meta: { title: "VoltMind Admin - Fichas Tituladas" }
-      },
-      {
-        path: "tituladas/:id",
-        name: "AdminTituladaDetalle",
-        component: () => import("@/views/admin/FichaTituladaDetalleView.vue"),
-        meta: { title: "VoltMind Admin - Detalle de Ficha Titulada" }
-      },
+
       {
         path: "instructores",
         name: "AdminInstructores",

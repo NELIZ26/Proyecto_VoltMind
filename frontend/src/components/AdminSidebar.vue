@@ -40,23 +40,6 @@
         </router-link>
       </li>
 
-      <li>
-        <router-link to="/admin/tituladas" class="menu-link" @click="handleMenuClick">
-          <div class="icon-box">
-            <font-awesome-icon icon="fa-solid fa-layer-group" fixed-width />
-          </div>
-          <span class="menu-text">Fichas Tituladas</span>
-        </router-link>
-      </li>
-
-      <li>
-        <router-link to="/admin/complementarias" class="menu-link" @click="handleMenuClick">
-          <div class="icon-box">
-            <font-awesome-icon icon="fa-solid fa-file-circle-plus" fixed-width />
-          </div>
-          <span class="menu-text">Fichas Complementarias</span>
-        </router-link>
-      </li>
 
       <li class="menu-category">CONTROL DE PERSONAL</li>
       <li>
