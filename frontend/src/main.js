@@ -137,12 +137,20 @@ import {
   faTableList,
   faArrowUpRightFromSquare,
   faFilePdf,
+  faFileExcel,
+  faFileCsv,
   faPaperclip,
   faFileCirclePlus,
   faListCheck,
   faFolder,
   faFolderOpen,
   faPaperPlane,
+  faFileInvoice,
+  faBullhorn,
+  faPersonChalkboard,
+  faBan,
+  faFileSignature,
+  faArrowRight,
   // Fichas Tituladas
   faLayerGroup,
 } from "@fortawesome/free-solid-svg-icons";
@@ -242,6 +250,8 @@ library.add(
   faTableList,
   faArrowUpRightFromSquare,
   faFilePdf,
+  faFileExcel,
+  faFileCsv,
   faPaperclip,
   faFileCirclePlus,
   faListCheck,
@@ -249,7 +259,13 @@ library.add(
   faFolderOpen,
   faPaperPlane,
   faNetworkWired,
-  faLayerGroup
+  faLayerGroup,
+  faFileInvoice,
+  faBullhorn,
+  faPersonChalkboard,
+  faBan,
+  faFileSignature,
+  faArrowRight
 );
 
 // ── 3. INICIALIZACIÓN DE LA INSTANCIA DE VUE ──

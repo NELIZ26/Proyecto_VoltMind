@@ -43,7 +43,7 @@ const routes = [
     meta: {
       title: "VoltMind - Solicitud de Ficha Complementaria",
       requiresAuth: true,
-      roles: [""], // El instructor solicita; el admin crea la ficha
+      roles: ["instructor"], // El instructor solicita; el admin crea la ficha
     },
   },
   {
@@ -53,7 +53,7 @@ const routes = [
     meta: {
       title: "VoltMind - Panel de Control IoT",
       requiresAuth: true,
-      roles: ["instructor"],
+      roles: ["instructor", "instructor_directo"],
     },
   },
   {
@@ -174,10 +174,40 @@ const routes = [
     meta: { requiresAuth: true, roles: ["programador_complementarios"] },
     children: [
       {
+        path: "dashboard",
+        name: "ComplementariosDashboard",
+        component: () => import("@/views/admin/complementarias/DashboardView.vue"),
+        meta: { title: "VoltMind - Dashboard Complementarias" }
+      },
+      {
+        path: "",
+        redirect: "/programador-complementarios/dashboard"
+      },
+      {
         path: "fichas",
-        name: "ComplementariosFichas",
-        component: () => import("@/views/admin/FichasComplementariasView.vue"),
-        meta: { title: "VoltMind - Fichas Complementarias" }
+        redirect: "/programador-complementarios/fichas/tablero",
+        component: () => import("@/views/admin/complementarias/ComplementariasLayout.vue"),
+        meta: { title: "VoltMind - Fichas Complementarias" },
+        children: [
+          {
+            path: "tablero",
+            name: "ComplementariosTablero",
+            component: () => import("@/views/admin/complementarias/TableroView.vue"),
+            meta: { title: "VoltMind - Tablero de Complementarias" }
+          },
+          {
+            path: "archivo",
+            name: "ComplementariosArchivo",
+            component: () => import("@/views/admin/complementarias/ArchivoView.vue"),
+            meta: { title: "VoltMind - Archivo Histórico" }
+          }
+        ]
+      },
+      {
+        path: "directorio",
+        name: "ComplementariasDirectorio",
+        component: () => import("@/views/admin/complementarias/DirectorioFichasView.vue"),
+        meta: { title: "VoltMind - Directorio de Fichas" }
       }
     ]
   },
@@ -198,9 +228,7 @@ router.beforeEach((to, from, next) => {
   if (to.meta.title) {
     document.title = to.meta.title;
   }
-  return next();
 
-  return next();
   // 2. Verificación de Roles
   const userRole = localStorage.getItem("user_role"); // Lee el rol inyectado por el Simulador
 

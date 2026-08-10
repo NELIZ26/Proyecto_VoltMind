@@ -37,7 +37,6 @@
                 <span class="punto-color" :style="{ background: ficha.instructor_titular.color }"></span>
                 Titular: {{ ficha.instructor_titular.nombre }}
               </span>
-              <span v-if="store.modoDemo" class="chip-demo">MODO DEMO</span>
             </p>
           </div>
         </div>

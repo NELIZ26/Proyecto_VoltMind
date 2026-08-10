@@ -10,7 +10,6 @@
           <h1>MI PROGRAMACIÓN</h1>
           <p class="header-meta">
             Calendario personal del instructor (matriz por instructor)
-            <span v-if="datos?.modo_demo" class="chip-demo">MODO DEMO</span>
           </p>
         </div>
       </div>

@@ -829,12 +829,12 @@ const irAAfiche = (i) => {
 
 const cambiarAfiche = (paso) => irAAfiche(aficheActivo.value + paso);
 
-const pausarCarrusel = () => {
+function pausarCarrusel() {
   if (temporizadorCarrusel) {
     clearInterval(temporizadorCarrusel);
     temporizadorCarrusel = null;
   }
-};
+}
 
 const reanudarCarrusel = () => {
   // Sin auto-avance si ya corre o si el usuario pidió menos movimiento
@@ -1010,7 +1010,9 @@ onMounted(async () => {
 onUnmounted(() => {
   window.removeEventListener('keydown', cerrarConEscape);
   document.body.style.overflow = '';
-  pausarCarrusel();
+  if (typeof pausarCarrusel === 'function') {
+    pausarCarrusel();
+  }
 });
 
 // ── Envío ──

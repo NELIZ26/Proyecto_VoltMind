@@ -12,29 +12,66 @@
     </div>
     
     <ul class="sidebar-menu">
-      <li class="menu-category">PROGRAMADOR COMPLEMENTARIOS</li>
+      <li class="menu-category">PROGRAMACIÓN COMPLEMENTARIA</li>
       <li>
-        <router-link to="/programador-complementarios/fichas" class="menu-link" @click="handleMenuClick">
+        <router-link to="/programador-complementarios/dashboard" class="menu-link" @click="handleMenuClick">
+          <div class="icon-box">
+            <font-awesome-icon icon="fa-solid fa-chart-pie" fixed-width />
+          </div>
+          <span class="menu-text">Dashboard</span>
+        </router-link>
+      </li>
+      <li>
+        <router-link to="/programador-complementarios/fichas" class="menu-link" @click="handleMenuClick" :class="{ 'active': $route.path.includes('/fichas') && !$route.path.includes('/directorio') }">
           <div class="icon-box">
             <font-awesome-icon icon="fa-solid fa-file-circle-plus" fixed-width />
           </div>
-          <span class="menu-text">Fichas Complementarias</span>
+          <span class="menu-text">Solicitudes</span>
         </router-link>
       </li>
-      <li class="logout-item">
-        <router-link to="/login" class="menu-link logout-link" @click="handleMenuClick">
-          <div class="icon-box logout-icon-box">
-            <font-awesome-icon icon="fa-solid fa-right-from-bracket" fixed-width />
+      <li>
+        <router-link to="/programador-complementarios/directorio" class="menu-link" @click="handleMenuClick">
+          <div class="icon-box">
+            <font-awesome-icon icon="fa-solid fa-folder-open" fixed-width />
           </div>
-          <span class="menu-text">Salir</span>
+          <span class="menu-text">Directorio de Fichas</span>
         </router-link>
       </li>
     </ul>
+
+    <div class="sidebar-footer">
+      <div class="user-profile">
+        <div class="avatar">
+          <font-awesome-icon icon="fa-solid fa-user" />
+        </div>
+        <div class="user-info">
+          <span class="user-name">{{ userName }}</span>
+          <span class="user-role">{{ userRoleFormatted }}</span>
+        </div>
+      </div>
+      
+      <router-link to="/login" class="menu-link logout-link mt-3" @click="handleMenuClick">
+        <div class="icon-box logout-icon-box">
+          <font-awesome-icon icon="fa-solid fa-right-from-bracket" fixed-width />
+        </div>
+        <span class="menu-text">Salir</span>
+      </router-link>
+    </div>
   </nav>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
+
+const userName = ref('');
+const userRoleFormatted = ref('');
+
+onMounted(() => {
+  userName.value = localStorage.getItem('instructorName') || localStorage.getItem('microsoft_user_name') || 'Usuario VoltMind';
+  
+  const roleRaw = localStorage.getItem('user_role') || 'Usuario';
+  userRoleFormatted.value = roleRaw.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+});
 
 const props = defineProps({
   isOpen: {
@@ -53,10 +90,8 @@ const handleMenuClick = () => {
 <style scoped>
 .admin-sidebar {
   background: var(--fondo-tarjetas);
-  border: 1px solid var(--borde);
-  border-radius: 0 16px 16px 0;
-  box-shadow: 0 4px 12px var(--sombra-suave);
-  width: 280px;
+  border-right: 1px solid var(--borde);
+  width: 240px;
   height: 100vh;
   position: fixed;
   top: 0;
@@ -66,7 +101,7 @@ const handleMenuClick = () => {
   z-index: 100;
   overflow-y: auto;
   box-sizing: border-box;
-  padding: 1.5rem;
+  padding: 1rem;
   user-select: none;
   transition: transform 0.3s ease;
 }
@@ -82,12 +117,12 @@ const handleMenuClick = () => {
 }
 
 .sidebar-header {
+  margin-bottom: 2rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 1rem;
-  margin-bottom: 2rem;
-  padding-bottom: 1.5rem;
+  padding-bottom: 1rem;
   border-bottom: 1px solid var(--borde);
 }
 
@@ -95,45 +130,33 @@ const handleMenuClick = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 12px;
 }
 .logo-sena {
-  height: 55px;
+  height: 45px;
   width: auto;
 }
 .logo-volt {
-  height: 60px;
+  height: 50px;
   width: auto;
 }
-
 .brand-text {
   text-align: center;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
 }
-
 .brand-title {
-  font-size: 1.8rem;
+  margin: 0;
+  font-size: 1.3rem;
   font-weight: 800;
-  margin: 0;
-  line-height: 1;
+  letter-spacing: -0.5px;
 }
-
-.text-volt {
-  color: var(--sena-azul-oscuro);
-}
-
-.text-mind {
-  color: var(--sena-verde);
-}
-
+.text-volt { color: var(--sena-verde); }
+.text-mind { color: var(--sena-azul-oscuro); }
 .brand-subtitle {
-  font-size: 0.8rem;
+  margin: 2px 0 0;
+  font-size: 0.65rem;
+  font-weight: 700;
   color: var(--texto-secundario);
-  letter-spacing: 1.5px;
-  margin: 0;
-  text-transform: uppercase;
+  letter-spacing: 1px;
 }
 
 .sidebar-menu {
@@ -143,109 +166,109 @@ const handleMenuClick = () => {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  flex-grow: 1;
+  flex: 1;
 }
 
 .menu-category {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   font-weight: 800;
   color: var(--texto-secundario);
-  letter-spacing: 1px;
-  margin-top: 1rem;
-  margin-bottom: 0.5rem;
-  padding-left: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0.5rem 0 0.25rem 0.5rem;
 }
 
 .menu-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0.85rem;
   text-decoration: none;
   color: var(--texto-principal);
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 0.75rem 1rem;
-  border-radius: 12px;
-  transition: all 0.2s ease;
+  border-radius: 10px;
   font-weight: 600;
-  font-size: 0.95rem;
-  border: 1px solid transparent;
-}
-
-.menu-text {
-  line-height: 1.15;
-}
-
-.icon-box {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  background: var(--fondo-app);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--texto-secundario);
+  font-size: 0.85rem;
   transition: all 0.2s ease;
 }
 
 .menu-link:hover {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+.menu-link.router-link-active, .menu-link.active {
   background-color: var(--fondo-app);
-  border-color: var(--borde);
+  color: var(--sena-verde);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.02);
 }
 
-.menu-link:hover .icon-box {
-  background-color: var(--sena-verde);
-  color: var(--sena-blanco);
-  box-shadow: 0 4px 12px rgba(57, 169, 0, 0.25);
+.icon-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+  width: 24px;
 }
 
-.menu-link.router-link-active {
-  background-color: rgba(57, 169, 0, 0.05);
-  border-color: rgba(57, 169, 0, 0.2);
-  color: var(--sena-verde-oscuro);
-}
-
-.menu-link.router-link-active .icon-box {
-  background-color: var(--sena-verde);
-  color: var(--sena-blanco);
-  box-shadow: 0 4px 12px rgba(57, 169, 0, 0.25);
-}
-
-.logout-item {
+.sidebar-footer {
   margin-top: auto;
-  padding-top: 1rem;
+  padding-top: 1.5rem;
   border-top: 1px solid var(--borde);
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
 }
 
-.dark-mode-toggle {
-  background: transparent;
-  width: 100%;
-  text-align: left;
-  cursor: pointer;
-  border: 1px solid transparent;
+.user-profile {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--fondo-app);
+  color: var(--sena-azul-oscuro);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.user-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--texto-principal);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.user-role {
+  font-size: 0.75rem;
+  color: var(--sena-verde);
+  font-weight: 600;
 }
 
 .logout-link {
-  color: #E53E3E; 
-  background-color: rgba(229, 62, 62, 0.05);
-  border: 1px solid rgba(229, 62, 62, 0.1);
-}
-
-.logout-icon-box {
-  background: rgba(229, 62, 62, 0.1);
-  color: #E53E3E;
+  color: #ef4444;
+  margin-top: 1rem;
 }
 
 .logout-link:hover {
-  background-color: rgba(229, 62, 62, 0.1);
-  border-color: rgba(229, 62, 62, 0.3);
-  color: #E53E3E;
+  background: #fef2f2;
 }
 
-.logout-link:hover .logout-icon-box {
-  background-color: #E53E3E;
-  color: white;
-  box-shadow: 0 4px 12px rgba(229, 62, 62, 0.25);
+.logout-link.router-link-active {
+  background: transparent;
+  box-shadow: none;
 }
 </style>

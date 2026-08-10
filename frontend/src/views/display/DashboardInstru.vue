@@ -12,12 +12,17 @@ import ProfileModal from "@/components/profileModal.vue";
 import AttendanceModal from "@/components/attendanceModal.vue";
 import ExitModal from "@/components/exitModal.vue";
 import AlertPanel from "@/components/AlertPanel.vue";
+import GlobalSpinner from "@/components/GlobalSpinner.vue";
 import { useRole } from "@/composables/useRole";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 const toast = useToast();
 const router = useRouter();
 const { hasRole, hasPermission } = useRole();
+
+// --- ESTADOS DE PROCESAMIENTO MODAL ---
+const isProcessing = ref(false);
+const processingMessage = ref("");
 
 // --- ESTADOS REACTIVOS PRINCIPALES ---
 const isPowerOn = ref(localStorage.getItem('isPowerOn') === 'true');
@@ -123,7 +128,6 @@ watch(() => apprentices.value, (newVals) => {
   });
 }, { deep: true });
 
->>>>>>> origin/development
 const meters = ref([
   { id: 1, label: "Iluminación Aula", value: 120 },
   { id: 2, label: "Bancos de Cómputo", value: 850 },
@@ -487,6 +491,9 @@ const toggleMasterPower = async () => {
     localStorage.setItem('horaFin', currentTimeStr);
 
     toast.info("Apagando aula y guardando asistencias en Dataverse...");
+    isProcessing.value = true;
+    processingMessage.value = "Apagando el aula y procesando las asistencias. Por favor, no cierres esta ventana...";
+
     if (typeof stopTelemetryPolling === 'function') stopTelemetryPolling();
     try {
       const sesionId = localStorage.getItem('sesionActivaId') || "";
@@ -524,6 +531,8 @@ const toggleMasterPower = async () => {
     } catch (error) {
       isPowerOn.value = true; 
       toast.error("Error al cerrar la clase en Dataverse.");
+    } finally {
+      isProcessing.value = false;
     }
   }
 };
@@ -636,7 +645,9 @@ const cerrarSesion = () => {
 };
 
 const enviarReporteSemanalManual = async () => {
-  toast.info("Procesando matriz de asistencia. Por favor, espera...");
+  isProcessing.value = true;
+  processingMessage.value = "Generando y enviando el reporte de asistencia...";
+  
   try {
     const correo = localStorage.getItem('instructorEmail') || "ferley_tobon@soy.sena.edu.co";
     const sesionId = localStorage.getItem('sesionActivaId') || ""; 
@@ -671,7 +682,7 @@ const enviarReporteSemanalManual = async () => {
 
 // --- CICLO DE VIDA ---
 onMounted(async () => {
-  if (!hasRole(["instructor", "dinamizador"])) {
+  if (!hasRole(["instructor", "dinamizador", "instructor_directo"])) {
     toast.error("Acceso denegado. Se requiere perfil de Instructor.");
     router.push("/route-selector");
     return;
@@ -853,7 +864,7 @@ onUnmounted(() => {
         <AlertPanel title="ALERTAS DEL AMBIENTE" icon="fa-solid fa-triangle-exclamation" :alerts="systemAlerts" @resolve="handleAlertResolution" />
       </section>
 
-      <section class="dash-footer-table" v-if="hasRole(['instructor', 'dinamizador'])">
+      <section class="dash-footer-table" v-if="hasRole(['instructor', 'dinamizador', 'instructor_directo'])">
         <div class="module-card table-card">
           <h2 class="module-title"><font-awesome-icon icon="fa-solid fa-users" /> LISTADO OPERATIVO DE APRENDICES</h2>
           <div class="table-responsive-wrapper">
@@ -935,6 +946,13 @@ onUnmounted(() => {
       @confirm="handleExitConfirm"
     />
     
+    <!-- Spinner Modal Global -->
+    <GlobalSpinner
+      v-if="isProcessing"
+      :isModal="true"
+      :message="processingMessage"
+    />
+
     <DarkModeToggle />
   </div>
 </template>

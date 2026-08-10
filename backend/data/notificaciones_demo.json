@@ -116,6 +116,15 @@
       "leida": false,
       "fecha": "2026-08-05T10:18:45-05:00",
       "id": "notif-37c7ab7d"
+    },
+    {
+      "destinatario": "aguzman@sena.edu.co",
+      "tipo": "ficha_publicada",
+      "texto": "Su ficha complementaria \"Manipulación Higiénica de Alimentos\" fue publicada y está disponible para ejecución.",
+      "ficha_relacionada": "comp-6",
+      "leida": false,
+      "fecha": "2026-08-06T10:33:34-05:00",
+      "id": "notif-2ce97b42"
     }
   ]
 }

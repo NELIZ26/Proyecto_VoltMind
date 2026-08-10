@@ -77,17 +77,24 @@ const processLoginSuccess = async (account) => {
       toast.error("Error de conexión con el servidor central al validar tu perfil.");
     }
 
-  } else if (domain === 'sena.edu.co' || domain === 'voltmind746.onmicrosoft.com') {
-    // RUTA DEL INSTRUCTOR
+  } else if (domain.includes('voltmind') && domain.includes('onmicrosoft.com')) {
+    // 🟡 RUTA DE DESARROLLADOR / ADMINISTRADOR DE VOLTMIND
+    // Los mandamos al Sandbox (RouteSelector) para que puedan entrar a CUALQUIER pestaña con el rol que elijan
+    localStorage.setItem("instructorEmail", userEmail); 
+    localStorage.setItem("instructorName", userName);
+    localStorage.setItem("nombreInstructor", userName.split(' ')[0]); 
+    
+    toast.success(`Entorno de Pruebas. Seleccione a qué módulo desea ingresar...`);
+    router.push("/route-selector");
+
+  } else if (domain === 'sena.edu.co') {
+    // RUTA DEL INSTRUCTOR NORMAL
     localStorage.setItem("user_role", "instructor");
     localStorage.setItem("instructorEmail", userEmail); 
     localStorage.setItem("instructorName", userName);
-    localStorage.setItem("nombreInstructor", userName.split(' ')[0]); // Primer nombre para el saludo corta
+    localStorage.setItem("nombreInstructor", userName.split(' ')[0]);
     
     toast.success(`Instructor Autenticado. Cargando su área de trabajo...`);
-
-    // El instructor entra a SU vista (solicitudes de fichas complementarias);
-    // desde allí tiene el enlace "Panel de clase" hacia /select-ficha.
     router.push("/solicitud-complementaria");
 
   } else {

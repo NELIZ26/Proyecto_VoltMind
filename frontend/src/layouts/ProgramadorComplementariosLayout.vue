@@ -65,13 +65,15 @@ const closeSidebar = () => {
 
 .admin-main-content {
   flex: 1;
-  margin-left: 280px; 
-  padding: 1.5rem;
-  min-height: 100vh;
+  margin-left: 240px; 
+  padding: 1.5rem 1.5rem;
+  height: 100vh;
+  overflow-y: auto;
   transition: margin-left 0.3s ease, padding 0.3s ease;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  gap: 1.5rem;
   min-width: 0;
 }
 

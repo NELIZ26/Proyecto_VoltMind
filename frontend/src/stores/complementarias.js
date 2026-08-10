@@ -62,6 +62,12 @@ export const useComplementariasStore = defineStore('complementarias', {
     errorConexion: null,
     modoDemo: false,
     _inicializado: false,
+    // Filtros de UI
+    busqueda: '',
+    filtroEstado: '',
+    filtroMunicipio: '',
+    filtroJornada: '',
+    filtroInstructor: '',
   }),
 
   getters: {
@@ -71,6 +77,23 @@ export const useComplementariasStore = defineStore('complementarias', {
     },
     instructores(state) {
       return [...new Set(state.solicitudes.map((s) => s.nombre_instructor).filter(Boolean))].sort();
+    },
+    filtradas(state) {
+      let lista = state.solicitudes;
+      if (state.filtroEstado) lista = lista.filter((s) => s.estado === state.filtroEstado);
+      if (state.filtroMunicipio) lista = lista.filter((s) => s.municipio === state.filtroMunicipio);
+      if (state.filtroJornada) lista = lista.filter((s) => s.jornada === state.filtroJornada);
+      if (state.filtroInstructor) lista = lista.filter((s) => s.nombre_instructor === state.filtroInstructor);
+      if (state.busqueda) {
+        const q = state.busqueda.toLowerCase();
+        lista = lista.filter(
+          (s) =>
+            (s.nombre_programa || '').toLowerCase().includes(q) ||
+            (s.codigo_programa || '').toLowerCase().includes(q) ||
+            (s.codigo_ficha || '').toLowerCase().includes(q)
+        );
+      }
+      return lista;
     },
   },
 

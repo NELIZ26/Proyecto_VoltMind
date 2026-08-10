@@ -11,7 +11,6 @@
               | {{ store.indicadores.total_fichas }} fichas ·
               {{ store.indicadores.promedio_programacion }}% programado en promedio
             </span>
-            <span v-if="store.modoDemo" class="chip-demo">MODO DEMO</span>
           </p>
         </div>
       </div>
@@ -60,7 +59,7 @@
           <router-link
             v-for="f in store.indicadores.fichas_bajo_meta"
             :key="f.id"
-            :to="`/admin/tituladas/${f.id}`"
+            :to="`/programador-academico/tituladas/${f.id}`"
             class="chip-ficha"
             :title="f.programa"
           >
@@ -87,7 +86,7 @@
           </div>
           <ul class="ind-lista">
             <li v-for="a in store.indicadores.alertas_tecnica" :key="a.id">
-              <router-link :to="`/admin/tituladas/${a.id}`" class="chip-ficha alerta" :title="a.programa">
+              <router-link :to="`/programador-academico/tituladas/${a.id}`" class="chip-ficha alerta" :title="a.programa">
                 {{ a.codigo }} · técnica {{ a.porcentaje_tecnica }}%
               </router-link>
               <span class="ind-lista-texto">{{ a.programa }}</span>
@@ -378,6 +377,8 @@ const cargaVisible = computed(
   () => (cargaMes.value || store.indicadores)?.carga_instructores || []
 );
 
+const bajoMetaPromedio = computed(() => (store.indicadores?.promedio_meta_global || 0) < 70);
+
 const etiquetaMesCarga = computed(() => {
   if (!mesCargaActivo.value) return '';
   const [anio, mes] = mesCargaActivo.value.split('-').map(Number);
@@ -399,7 +400,7 @@ const cambiarMesCarga = async (delta) => {
 // Si el store se recarga (tras programar), volver al mes que muestra el store
 watch(() => store.indicadores, () => { cargaMes.value = null; });
 
-const abrirFicha = (ficha) => router.push(`/admin/tituladas/${ficha.id}`);
+const abrirFicha = (ficha) => router.push(`/programador-academico/tituladas/${ficha.id}`);
 
 onMounted(() => store.initStore());
 </script>

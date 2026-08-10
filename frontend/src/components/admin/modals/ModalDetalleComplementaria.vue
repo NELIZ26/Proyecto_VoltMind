@@ -141,10 +141,9 @@
             <div class="dato">
               <dt>Instructor</dt>
               <dd>
-                <router-link to="/admin/instructores" class="enlace-interno" title="Ver en el directorio de instructores">
+                <span class="instructor-name">
                   {{ solicitud.nombre_instructor }}
-                  <font-awesome-icon icon="fa-solid fa-arrow-up-right-from-square" />
-                </router-link>
+                </span>
               </dd>
             </div>
             <div class="dato">
@@ -213,15 +212,16 @@
             <div class="dato">
               <dt>Código de ficha</dt>
               <dd>
-                <router-link
+                <a
                   v-if="solicitud.codigo_ficha"
-                  to="/admin/fichas"
+                  href="#"
+                  @click.prevent="irADirectorio(solicitud.codigo_ficha)"
                   class="enlace-interno codigo-ficha"
-                  title="Ver en Gestión de Fichas"
+                  title="Ver todas las solicitudes con este código"
                 >
                   {{ solicitud.codigo_ficha }}
                   <font-awesome-icon icon="fa-solid fa-arrow-up-right-from-square" />
-                </router-link>
+                </a>
                 <span v-else class="pendiente">Sin asignar</span>
               </dd>
             </div>
@@ -414,16 +414,17 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import BaseModal from '@/components/admin/modals/BaseModal.vue';
 import { complementariasService } from '@/services/complementariasService';
 import { ESTADOS_TABLERO, PASOS_SEGUIMIENTO, ETIQUETAS_ARCHIVO } from '@/stores/complementarias';
 
+const router = useRouter();
+
 const props = defineProps({
   show: { type: Boolean, required: true },
   solicitud: { type: Object, default: null },
-  // La vista padre pone true mientras el backend reenvía el aviso al instructor
   enviandoAviso: { type: Boolean, default: false },
-  // La vista padre pone true mientras el backend guarda el Excel de resultados
   subiendoResultados: { type: Boolean, default: false },
 });
 
@@ -438,8 +439,8 @@ const emit = defineEmits([
 ]);
 
 // ── Vista previa de los archivos adjuntos ──
-const previewCampo = ref(null); // campo del archivo con la vista previa abierta
-const previewTexto = ref(''); // contenido mostrado para archivos de texto
+const previewCampo = ref(null); 
+const previewTexto = ref(''); 
 const previewCargando = ref(false);
 const previewError = ref('');
 
@@ -473,7 +474,6 @@ const rango = (inicio, fin) => {
   return `${inicio || '—'}  →  ${fin || '—'}`;
 };
 
-/** Fecha/hora del último aviso de publicación, legible en es-CO. */
 const formatearAviso = (iso) => {
   const fecha = new Date(iso);
   if (Number.isNaN(fecha.getTime())) return iso;
@@ -493,14 +493,12 @@ const claseEstado = (estado) => ({
   'estado-cancelada': estado === 'Cancelada',
 });
 
-// Iconos de los archivos subidos por el instructor (las etiquetas vienen del store)
 const ICONOS_ARCHIVO = {
   matriz: 'fa-solid fa-table-list',
   plano: 'fa-solid fa-code',
   adicional: 'fa-solid fa-paperclip',
 };
 
-/** Qué renderizador de vista previa admite el archivo, según su extensión. */
 const tipoPrevia = (nombre) => {
   const ext = nombre.includes('.') ? nombre.split('.').pop().toLowerCase() : '';
   if (['png', 'jpg', 'jpeg'].includes(ext)) return 'imagen';
@@ -509,7 +507,6 @@ const tipoPrevia = (nombre) => {
   return 'ninguna';
 };
 
-// ── Resultados de inscritos (Excel que adjunta el administrador) ──
 const inputResultados = ref(null);
 
 const archivoResultados = computed(
@@ -524,13 +521,11 @@ const abrirSelectorResultados = () => inputResultados.value?.click();
 
 const seleccionarResultados = (evento) => {
   const archivo = evento.target.files?.[0];
-  evento.target.value = ''; // permite volver a elegir el mismo archivo tras un error
+  evento.target.value = ''; 
   if (!archivo) return;
-  // Extensión y tamaño los valida el backend (422 con mensaje claro)
   emit('subir-resultados', props.solicitud.id, archivo);
 };
 
-// Archivos entregados por el instructor (los resultados tienen su propia sección)
 const archivosSubidos = computed(() => {
   if (!props.solicitud) return [];
   return (props.solicitud.archivos || [])
@@ -558,7 +553,6 @@ const alternarPrevia = async (archivo) => {
   previewError.value = '';
   if (archivo.tipo !== 'texto') return;
 
-  // Los archivos de texto (plano / csv) se leen y se muestran recortados
   previewCargando.value = true;
   try {
     const respuesta = await fetch(archivo.urlInline);
@@ -575,8 +569,15 @@ const alternarPrevia = async (archivo) => {
   }
 };
 
-// Documentos por enlace (flujo del admin / registros antiguos).
-// Si el instructor ya subió el archivo, se oculta su gemelo de enlace vacío.
+// Navegación al directorio
+const irADirectorio = (codigo) => {
+  emit('close');
+  router.push({
+    path: '/programador-complementarios/directorio',
+    query: { codigo: codigo }
+  });
+};
+
 const documentos = computed(() => {
   if (!props.solicitud) return [];
   const s = props.solicitud;
