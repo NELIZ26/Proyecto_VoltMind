@@ -19,9 +19,9 @@ const devLogins = [
   },
   {
     role: "instructor",
-    path: "/select-ficha", 
+    path: "/solicitud-complementaria",
     name: "Instructor de Ambiente",
-    desc: "Gestión local de energía, puente IoT y control de asistencia.",
+    desc: "Solicitud de fichas complementarias, gestión local de energía y asistencia.",
     icon: "chalkboard-user",
     color: "var(--sena-verde, #39a900)",
     glow: "rgba(57, 169, 0, 0.25)",
@@ -53,6 +53,24 @@ const devLogins = [
     icon: "address-card",
     color: "var(--sena-naranja, #FF6B00)",
     glow: "rgba(255, 107, 0, 0.25)",
+  },
+  {
+    role: "programador_academico",
+    path: "/programador-academico/tituladas",
+    name: "Programador Académico",
+    desc: "Visualiza y gestiona únicamente las Fichas Tituladas.",
+    icon: "layer-group",
+    color: "var(--sena-azul-oscuro, #003040)",
+    glow: "rgba(0, 48, 64, 0.25)"
+  },
+  {
+    role: "programador_complementarios",
+    path: "/programador-complementarios/fichas",
+    name: "Programador Complementarios",
+    desc: "Visualiza y gestiona únicamente las Fichas Complementarias.",
+    icon: "file-circle-plus",
+    color: "var(--sena-verde, #39a900)",
+    glow: "rgba(57, 169, 0, 0.25)"
   }
 ];
 

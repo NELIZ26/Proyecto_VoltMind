@@ -27,55 +27,20 @@ export const useProgramacionStore = defineStore('programacion', {
     schedule: []
   }),
   actions: {
-   async initStore() {
-  // 1. Petición a Dataverse para traer instructores reales
-  try {
-    const response = await fetch('http://127.0.0.1:8000/api/instructores');
-    if (response.ok) {
-      const dataverseInstructores = await response.json();
-      if (Array.isArray(dataverseInstructores) && dataverseInstructores.length > 0) {
-        this.instructores = dataverseInstructores.map(inst => ({
-          cr6a3_instructorid: inst.cr6a3_instructorid || inst.id,
-          id: inst.cr6a3_instructorid || inst.id,
-          nombre: inst.cr6a3_nombre_completo || inst.nombre || 'Sin nombre',
-          name: inst.cr6a3_nombre_completo || inst.nombre || 'Sin nombre',
-          correo: inst.cr6a3_correo_institucional || inst.correo || '',
-          documento: inst.cr6a3_documento || inst.documento || '',
-          specialty: inst.cr6a3_especialidad || inst.area_especialidad || 'General',
-          type: 'Planta',
-          maxHours: 160,
-          assignedHours: 0,
-          availableHours: 160
-        }));
+    initStore() {
+      const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (storedData) {
+        const parsed = JSON.parse(storedData);
+        this.instructores = parsed.instructores || [];
+        this.ambientes = parsed.ambientes || [];
+        this.schedule = parsed.schedule || [];
+      } else {
+        this.instructores = [...defaultInstructores];
+        this.ambientes = [...defaultAmbientes];
+        this.schedule = [];
+        this.saveToLocalStorage();
       }
-    }
-  } catch (error) {
-    console.warn('No se pudo conectar a la API de instructores, usando respaldo local:', error);
-  }
-
-  // 2. Carga y validación segura de localStorage
-  const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
-  if (storedData) {
-    const parsed = JSON.parse(storedData);
-
-    if (!this.instructores || this.instructores.length === 0) {
-      this.instructores = parsed.instructores || [];
-    }
-
-    // AQUÍ QUEDA LA VALIDACIÓN DE AMBIENTES:
-    this.ambientes = (parsed && Array.isArray(parsed.ambientes) && parsed.ambientes.length > 0)
-      ? parsed.ambientes
-      : [...defaultAmbientes];
-
-    this.schedule = parsed.schedule || [];
-  } else {
-    // Si localStorage está totalmente vacío
-    this.ambientes = [...defaultAmbientes];
-    this.schedule = [];
-  }
-
-  this.saveToLocalStorage();
-},
+    },
     
     saveToLocalStorage() {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({

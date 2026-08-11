@@ -1,16 +1,21 @@
-import { createRouter, createWebHistory } from "vue-router"; 
+import { createRouter, createWebHistory } from "vue-router"; // <-- Cambiado aquí
 
 const routes = [
   {
     path: "/",
-    redirect: "/login", // Apuntamos directo al login
+    redirect: "/login", // Apuntamos directo al login por ahora
   },
   {
     path: "/login",
     name: "Login",
-    // 🟢 CORREGIDO: Ahora sí apunta al componente de Login real
     component: () => import("@/views/auth/Login.vue"),
     meta: { title: "VoltMind Access - Iniciar Sesión", requiresAuth: false },
+  },
+  {
+    path: "/route-selector",
+    name: "RouteSelector",
+    component: () => import("@/views/auth/routeSelector.vue"),
+    meta: { title: "Entorno de Desarrollo - Sandbox", requiresAuth: false },
   },
   {
     path: "/select-ficha",
@@ -23,25 +28,22 @@ const routes = [
     },
   },
   {
-    path: "/route-selector",
-    name: "RouteSelector",
-    component: () => import("@/views/admin/RouteSelector.vue"),
-    meta: {
-      title: "VoltMind - Selección de Entorno",
-      requiresAuth: true,
-      roles: ["instructor"], // 🛡️ Bloqueo RBAC: Solo instructores pasan aquí
-    },
-  },
-  // ==========================================
-  // 🟢 NUEVA RUTA: Kiosko (Tablet del Aula)
-  // ==========================================
-  {
     path: "/tablet",
     name: "TabletView",
     component: () => import("@/views/display/TabletView.vue"),
     meta: {
       title: "VoltMind - Modo Tablet",
-      requiresAuth: false, // La tablet de la pared no necesita login tradicional
+      requiresAuth: false,
+    },
+  },
+  {
+    path: "/solicitud-complementaria",
+    name: "SolicitudComplementaria",
+    component: () => import("@/views/display/SolicitudComplementaria.vue"),
+    meta: {
+      title: "VoltMind - Solicitud de Ficha Complementaria",
+      requiresAuth: true,
+      roles: ["instructor"], // El instructor solicita; el admin crea la ficha
     },
   },
   {
@@ -51,7 +53,18 @@ const routes = [
     meta: {
       title: "VoltMind - Panel de Control IoT",
       requiresAuth: true,
-      roles: ["instructor"],
+      roles: ["instructor", "instructor_directo"],
+    },
+  },
+  {
+    path: "/mi-programacion",
+    name: "MiProgramacion",
+    component: () => import("@/views/display/MiProgramacionView.vue"),
+    meta: {
+      title: "VoltMind - Mi Programación",
+      requiresAuth: true,
+      // Calendario personal del instructor; el dinamizador puede consultarlo para verificar
+      roles: ["instructor", "dinamizador"],
     },
   },
   {
@@ -61,13 +74,13 @@ const routes = [
     meta: {
       title: "VoltMind - Consola Global",
       requiresAuth: true,
-      roles: ["dinamizador", "instructor"], // Acceso exclusivo Superadmin
+      roles: ["dinamizador"], // Acceso exclusivo Superadmin
     },
   },
   {
     path: "/dashboard-seguridad",
     name: "DashboardSeguridad",
-    component: () => import("@/views/display/DashboardCelador.vue"),
+    component: () => import("@/views/display/DashboardCelador.vue"), // Este será el que crearemos luego
     meta: {
       title: "VoltMind - Panel de Seguridad",
       requiresAuth: true,
@@ -81,13 +94,14 @@ const routes = [
     meta: {
       title: "VoltMind - Carnet Digital",
       requiresAuth: true,
-      roles: ["aprendiz", "instructor"],
+      roles: ["aprendiz"],
     },
   },
   {
     path: "/admin",
     component: () => import("@/layouts/AdminLayout.vue"),
-    meta: { requiresAuth: false }, // Sin restricción por ahora para facilitar pruebas
+    // Sección administrativa: solo el dinamizador (el instructor NO accede)
+    meta: { requiresAuth: true, roles: ["dinamizador"] },
     children: [
       {
         path: "dashboard",
@@ -95,6 +109,7 @@ const routes = [
         component: () => import("@/views/admin/DashboardView.vue"),
         meta: { title: "VoltMind Admin - Dashboard" }
       },
+
       {
         path: "calculadora",
         name: "AdminCalculadora",
@@ -107,6 +122,7 @@ const routes = [
         component: () => import("@/views/admin/GestionFichasView.vue"),
         meta: { title: "VoltMind Admin - Fichas" }
       },
+
       {
         path: "instructores",
         name: "AdminInstructores",
@@ -134,7 +150,68 @@ const routes = [
     ]
   },
   {
-    // Ruta comodín: Si escriben una URL que no existe, los manda al login
+    path: "/programador-academico",
+    component: () => import("@/layouts/ProgramadorAcademicoLayout.vue"),
+    meta: { requiresAuth: true, roles: ["programador_academico"] },
+    children: [
+      {
+        path: "tituladas",
+        name: "AcademicoTituladas",
+        component: () => import("@/views/admin/FichasTituladasView.vue"),
+        meta: { title: "VoltMind - Fichas Tituladas" }
+      },
+      {
+        path: "tituladas/:id",
+        name: "AcademicoTituladaDetalle",
+        component: () => import("@/views/admin/FichaTituladaDetalleView.vue"),
+        meta: { title: "VoltMind - Detalle de Ficha Titulada" }
+      }
+    ]
+  },
+  {
+    path: "/programador-complementarios",
+    component: () => import("@/layouts/ProgramadorComplementariosLayout.vue"),
+    meta: { requiresAuth: true, roles: ["programador_complementarios"] },
+    children: [
+      {
+        path: "dashboard",
+        name: "ComplementariosDashboard",
+        component: () => import("@/views/admin/complementarias/DashboardView.vue"),
+        meta: { title: "VoltMind - Dashboard Complementarias" }
+      },
+      {
+        path: "",
+        redirect: "/programador-complementarios/dashboard"
+      },
+      {
+        path: "fichas",
+        redirect: "/programador-complementarios/fichas/tablero",
+        component: () => import("@/views/admin/complementarias/ComplementariasLayout.vue"),
+        meta: { title: "VoltMind - Fichas Complementarias" },
+        children: [
+          {
+            path: "tablero",
+            name: "ComplementariosTablero",
+            component: () => import("@/views/admin/complementarias/TableroView.vue"),
+            meta: { title: "VoltMind - Tablero de Complementarias" }
+          },
+          {
+            path: "archivo",
+            name: "ComplementariosArchivo",
+            component: () => import("@/views/admin/complementarias/ArchivoView.vue"),
+            meta: { title: "VoltMind - Archivo Histórico" }
+          }
+        ]
+      },
+      {
+        path: "directorio",
+        name: "ComplementariasDirectorio",
+        component: () => import("@/views/admin/complementarias/DirectorioFichasView.vue"),
+        meta: { title: "VoltMind - Directorio de Fichas" }
+      }
+    ]
+  },
+  {
     path: "/:pathMatch(.*)*",
     redirect: "/login",
   },

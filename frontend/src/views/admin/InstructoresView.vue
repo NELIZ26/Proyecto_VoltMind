@@ -25,12 +25,6 @@
 
     <!-- Barra de búsqueda y filtros -->
     <div class="filters-bar">
-      <!-- Botón Crear Instructor -->
-<button class="btn-crear-instructor" @click="showCreateModal = true">
-  <font-awesome-icon icon="fa-solid fa-plus" />
-  <span>Crear Instructor</span>
-</button>
-
       <div class="filters-right">
         <div class="search-box">
           <font-awesome-icon icon="fa-solid fa-magnifying-glass" class="search-icon" />
@@ -136,7 +130,6 @@
       </div>
     </div>
 
-    <!-- Modales de Asignación y Detalle (Antiguos) -->
     <ModalFormInstructor 
       :show="showAssignModal"
       :instructorData="selectedInstructor"
@@ -157,15 +150,6 @@
       :instructorData="selectedDetailInstructor"
       @update:show="showDetailModal = $event"
       @close="showDetailModal = false"
-      @delete="handleDeleteInstructor"
-    />
-
-    <!-- Modal para CREAR PERFIL (Llama al archivo Modalcrearinstructor.vue) -->
-    <Modalcrearinstructor 
-      :isOpen="showCreateModal" 
-      @close="showCreateModal = false" 
-      @created="handleCreated" 
-      
     />
   </div>
 </template>
@@ -174,12 +158,10 @@
 import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import ModalFormInstructor from '@/components/admin/modals/ModalFormInstructor.vue';
-import Modalcrearinstructor from '@/components/admin/modals/Modalcrearinstructor.vue';
 import ModalViewInstructorSchedule from '@/components/admin/modals/ModalViewInstructorSchedule.vue';
 import ModalInstructorDetail from '@/components/admin/modals/ModalInstructorDetail.vue';
 import UserAvatar from '@/components/UserAvatar.vue';
 import { useProgramacionStore } from '@/stores/programacion';
-import { apiService } from '@/services/apiService' 
 
 import Swal from 'sweetalert2';
 
@@ -193,8 +175,6 @@ onMounted(() => {
 const showAssignModal = ref(false);
 const showViewModal = ref(false);
 const showDetailModal = ref(false);
-const showCreateModal = ref(false);
-
 const selectedInstructor = ref(null);
 const selectedDetailInstructor = ref(null);
 
@@ -217,75 +197,6 @@ const openDetailModal = (instructor) => {
   showDetailModal.value = true;
 };
 
-const handleCreated = async (nuevoInstructorData) => {
-  try {
-    // Petición directa al backend FastAPI
-    const response = await fetch('http://127.0.0.1:8000/api/instructores', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(nuevoInstructorData),
-    });
-
-    if (!response.ok) {
-      throw new Error(`Error en el servidor: ${response.statusText}`);
-    }
-
-    const respuesta = await response.json();
-    const guidDataverse = respuesta?.id || respuesta?.data?.cr6a3_instructorid;
-    const maxHoras = Number(nuevoInstructorData.max_horas_mensuales) || 160;
-
-    const instructorParaInsertar = {
-      cr6a3_instructorid: guidDataverse,
-      id: guidDataverse || Date.now(),
-      name: nuevoInstructorData.nombre,
-      nombre: nuevoInstructorData.nombre,
-      documento: nuevoInstructorData.documento,
-      correo: nuevoInstructorData.correo,
-      telefono: nuevoInstructorData.telefono,
-      specialty: nuevoInstructorData.area_especialidad || 'General',
-      type: nuevoInstructorData.tipo_vinculacion === 'PLANTA' ? 'Planta' : 'Contratista',
-      maxHours: maxHoras,
-      horasMaximas: maxHoras,
-      assignedHours: 0,
-      availableHours: maxHoras
-    };
-
-    if (store.instructores) {
-      store.instructores = [instructorParaInsertar, ...store.instructores];
-    }
-
-    showCreateModal.value = false;
-
-    Swal.fire({
-      icon: 'success',
-      title: 'Instructor Registrado',
-      text: 'Guardado correctamente en Dataverse.',
-      confirmButtonColor: '#39a900',
-      timer: 2000,
-      showConfirmButton: false
-    });
-
-  } catch (error) {
-    console.error('Error al guardar en Dataverse:', error);
-    Swal.fire({
-      icon: 'error',
-      title: 'Error al registrar',
-      text: 'No se pudo guardar el instructor en la base de datos.',
-      confirmButtonColor: '#EF4444'
-    });
-    if (store.instructores) {
-  store.instructores = [instructorParaInsertar, ...store.instructores];
-  // Guardar inmediatamente en localStorage para mantener coherencia local
-  if (typeof store.saveToLocalStorage === 'function') {
-    store.saveToLocalStorage();
-  }
-}
-  }
-};
-
-
 const handleAssignSchedule = (data) => {
   if (selectedInstructor.value) {
     const result = store.assignSchedule({
@@ -300,7 +211,7 @@ const handleAssignSchedule = (data) => {
         icon: 'error',
         title: 'Conflicto de Horario',
         text: result.error,
-        confirmButtonColor: '#EF4444'
+        confirmButtonColor: '#EF4444' // Match Sena red / boundary color
       });
     } else {
       Swal.fire({
@@ -314,46 +225,12 @@ const handleAssignSchedule = (data) => {
     }
   }
 };
-  // En InstructoresView.vue
-
-const handleDeleteInstructor = async (instructorOrId) => {
-  // Extrae el GUID de Dataverse de las posibles propiedades del objeto
-  const idParaBorrar = typeof instructorOrId === 'object' 
-    ? (instructorOrId.cr6a3_instructorid || instructorOrId.id) 
-    : instructorOrId;
-
-  if (!idParaBorrar) {
-    console.error('No se recibió ID válido del instructor');
-    return;
-  }
-
-  try {
-    // 1. Eliminamos el instructor en el backend enviando el GUID de Dataverse
-    await apiService.deleteInstructor(idParaBorrar);
-
-    // 2. Volvemos a inicializar/recargar la lista en la store de Pinia
-    await store.initStore();
-
-    // 3. Cerramos el modal
-    showDetailModal.value = false;
-
-    Swal.fire({
-      icon: 'success',
-      title: 'Instructor Eliminado',
-      text: 'El registro se borró correctamente de Dataverse.',
-      confirmButtonColor: '#39a900',
-      timer: 2000,
-      showConfirmButton: false
-    });
-
-  } catch (error) {
-    console.error('Error al borrar instructor:', error.message);
-  }
-};
 </script>
 
 <style scoped>
-/* Estilos sin modificaciones */
+/* ==========================================================================
+   ESTILOS BASADOS EN EL MOCKUP
+   ========================================================================== */
 .admin-view-shell {
   font-family: var(--fuente-principal, 'Inter', sans-serif);
   min-height: 100vh;
@@ -442,19 +319,19 @@ const handleDeleteInstructor = async (instructorOrId) => {
 }
 
 .header-avatar {
-  transform: scale(0.85);
+  transform: scale(0.85); /* Aumentado tamaño */
   transform-origin: right center;
   margin-right: -5px;
 }
 
+/* Filtros */
 .filters-bar {
   background: var(--fondo-tarjetas);
   padding: 1rem 1.5rem;
   border-radius: 12px;
   box-shadow: 0 2px 8px var(--sombra-suave, rgba(0,0,0,0.05));
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  justify-content: flex-end;
 }
 
 .filters-right {
@@ -462,30 +339,19 @@ const handleDeleteInstructor = async (instructorOrId) => {
   gap: 1rem;
   align-items: center;
 }
-/* Botón Crear Instructor */
-.btn-crear-instructor {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background-color: var(--sena-verde, #39a900);
-  color: var(--sena-blanco, #ffffff);
-  font-family: var(--fuente-principal, sans-serif);
-  font-weight: 700;
-  padding: 12px 24px;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 6px rgba(57, 169, 0, 0.2);
+
+.search-box {
+  position: relative;
+  width: 280px;
 }
 
-.btn-crear-instructor:hover {
-  background-color: var(--sena-verde-oscuro, #007832);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 120, 50, 0.3);
+.search-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--texto-secundario);
 }
-
-
 
 .form-input {
   background: var(--fondo-app);
@@ -522,6 +388,7 @@ const handleDeleteInstructor = async (instructorOrId) => {
   background-size: 0.65rem auto;
 }
 
+/* Grid de cards */
 .instructors-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -551,7 +418,7 @@ const handleDeleteInstructor = async (instructorOrId) => {
 }
 
 .instructor-avatar-ring {
-  transform: scale(0.9);
+  transform: scale(0.9); /* Aumentado el avatar */
   transform-origin: center left;
   margin-right: -5px;
 }
@@ -771,6 +638,7 @@ const handleDeleteInstructor = async (instructorOrId) => {
   text-decoration: underline;
 }
 
+/* Paginación */
 .pagination-bar {
   display: flex;
   justify-content: space-between;
@@ -844,290 +712,4 @@ const handleDeleteInstructor = async (instructorOrId) => {
   background-position: right 0.5rem top 50%;
   background-size: 0.65rem auto;
 }
-
-/* ==========================================================================
-   ESTILOS ADAPTABLES A TEMA (LIGHT / DARK) PARA EL FORMULARIO MODAL
-   ========================================================================== */
-
-/* Fondo oscuro / Overlay general */
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  background-color: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 16px;
-}
-
-/* Contenedor del Modal (Cambia según el tema) */
-.modal-container {
-  background-color: var(--fondo-tarjetas);
-  color: var(--texto-principal);
-  border: 1px solid var(--borde);
-  border-radius: 12px;
-  width: 100%;
-  max-width: 600px;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
-  transition: background-color 0.3s ease, color 0.3s ease;
-}
-
-/* Cabecera y Pie */
-.modal-header,
-.modal-footer {
-  padding: 16px 24px;
-  border-color: var(--borde);
-  display: flex;
-  align-items: center;
-}
-
-.modal-header {
-  justify-content: space-between;
-  border-bottom: 1px solid var(--borde);
-}
-
-.modal-footer {
-  justify-content: flex-end;
-  gap: 12px;
-  border-top: 1px solid var(--borde);
-}
-
-.modal-header h3 {
-  color: var(--texto-principal);
-  font-weight: 700;
-  font-size: 1.2rem;
-}
-
-/* Botón X de Cierre */
-.btn-close-modal {
-  background: transparent;
-  border: none;
-  color: var(--texto-secundario);
-  font-size: 1.5rem;
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-
-.btn-close-modal:hover {
-  color: var(--texto-principal);
-}
-
-/* Inputs, Selects y Labels */
-.form-group label {
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--texto-principal);
-  margin-bottom: 6px;
-}
-
-.form-input,
-.form-select {
-  width: 100%;
-  padding: 10px 14px;
-  font-family: var(--fuente-principal);
-  font-size: 0.95rem;
-  color: var(--texto-principal);
-  background-color: var(--fondo-app); /* En oscuro toma #121212 / #484949 */
-  border: 1px solid var(--borde);
-  border-radius: 6px;
-  outline: none;
-  transition: all 0.2s ease;
-}
-
-.form-input:focus,
-.form-select:focus {
-  border-color: var(--sena-verde);
-  box-shadow: 0 0 0 3px rgba(57, 169, 0, 0.2);
-}
-
-/* Botones de Acción dentro del Modal */
-.btn-cancelar {
-  background-color: transparent;
-  border: 1px solid var(--borde);
-  color: var(--texto-principal);
-  padding: 10px 18px;
-  border-radius: 6px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.btn-cancelar:hover {
-  background-color: rgba(255, 255, 255, 0.05);
-}
-
-.btn-guardar {
-  background-color: var(--sena-verde);
-  color: var(--sena-blanco);
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-}
-
-.btn-guardar:hover {
-  background-color: var(--sena-verde-oscuro);
-}
-
-/* ==========================================================================
-   ESTILOS DINÁMICOS DEL MODAL (SIN AFECTAR LA VISTA PRINCIPAL)
-   ========================================================================== */
-
-/* 1. Fondo semitransparente del overlay */
-:deep(.modal-overlay) {
-  background-color: rgba(0, 0, 0, 0.5) !important;
-  backdrop-filter: blur(4px);
-}
-
-/* 2. Tarjeta del modal (cambia entre blanco y oscuro automáticamente) */
-:deep(.modal-container),
-:deep(.modal-content) {
-  background-color: var(--fondo-tarjetas) !important;
-  color: var(--texto-principal) !important;
-  border: 1px solid var(--borde) !important;
-}
-
-/* 3. Títulos y etiquetas (Labels) dentro del modal */
-:deep(.modal-container h3),
-:deep(.modal-container label),
-:deep(.modal-content h3),
-:deep(.modal-content label) {
-  color: var(--texto-principal) !important;
-}
-
-/* 4. CASILLAS DEL MODAL EN TEMA CLARO */
-html:not([data-theme="dark"]) :deep(.modal-container input),
-html:not([data-theme="dark"]) :deep(.modal-container select),
-html:not([data-theme="dark"]) :deep(.modal-content input),
-html:not([data-theme="dark"]) :deep(.modal-content select) {
-  background-color: #ffffff !important;
-  color: #003040 !important;
-  border: 1px solid #d1d5db !important;
-}
-
-/* 5. CASILLAS DEL MODAL EN TEMA OSCURO */
-html[data-theme="dark"] :deep(.modal-container input),
-html[data-theme="dark"] :deep(.modal-container select),
-html[data-theme="dark"] :deep(.modal-content input),
-html[data-theme="dark"] :deep(.modal-content select) {
-  background-color: #2b2b2b !important;
-  color: #ffffff !important;
-  border: 1px solid #444444 !important;
-}
-
-/* 6. Botones del modal */
-:deep(.modal-container .btn-guardar),
-:deep(.modal-content .btn-guardar),
-:deep(.modal-container button[type="submit"]) {
-  background-color: var(--sena-verde, #39a900) !important;
-  color: #ffffff !important;
-}
-
-:deep(.modal-container .btn-cancelar),
-:deep(.modal-content .btn-cancelar) {
-  background-color: #e5e7eb !important;
-  color: #1f2937 !important;
-}
-
-html[data-theme="dark"] :deep(.modal-container .btn-cancelar),
-html[data-theme="dark"] :deep(.modal-content .btn-cancelar) {
-  background-color: #374151 !important;
-  color: #ffffff !important;
-}
-/* ==========================================================================
-   RECONSTRUCCIÓN DE LA BARRA DE BÚSQUEDA (LUPA Y POSICIONAMIENTO)
-   ========================================================================== */
-
-.filters-right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.search-box {
-  position: relative !important;
-  display: flex !important;
-  align-items: center !important;
-}
-
-.search-box .search-icon {
-  position: absolute !important;
-  left: 12px !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  color: var(--texto-secundario, #9ca3af) !important;
-  pointer-events: none !important;
-  z-index: 5 !important;
-}
-
-.search-box .search-input {
-  padding-left: 38px !important; /* Desplaza el texto para que la lupa no quede encima */
-  height: 40px;
-}
-:deep(.stat-card),
-:deep(.info-card),
-:deep(.detail-card),
-:deep(.stat-box) {
-  background-color: var(--fondo-tarjetas) !important;
-  color: var(--texto-principal) !important;
-  border: 1px solid var(--borde) !important;
-}
-
-:deep(.modal-content),
-:deep(.modal-container) {
-  background-color: var(--fondo-tarjetas) !important;
-  color: var(--texto-principal) !important;
-}
-/* Corrección de la barra de pestañas en tema oscuro */
-:deep(.tabs-header),
-:deep(.tab-nav),
-:deep(.modal-tabs),
-:deep(.tabs-container) {
-  background-color: var(--fondo-tarjetas, #1e1e1e) !important;
-  border-bottom: 1px solid var(--borde, #333333) !important;
-}
-
-/* Corrección de las tarjetas laterales de conexión en tema oscuro */
-:deep(.connection-card),
-:deep(.mini-card),
-:deep(.info-tile),
-:deep(.modal-body div[class*="-card"]) {
-  background-color: var(--fondo-tarjetas, #1e1e1e) !important;
-  color: var(--texto-principal, #ffffff) !important;
-  border: 1px solid var(--borde, #333333) !important;
-}
-
-/* Textos dentro de esas minitarjetas */
-:deep(.connection-card *),
-:deep(.mini-card *) {
-  color: var(--texto-principal, #ffffff) !important;
-}
-/* Corrección directa de la barra blanca de navegación/pestañas */
-:deep(.modal-content nav),
-:deep(.modal-content ul),
-:deep(.modal-content [class*="tab"]),
-:deep(.modal-content [class*="nav"]),
-:deep(.modal-container nav),
-:deep(.modal-container ul),
-:deep(.modal-container [class*="tab"]),
-:deep(.modal-container [class*="nav"]) {
-  background-color: var(--fondo-tarjetas) !important;
-  border-color: var(--borde) !important;
-}
-
-/* Color del texto e indicadores de la pestaña */
-:deep([class*="tab"] button),
-:deep([class*="tab"] a),
-:deep([class*="nav"] button),
-:deep([class*="nav"] a) {
-  color: var(--texto-principal) !important;
-}
-
 </style>

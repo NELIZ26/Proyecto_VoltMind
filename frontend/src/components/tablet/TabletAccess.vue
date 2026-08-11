@@ -1,14 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
 
-// 🟢 AQUÍ ESTÁ LA MAGIA: Le decimos al hijo que reciba el nombre del aula desde el Padre
-const props = defineProps({
-  ambienteNombre: {
-    type: String,
-    default: "Ambiente Desconocido"
-  }
-});
-
 const emit = defineEmits(['nfc-success', 'open-qr', 'open-pin']);
 
 const currentTime = ref('');
@@ -38,31 +30,37 @@ const handleNfcClick = () => {
 
 <template>
   <div class="tablet-access-container">
+    <!-- Top Right Clock -->
     <div class="top-right-clock">
       <div class="time-display">{{ currentTime }}</div>
       <div class="date-display">{{ currentDate }}</div>
     </div>
 
+    <!-- Centered Header Logos -->
     <div class="header-logos">
       <img src="@/assets/VoltMindAccess1.svg" alt="VoltMind" class="logo-volt" />
       <div class="logo-divider"></div>
       <img src="@/assets/LogoSena.png" alt="SENA" class="logo-sena" />
     </div>
 
+    <!-- Location Badge -->
     <div class="location-badge">
       <font-awesome-icon icon="fa-solid fa-location-dot" />
-      <span>{{ ambienteNombre }}</span>
+      <span>AMBIENTE 402 • BLOQUE C</span>
     </div>
 
+    <!-- Title and Subtitle -->
     <div class="title-section">
       <h1>PANEL DE ACCESO VOLTMIND</h1>
       <p>Acerque su carnet digital NFC al dispositivo:</p>
     </div>
 
+    <!-- NFC Big Box (Clickable para simular) -->
     <div class="nfc-box" @click="handleNfcClick">
       <span>Validando ....</span>
     </div>
 
+    <!-- Action Buttons -->
     <div class="action-buttons">
       <button class="btn-dark" @click="emit('open-qr')">
         <font-awesome-icon icon="fa-solid fa-qrcode" />
@@ -74,6 +72,7 @@ const handleNfcClick = () => {
       </button>
     </div>
 
+    <!-- Footer Text -->
     <div class="footer-text">
       "Esperando credencial / Validando / Acceso concedido / Token expirado"
     </div>

@@ -2,14 +2,6 @@
 import { ref, onMounted } from 'vue';
 import { useToast } from 'vue-toastification';
 
-// 🟢 RECIBIMOS EL NOMBRE DINÁMICO DEL AMBIENTE DESDE EL PADRE
-const props = defineProps({
-  ambienteNombre: {
-    type: String,
-    default: "Ambiente"
-  }
-});
-
 const emit = defineEmits(['ficha-selected', 'go-back']);
 const toast = useToast();
 
@@ -18,25 +10,27 @@ const isLoading = ref(true);
 const connectingId = ref(null);
 
 onMounted(async () => {
+  // Simulamos que el instructor fue identificado en el Paso 1
   let correoInstructor = localStorage.getItem('instructorEmail');
   if (!correoInstructor) {
-    correoInstructor = "ferley_tobon@soy.sena.edu.co"; 
+    correoInstructor = "ferley_tobon@soy.sena.edu.co"; // fallback para prueba
     localStorage.setItem('instructorEmail', correoInstructor);
   }
 
   try {
-    const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
-    const response = await fetch(`${BASE_URL}/api/fichas/${correoInstructor}`);
+    const response = await fetch(`http://127.0.0.1:8000/api/fichas/${correoInstructor}`);
     if (!response.ok) throw new Error("Error fetching fichas");
     
     const data = await response.json();
     
     fichas.value = data.map((ficha, index) => {
+      // Logic from original SelectFicha
       let instructorLimpio = ficha.instructor || correoInstructor;
       if (instructorLimpio.includes('@')) {
         let soloNombre = instructorLimpio.split('@')[0]; 
         instructorLimpio = soloNombre.replace(/([a-z])([A-Z])/g, '$1 $2'); 
       }
+      // Determine jornada text based on index just for UI mock or use real data if available
       const jornadas = ["JORNADA MAÑANA", "JORNADA TARDE", "JORNADA NOCHE"];
       const jornada = jornadas[index % 3];
 
@@ -56,12 +50,9 @@ onMounted(async () => {
   }
 });
 
-// 🔄 FUNCIÓN ACTUALIZADA: YA NO TIENE EL "402" QUEMADO
 const seleccionarFicha = (ficha) => {
   connectingId.value = ficha.id;
-  
-  // 🟢 Usamos la prop del nombre real del ambiente físico
-  toast.info(`Sincronizando ${props.ambienteNombre.toUpperCase()} con Ficha ${ficha.numero}...`);
+  toast.info(`Sincronizando Ambiente 402 con Ficha ${ficha.numero}...`);
 
   setTimeout(() => {
     localStorage.setItem('fichaActiva', ficha.numero);
@@ -85,7 +76,7 @@ const seleccionarFicha = (ficha) => {
 
     <div class="location-badge">
       <font-awesome-icon icon="fa-solid fa-location-dot" />
-      <span>{{ ambienteNombre }}</span>
+      <span>AMBIENTE 402 • BLOQUE C</span>
     </div>
 
     <!-- Title and Subtitle -->

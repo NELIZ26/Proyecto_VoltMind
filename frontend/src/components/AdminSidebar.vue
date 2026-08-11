@@ -40,6 +40,7 @@
         </router-link>
       </li>
 
+
       <li class="menu-category">CONTROL DE PERSONAL</li>
       <li>
         <router-link to="/admin/instructores" class="menu-link" @click="handleMenuClick">

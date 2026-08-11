@@ -1,0 +1,946 @@
+{
+  "instructores": [
+    {
+      "id": "inst-jir",
+      "nombre": "Jorge Iván Rivas",
+      "iniciales": "J.I.R.",
+      "correo": "jrivas@sena.edu.co",
+      "tipo_vinculacion": "Contratista",
+      "fin_contrato": "2026-08-31",
+      "color": "#E67E22",
+      "perfil": [
+        "Entrenamiento deportivo",
+        "Actividad física",
+        "Inducción"
+      ]
+    },
+    {
+      "id": "inst-slo",
+      "nombre": "Sandra Londoño",
+      "iniciales": "S.L.",
+      "correo": "slondono@sena.edu.co",
+      "tipo_vinculacion": "Planta",
+      "fin_contrato": "",
+      "color": "#8E44AD",
+      "perfil": [
+        "Ética y cultura de paz",
+        "Comunicación"
+      ]
+    },
+    {
+      "id": "inst-rer",
+      "nombre": "Robert Erazo",
+      "iniciales": "R.E.",
+      "correo": "rerazo@sena.edu.co",
+      "tipo_vinculacion": "Contratista",
+      "fin_contrato": "2026-12-31",
+      "color": "#2980B9",
+      "perfil": [
+        "Derechos fundamentales del trabajo",
+        "Emprendimiento",
+        "Deportes"
+      ]
+    },
+    {
+      "id": "inst-dmu",
+      "nombre": "Diana Muñoz",
+      "iniciales": "D.M.",
+      "correo": "dmunoz@sena.edu.co",
+      "tipo_vinculacion": "Contratista",
+      "fin_contrato": "2026-12-31",
+      "color": "#C0392B",
+      "perfil": [
+        "Comunicación",
+        "Ética y cultura de paz"
+      ]
+    },
+    {
+      "id": "inst-mgo",
+      "nombre": "Marlon González",
+      "iniciales": "M.G.",
+      "correo": "mgonzalez@sena.edu.co",
+      "tipo_vinculacion": "Contratista",
+      "fin_contrato": "2027-01-31",
+      "color": "#16A085",
+      "perfil": [
+        "Desarrollo de software",
+        "Redes de datos"
+      ]
+    },
+    {
+      "id": "inst-cpe",
+      "nombre": "Carlos Peña",
+      "iniciales": "C.P.",
+      "correo": "cpena@sena.edu.co",
+      "tipo_vinculacion": "Contratista",
+      "fin_contrato": "2026-10-30",
+      "color": "#B7950B",
+      "perfil": [
+        "Cocina",
+        "Manipulación de alimentos"
+      ]
+    }
+  ],
+  "ambientes": [
+    {
+      "id": "amb-101",
+      "nombre": "Aula 101",
+      "sede": "Principal Puerto Asís",
+      "capacidad": 30,
+      "tipo": "Aula"
+    },
+    {
+      "id": "amb-102",
+      "nombre": "Aula 102",
+      "sede": "Principal Puerto Asís",
+      "capacidad": 28,
+      "tipo": "Aula"
+    },
+    {
+      "id": "amb-cancha",
+      "nombre": "Cancha Deportiva",
+      "sede": "Principal Puerto Asís",
+      "capacidad": 35,
+      "tipo": "Campo deportivo"
+    },
+    {
+      "id": "amb-sistemas",
+      "nombre": "Sala de Sistemas (Lego)",
+      "sede": "Principal Puerto Asís",
+      "capacidad": 25,
+      "tipo": "Laboratorio"
+    },
+    {
+      "id": "amb-biblio",
+      "nombre": "Biblioteca",
+      "sede": "Principal Puerto Asís",
+      "capacidad": 40,
+      "tipo": "Biblioteca"
+    },
+    {
+      "id": "amb-cocina",
+      "nombre": "Taller de Cocina",
+      "sede": "Santa Teresa",
+      "capacidad": 20,
+      "tipo": "Taller"
+    },
+    {
+      "id": "amb-biling",
+      "nombre": "Aula de Bilingüismo",
+      "sede": "Puerto Caicedo",
+      "capacidad": 30,
+      "tipo": "Aula"
+    }
+  ],
+  "fichas": [
+    {
+      "id": "fic-deportes",
+      "codigo": "3411495",
+      "programa": "Ejecución de Programas Deportivos",
+      "nivel": "Técnico",
+      "jornada": "Mañana",
+      "sede": "Principal Puerto Asís",
+      "municipio": "Puerto Asís",
+      "instructor_titular_id": "inst-jir",
+      "fecha_inicio": "2026-03-05",
+      "fecha_fin": "2026-12-04",
+      "numero_aprendices": 25,
+      "competencias": [
+        {
+          "id": "f1-c1",
+          "nombre": "Inducción",
+          "tipo": "Inducción",
+          "horas": 30
+        },
+        {
+          "id": "f1-c2",
+          "nombre": "Entrenar deportistas según plan de trabajo",
+          "tipo": "Técnica",
+          "horas": 220
+        },
+        {
+          "id": "f1-c3",
+          "nombre": "Asistir personas de acuerdo con guías de atención",
+          "tipo": "Técnica",
+          "horas": 120
+        },
+        {
+          "id": "f1-c4",
+          "nombre": "Ética y cultura de paz",
+          "tipo": "Transversal",
+          "horas": 48
+        },
+        {
+          "id": "f1-c5",
+          "nombre": "Derechos fundamentales del trabajo",
+          "tipo": "Básica",
+          "horas": 48
+        },
+        {
+          "id": "f1-c6",
+          "nombre": "Ambiental y seguridad",
+          "tipo": "Transversal",
+          "horas": 48
+        },
+        {
+          "id": "f1-c7",
+          "nombre": "Comunicación",
+          "tipo": "Básica",
+          "horas": 48
+        },
+        {
+          "id": "f1-c8",
+          "nombre": "Emprendimiento",
+          "tipo": "Básica",
+          "horas": 48
+        },
+        {
+          "id": "f1-c9",
+          "nombre": "Deportes y actividad física",
+          "tipo": "Transversal",
+          "horas": 48
+        },
+        {
+          "id": "f1-c10",
+          "nombre": "Idiomas (inglés)",
+          "tipo": "Básica",
+          "horas": 120
+        }
+      ],
+      "archivos": []
+    },
+    {
+      "id": "fic-adso",
+      "codigo": "3455872",
+      "programa": "Análisis y Desarrollo de Software",
+      "nivel": "Tecnólogo",
+      "jornada": "Tarde",
+      "sede": "Principal Puerto Asís",
+      "municipio": "Puerto Asís",
+      "instructor_titular_id": "inst-mgo",
+      "fecha_inicio": "2026-07-21",
+      "fecha_fin": "2028-06-20",
+      "numero_aprendices": 28,
+      "competencias": [
+        {
+          "id": "f2-c1",
+          "nombre": "Inducción",
+          "tipo": "Inducción",
+          "horas": 30
+        },
+        {
+          "id": "f2-c2",
+          "nombre": "Desarrollar el software según el diseño",
+          "tipo": "Técnica",
+          "horas": 380
+        },
+        {
+          "id": "f2-c3",
+          "nombre": "Implementar redes de datos",
+          "tipo": "Técnica",
+          "horas": 140
+        },
+        {
+          "id": "f2-c4",
+          "nombre": "Ética y cultura de paz",
+          "tipo": "Transversal",
+          "horas": 48
+        },
+        {
+          "id": "f2-c5",
+          "nombre": "Comunicación",
+          "tipo": "Básica",
+          "horas": 48
+        },
+        {
+          "id": "f2-c6",
+          "nombre": "Idiomas (inglés)",
+          "tipo": "Básica",
+          "horas": 320
+        }
+      ],
+      "archivos": []
+    },
+    {
+      "id": "fic-cocina",
+      "codigo": "3467210",
+      "programa": "Preparación de Alimentos",
+      "nivel": "Técnico",
+      "jornada": "Noche",
+      "sede": "Santa Teresa",
+      "municipio": "Puerto Asís",
+      "instructor_titular_id": "inst-cpe",
+      "fecha_inicio": "2026-07-06",
+      "fecha_fin": "2027-04-05",
+      "numero_aprendices": 20,
+      "competencias": [
+        {
+          "id": "f3-c1",
+          "nombre": "Inducción",
+          "tipo": "Inducción",
+          "horas": 30
+        },
+        {
+          "id": "f3-c2",
+          "nombre": "Preparar alimentos según estándares",
+          "tipo": "Técnica",
+          "horas": 260
+        },
+        {
+          "id": "f3-c3",
+          "nombre": "Higiene y manipulación de alimentos",
+          "tipo": "Técnica",
+          "horas": 80
+        },
+        {
+          "id": "f3-c4",
+          "nombre": "Ética y cultura de paz",
+          "tipo": "Transversal",
+          "horas": 48
+        },
+        {
+          "id": "f3-c5",
+          "nombre": "Deportes y actividad física",
+          "tipo": "Transversal",
+          "horas": 48
+        }
+      ],
+      "archivos": []
+    },
+    {
+      "id": "fic-fc1ce799",
+      "codigo": "777777",
+      "programa": "Gestion cachondas",
+      "nivel": "Tecnólogo",
+      "jornada": "Mañana",
+      "sede": "Principal Puerto Asís",
+      "municipio": "Puerto",
+      "instructor_titular_id": "",
+      "fecha_inicio": "2026-08-03",
+      "fecha_fin": "2026-08-26",
+      "numero_aprendices": 25,
+      "competencias": [
+        {
+          "id": "c-40a88c56",
+          "nombre": "Inducción",
+          "tipo": "Inducción",
+          "horas": 30
+        },
+        {
+          "id": "c-5904808a",
+          "nombre": "cachondas",
+          "tipo": "Técnica",
+          "horas": 300
+        },
+        {
+          "id": "c-ae1dd89f",
+          "nombre": "cachondas-2",
+          "tipo": "Técnica",
+          "horas": 180
+        },
+        {
+          "id": "c-d5c05110",
+          "nombre": "cachondas-3",
+          "tipo": "Transversal",
+          "horas": 48
+        },
+        {
+          "id": "c-d7ea7b63",
+          "nombre": "cachondas-4",
+          "tipo": "Básica",
+          "horas": 48
+        },
+        {
+          "id": "c-81063849",
+          "nombre": "orales con idiomas",
+          "tipo": "Básica",
+          "horas": 320
+        }
+      ],
+      "archivos": []
+    },
+    {
+      "id": "fic-27284546",
+      "codigo": "635647657",
+      "programa": "ADSO",
+      "nivel": "Tecnólogo",
+      "jornada": "Mañana",
+      "sede": "Principal Puerto Asís",
+      "municipio": "PTIYT",
+      "instructor_titular_id": "",
+      "fecha_inicio": "2026-08-06",
+      "fecha_fin": "2026-08-20",
+      "numero_aprendices": 25,
+      "competencias": [
+        {
+          "id": "c-6000ac26",
+          "nombre": "Inducción",
+          "tipo": "Inducción",
+          "horas": 30
+        },
+        {
+          "id": "c-4cea5fab",
+          "nombre": "TICS",
+          "tipo": "Técnica",
+          "horas": 48
+        },
+        {
+          "id": "c-85148a85",
+          "nombre": "INGLES",
+          "tipo": "Transversal",
+          "horas": 320
+        },
+        {
+          "id": "c-8ff799d9",
+          "nombre": "DEPORTES",
+          "tipo": "Técnica",
+          "horas": 7
+        }
+      ],
+      "archivos": []
+    },
+    {
+      "id": "fic-7276f744",
+      "codigo": "3215485",
+      "programa": "Inteligencia Artificial",
+      "nivel": "Técnico",
+      "jornada": "Noche",
+      "sede": "Principal Puerto Asís",
+      "municipio": "Puerto Asis",
+      "instructor_titular_id": "",
+      "fecha_inicio": "2026-09-01",
+      "fecha_fin": "2026-12-13",
+      "numero_aprendices": 30,
+      "competencias": [
+        {
+          "id": "c-d50dc658",
+          "nombre": "Inducción",
+          "tipo": "Inducción",
+          "horas": 30
+        },
+        {
+          "id": "c-7fb75d25",
+          "nombre": "Introduccion a la IA",
+          "tipo": "Técnica",
+          "horas": 50
+        },
+        {
+          "id": "c-84c21fe4",
+          "nombre": "Matematicas",
+          "tipo": "Básica",
+          "horas": 30
+        },
+        {
+          "id": "c-1b8797fe",
+          "nombre": "Ingles",
+          "tipo": "Transversal",
+          "horas": 59
+        },
+        {
+          "id": "c-17cd1212",
+          "nombre": "Etica",
+          "tipo": "Básica",
+          "horas": 79
+        }
+      ],
+      "archivos": []
+    },
+    {
+      "id": "fic-9c8194b9",
+      "codigo": "3216544",
+      "programa": "Gestion Empresarial",
+      "nivel": "Tecnólogo",
+      "jornada": "Mañana",
+      "sede": "Principal Puerto Asís",
+      "municipio": "Puerto Asis",
+      "instructor_titular_id": "inst-jir",
+      "fecha_inicio": "2026-03-05",
+      "fecha_fin": "2026-09-30",
+      "numero_aprendices": 25,
+      "competencias": [
+        {
+          "id": "c-575c40ee",
+          "nombre": "Inducción",
+          "tipo": "Inducción",
+          "horas": 30
+        }
+      ],
+      "archivos": []
+    }
+  ],
+  "asignaciones": [
+    {
+      "id": "asig-01",
+      "ficha_id": "fic-deportes",
+      "instructor_id": "inst-jir",
+      "competencia_id": "f1-c1",
+      "ambiente_id": "amb-cancha",
+      "fecha_inicio": "2026-03-05",
+      "fecha_fin": "2026-03-11",
+      "horas": 30
+    },
+    {
+      "id": "asig-02",
+      "ficha_id": "fic-deportes",
+      "instructor_id": "inst-jir",
+      "competencia_id": "f1-c2",
+      "ambiente_id": "amb-cancha",
+      "fecha_inicio": "2026-03-12",
+      "fecha_fin": "2026-03-20",
+      "horas": 42
+    },
+    {
+      "id": "asig-03",
+      "ficha_id": "fic-deportes",
+      "instructor_id": "inst-slo",
+      "competencia_id": "f1-c4",
+      "ambiente_id": "amb-101",
+      "fecha_inicio": "2026-03-24",
+      "fecha_fin": "2026-03-31",
+      "horas": 36
+    },
+    {
+      "id": "asig-04",
+      "ficha_id": "fic-deportes",
+      "instructor_id": "inst-jir",
+      "competencia_id": "f1-c2",
+      "ambiente_id": "amb-cancha",
+      "fecha_inicio": "2026-04-01",
+      "fecha_fin": "2026-04-17",
+      "horas": 78
+    },
+    {
+      "id": "asig-05",
+      "ficha_id": "fic-deportes",
+      "instructor_id": "inst-rer",
+      "competencia_id": "f1-c5",
+      "ambiente_id": "amb-101",
+      "fecha_inicio": "2026-04-20",
+      "fecha_fin": "2026-04-24",
+      "horas": 30
+    },
+    {
+      "id": "asig-06",
+      "ficha_id": "fic-deportes",
+      "instructor_id": "inst-dmu",
+      "competencia_id": "f1-c7",
+      "ambiente_id": "amb-101",
+      "fecha_inicio": "2026-04-27",
+      "fecha_fin": "2026-04-30",
+      "horas": 24
+    },
+    {
+      "id": "asig-07",
+      "ficha_id": "fic-deportes",
+      "instructor_id": "inst-jir",
+      "competencia_id": "f1-c3",
+      "ambiente_id": "amb-cancha",
+      "fecha_inicio": "2026-05-04",
+      "fecha_fin": "2026-05-15",
+      "horas": 60
+    },
+    {
+      "id": "asig-08",
+      "ficha_id": "fic-deportes",
+      "instructor_id": "inst-jir",
+      "competencia_id": "f1-c2",
+      "ambiente_id": "amb-cancha",
+      "fecha_inicio": "2026-08-03",
+      "fecha_fin": "2026-08-14",
+      "horas": 60
+    },
+    {
+      "id": "asig-09",
+      "ficha_id": "fic-deportes",
+      "instructor_id": "inst-rer",
+      "competencia_id": "f1-c8",
+      "ambiente_id": "amb-101",
+      "fecha_inicio": "2026-08-18",
+      "fecha_fin": "2026-08-21",
+      "horas": 24
+    },
+    {
+      "id": "asig-10",
+      "ficha_id": "fic-deportes",
+      "instructor_id": "inst-jir",
+      "competencia_id": "f1-c3",
+      "ambiente_id": "amb-cancha",
+      "fecha_inicio": "2026-08-24",
+      "fecha_fin": "2026-08-28",
+      "horas": 30
+    },
+    {
+      "id": "asig-11",
+      "ficha_id": "fic-adso",
+      "instructor_id": "inst-mgo",
+      "competencia_id": "f2-c1",
+      "ambiente_id": "amb-sistemas",
+      "fecha_inicio": "2026-07-21",
+      "fecha_fin": "2026-07-27",
+      "horas": 30
+    },
+    {
+      "id": "asig-13",
+      "ficha_id": "fic-adso",
+      "instructor_id": "inst-dmu",
+      "competencia_id": "f2-c4",
+      "ambiente_id": "amb-sistemas",
+      "fecha_inicio": "2026-08-24",
+      "fecha_fin": "2026-08-28",
+      "horas": 30
+    },
+    {
+      "id": "asig-15",
+      "ficha_id": "fic-cocina",
+      "instructor_id": "inst-slo",
+      "competencia_id": "f3-c4",
+      "ambiente_id": "amb-cocina",
+      "fecha_inicio": "2026-07-13",
+      "fecha_fin": "2026-07-17",
+      "horas": 30
+    },
+    {
+      "id": "asig-16",
+      "ficha_id": "fic-cocina",
+      "instructor_id": "inst-rer",
+      "competencia_id": "f3-c5",
+      "ambiente_id": "amb-cocina",
+      "fecha_inicio": "2026-07-20",
+      "fecha_fin": "2026-07-24",
+      "horas": 30
+    },
+    {
+      "id": "asig-2f829814",
+      "ficha_id": "fic-deportes",
+      "instructor_id": "inst-cpe",
+      "competencia_id": "f1-c8",
+      "ambiente_id": "amb-biling",
+      "fecha_inicio": "2026-09-04",
+      "fecha_fin": "2026-09-11",
+      "horas": 36
+    },
+    {
+      "id": "asig-3ff4a893",
+      "ficha_id": "fic-adso",
+      "instructor_id": "inst-mgo",
+      "competencia_id": "f2-c2",
+      "ambiente_id": "amb-cancha",
+      "fecha_inicio": "2026-08-03",
+      "fecha_fin": "2026-08-14",
+      "horas": 60
+    },
+    {
+      "id": "asig-c9ece142",
+      "ficha_id": "fic-fc1ce799",
+      "instructor_id": "inst-rer",
+      "competencia_id": "c-40a88c56",
+      "ambiente_id": "amb-101",
+      "fecha_inicio": "2026-08-04",
+      "fecha_fin": "2026-08-10",
+      "horas": 30
+    },
+    {
+      "id": "asig-f588e411",
+      "ficha_id": "fic-27284546",
+      "instructor_id": "inst-slo",
+      "competencia_id": "c-85148a85",
+      "ambiente_id": "amb-102",
+      "fecha_inicio": "2026-08-12",
+      "fecha_fin": "2026-08-20",
+      "horas": 42
+    },
+    {
+      "id": "asig-c72d84e4",
+      "ficha_id": "fic-fc1ce799",
+      "instructor_id": "inst-slo",
+      "competencia_id": "c-40a88c56",
+      "ambiente_id": "amb-biblio",
+      "fecha_inicio": "2026-08-21",
+      "fecha_fin": "2026-08-25",
+      "horas": 18
+    },
+    {
+      "id": "asig-4c57ab6e",
+      "ficha_id": "fic-deportes",
+      "instructor_id": "inst-rer",
+      "competencia_id": "f1-c6",
+      "ambiente_id": "amb-102",
+      "fecha_inicio": "2026-09-23",
+      "fecha_fin": "2026-10-01",
+      "horas": 42
+    },
+    {
+      "id": "asig-e8292707",
+      "ficha_id": "fic-7276f744",
+      "instructor_id": "inst-slo",
+      "competencia_id": "c-d50dc658",
+      "ambiente_id": "amb-101",
+      "fecha_inicio": "2026-09-01",
+      "fecha_fin": "2026-09-07",
+      "horas": 30
+    },
+    {
+      "id": "asig-4598b412",
+      "ficha_id": "fic-7276f744",
+      "instructor_id": "inst-slo",
+      "competencia_id": "c-7fb75d25",
+      "ambiente_id": "amb-101",
+      "fecha_inicio": "2026-09-08",
+      "fecha_fin": "2026-09-11",
+      "horas": 24
+    },
+    {
+      "id": "asig-480a76aa",
+      "ficha_id": "fic-7276f744",
+      "instructor_id": "inst-rer",
+      "competencia_id": "c-84c21fe4",
+      "ambiente_id": "amb-101",
+      "fecha_inicio": "2026-09-14",
+      "fecha_fin": "2026-09-18",
+      "horas": 30
+    }
+  ],
+  "programas": [
+    {
+      "id": "prog-deportes",
+      "nombre": "Ejecución de Programas Deportivos",
+      "version": "1",
+      "nivel": "Técnico",
+      "competencias": [
+        {
+          "nombre": "Inducción",
+          "tipo": "Inducción",
+          "horas": 30
+        },
+        {
+          "nombre": "Entrenar deportistas según plan de trabajo",
+          "tipo": "Técnica",
+          "horas": 220
+        },
+        {
+          "nombre": "Asistir personas de acuerdo con guías de atención",
+          "tipo": "Técnica",
+          "horas": 120
+        },
+        {
+          "nombre": "Ética y cultura de paz",
+          "tipo": "Transversal",
+          "horas": 48
+        },
+        {
+          "nombre": "Derechos fundamentales del trabajo",
+          "tipo": "Básica",
+          "horas": 48
+        },
+        {
+          "nombre": "Ambiental y seguridad",
+          "tipo": "Transversal",
+          "horas": 48
+        },
+        {
+          "nombre": "Comunicación",
+          "tipo": "Básica",
+          "horas": 48
+        },
+        {
+          "nombre": "Emprendimiento",
+          "tipo": "Básica",
+          "horas": 48
+        },
+        {
+          "nombre": "Deportes y actividad física",
+          "tipo": "Transversal",
+          "horas": 48
+        },
+        {
+          "nombre": "Idiomas (inglés)",
+          "tipo": "Básica",
+          "horas": 120
+        }
+      ]
+    },
+    {
+      "id": "prog-adso",
+      "nombre": "Análisis y Desarrollo de Software",
+      "version": "1",
+      "nivel": "Tecnólogo",
+      "competencias": [
+        {
+          "nombre": "Inducción",
+          "tipo": "Inducción",
+          "horas": 30
+        },
+        {
+          "nombre": "Desarrollar el software según el diseño",
+          "tipo": "Técnica",
+          "horas": 380
+        },
+        {
+          "nombre": "Implementar redes de datos",
+          "tipo": "Técnica",
+          "horas": 140
+        },
+        {
+          "nombre": "Ética y cultura de paz",
+          "tipo": "Transversal",
+          "horas": 48
+        },
+        {
+          "nombre": "Comunicación",
+          "tipo": "Básica",
+          "horas": 48
+        },
+        {
+          "nombre": "Idiomas (inglés)",
+          "tipo": "Básica",
+          "horas": 320
+        }
+      ]
+    },
+    {
+      "id": "prog-cocina",
+      "nombre": "Preparación de Alimentos",
+      "version": "1",
+      "nivel": "Técnico",
+      "competencias": [
+        {
+          "nombre": "Inducción",
+          "tipo": "Inducción",
+          "horas": 30
+        },
+        {
+          "nombre": "Preparar alimentos según estándares",
+          "tipo": "Técnica",
+          "horas": 260
+        },
+        {
+          "nombre": "Higiene y manipulación de alimentos",
+          "tipo": "Técnica",
+          "horas": 80
+        },
+        {
+          "nombre": "Ética y cultura de paz",
+          "tipo": "Transversal",
+          "horas": 48
+        },
+        {
+          "nombre": "Deportes y actividad física",
+          "tipo": "Transversal",
+          "horas": 48
+        }
+      ]
+    },
+    {
+      "id": "prog-85049da6",
+      "nombre": "Gestion cachondas",
+      "version": "2",
+      "nivel": "Tecnólogo",
+      "competencias": [
+        {
+          "nombre": "Inducción",
+          "tipo": "Inducción",
+          "horas": 30
+        },
+        {
+          "nombre": "cachondas",
+          "tipo": "Técnica",
+          "horas": 300
+        },
+        {
+          "nombre": "cachondas-2",
+          "tipo": "Técnica",
+          "horas": 180
+        },
+        {
+          "nombre": "cachondas-3",
+          "tipo": "Transversal",
+          "horas": 48
+        },
+        {
+          "nombre": "cachondas-4",
+          "tipo": "Básica",
+          "horas": 48
+        },
+        {
+          "nombre": "orales con idiomas",
+          "tipo": "Básica",
+          "horas": 320
+        }
+      ]
+    },
+    {
+      "id": "prog-6d656fdf",
+      "nombre": "ADSO",
+      "version": "4",
+      "nivel": "Tecnólogo",
+      "competencias": [
+        {
+          "nombre": "Inducción",
+          "tipo": "Inducción",
+          "horas": 30
+        },
+        {
+          "nombre": "TICS",
+          "tipo": "Técnica",
+          "horas": 48
+        },
+        {
+          "nombre": "INGLES",
+          "tipo": "Transversal",
+          "horas": 320
+        },
+        {
+          "nombre": "DEPORTES",
+          "tipo": "Técnica",
+          "horas": 7
+        }
+      ]
+    },
+    {
+      "id": "prog-4b841e2b",
+      "nombre": "Inteligencia Artificial",
+      "version": "1",
+      "nivel": "Técnico",
+      "competencias": [
+        {
+          "nombre": "Inducción",
+          "tipo": "Inducción",
+          "horas": 30
+        },
+        {
+          "nombre": "Introduccion a la IA",
+          "tipo": "Técnica",
+          "horas": 50
+        },
+        {
+          "nombre": "Matematicas",
+          "tipo": "Básica",
+          "horas": 30
+        },
+        {
+          "nombre": "Ingles",
+          "tipo": "Transversal",
+          "horas": 59
+        },
+        {
+          "nombre": "Etica",
+          "tipo": "Básica",
+          "horas": 79
+        }
+      ]
+    },
+    {
+      "id": "prog-6ccaecf7",
+      "nombre": "Gestion Empresarial",
+      "version": "1",
+      "nivel": "Tecnólogo",
+      "competencias": [
+        {
+          "nombre": "Inducción",
+          "tipo": "Inducción",
+          "horas": 30
+        }
+      ]
+    }
+  ]
+}

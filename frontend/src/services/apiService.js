@@ -26,22 +26,6 @@ export const apiService = {
 
     return await response.json();
   },
-  async deleteInstructor(id) {
-    const response = await fetch(`${BASE_URL}/api/instructores/${id}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.detail || `Error ${response.status}: No se pudo eliminar el instructor`);
-    }
-
-    return await response.json();
-  },
-
 
   async validateTabletOTP(otp) {
     const response = await fetch(`${BASE_URL}/api/auth/verify-otp`, {
