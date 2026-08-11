@@ -11,12 +11,14 @@ const routes = [
     component: () => import("@/views/auth/Login.vue"),
     meta: { title: "VoltMind Access - Iniciar Sesión", requiresAuth: false },
   },
+  /*
   {
     path: "/route-selector",
     name: "RouteSelector",
     component: () => import("@/views/auth/routeSelector.vue"),
     meta: { title: "Entorno de Desarrollo - Sandbox", requiresAuth: false },
   },
+  */
   {
     path: "/select-ficha",
     name: "SelectFicha",
