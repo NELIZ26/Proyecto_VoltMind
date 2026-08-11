@@ -1,0 +1,245 @@
+// src/main.js
+import { createApp } from "vue";
+import { createPinia } from "pinia";
+import router from "@/router"; // Mantiene tu importación limpia con alias
+import App from "@/App.vue";
+import { inject } from '@vercel/analytics';
+
+inject();
+
+// ── INYECCIÓN DE ESTILOS GLOBALES ──
+import "@/style.css"; // Sistema de estilos centralizado: variables, utilidades, animaciones
+
+// ── 1. CONFIGURACIÓN DE VUE-TOASTIFICATION ──
+import Toast from "vue-toastification";
+import "vue-toastification/dist/index.css";
+
+const toastOptions = {
+  transition: "Vue-Toastification__bounce",
+  maxToasts: 3,
+  newestOnTop: true,
+  position: "top-right",
+  timeout: 3000,
+  closeOnClick: true,
+  pauseOnFocusLoss: false,
+  pauseOnHover: true,
+  draggable: true,
+  draggablePercent: 0.6,
+  showCloseButtonOnHover: false,
+  hideProgressBar: false,
+  closeButton: "button",
+  icon: true,
+  rtl: false,
+};
+
+// ── 2. ARQUITECTURA GLOBAL DE FONTAWESOME ──
+import { library } from "@fortawesome/fontawesome-svg-core";
+import { FontAwesomeIcon } from "@fortawesome/vue-fontawesome";
+
+// Recuperamos la totalidad de iconos del ecosistema VoltMind
+import {
+  // Iconos Base y Usuarios
+  faUser,
+  faUserCheck,
+  faUsers,
+  faIdCard,
+  faIdBadge,
+  faAddressCard,
+  faChalkboardUser,
+  // Energía e IoT
+  faPowerOff,
+  faMicrochip,
+  faBolt,
+  faBoltLightning,
+  faPlug,
+  // Conectividad y Escaneo
+  faRss,
+  faQrcode,
+  faFingerprint,
+  faWifi,
+  faSatelliteDish,
+  // Navegación y UI
+  faRightToBracket,
+  faArrowRightToBracket,
+  faRightFromBracket,
+  faArrowLeft,
+  faChevronRight,
+  faChevronLeft,
+  // Alertas y Seguridad
+  faShieldHalved,
+  faShield,
+  faShieldHeart,
+  faLock,
+  faTriangleExclamation,
+  faCircleInfo,
+  faBell,
+  faGhost,
+  // Estados y Acciones
+  faCircleCheck,
+  faCheck,
+  faCircleStop,
+  faCircleXmark,
+  faCircleNotch,
+  faRefresh,
+  faEye,
+  faTrash,
+  faSun,
+  faMoon,
+  // Otros (Métricas, Educación, Tiempo)
+  faClock,
+  faGraduationCap,
+  faCalendarCheck,
+  faCalendarDays,
+  faLocationDot,
+  faGlobe,
+  faCode,
+  faServer,
+  faArrowTrendUp,
+  faClipboardList,
+  faPlus,
+  faPenToSquare,
+  faLink,
+  faUserPlus,
+  faXmark,
+  faMagnifyingGlass,
+  faClockRotateLeft,
+  faBuilding,
+  faFileContract,
+  faCalculator,
+  faChartPie,
+  faCamera,
+  faBars,
+  faHouseLaptop,
+  faSchool,
+  faGear,
+  faHouse,
+  faArrowsRotate,
+  faCircleDot,
+  faStopwatch,
+  faCircleUser,
+  faLightbulb,
+  faCloudArrowUp,
+  faDownload,
+  faUserGroup,
+  faChartColumn,
+  faCheckCircle,
+  faTrashCan,
+  faHashtag,
+  faLaptopCode,
+  faEnvelope,
+  faPhone,
+  faUserTie,
+  faSignal,
+  faChartLine,
+  faChevronDown,
+  faDesktop, 
+  faFlagCheckered,
+  faFileExcel,
+  faSpinner,
+} from "@fortawesome/free-solid-svg-icons";
+
+library.add(
+  faUser,
+  faUserCheck,
+  faUsers,
+  faIdCard,
+  faIdBadge,
+  faAddressCard,
+  faChalkboardUser,
+  faPowerOff,
+  faMicrochip,
+  faBolt,
+  faBoltLightning,
+  faPlug,
+  faRss,
+  faQrcode,
+  faFingerprint,
+  faWifi,
+  faSatelliteDish,
+  faRightToBracket,
+  faArrowRightToBracket,
+  faRightFromBracket,
+  faArrowLeft,
+  faChevronRight,
+  faChevronLeft,
+  faShieldHalved,
+  faShield,
+  faShieldHeart,
+  faLock,
+  faTriangleExclamation,
+  faCircleInfo,
+  faBell,
+  faGhost,
+  faCircleCheck,
+  faCheck,
+  faCircleStop,
+  faCircleXmark,
+  faCircleNotch,
+  faRefresh,
+  faEye,
+  faTrash,
+  faClock,
+  faGraduationCap,
+  faCalendarCheck,
+  faCalendarDays,
+  faLocationDot,
+  faGlobe,
+  faCode,
+  faServer,
+  faArrowTrendUp,
+  faClipboardList,
+  faSun,
+  faMoon,
+  faPlus,
+  faPenToSquare,
+  faLink,
+  faUserPlus,
+  faXmark,
+  faMagnifyingGlass,
+  faClockRotateLeft,
+  faBuilding,
+  faFileContract,
+  faCalculator,
+  faChartPie,
+  faCamera,
+  faBars,
+  faHouseLaptop,
+  faSchool,
+  faGear,
+  faHouse,
+  faArrowsRotate,
+  faCircleDot,
+  faStopwatch,
+  faCircleUser,
+  faLightbulb,
+  faCloudArrowUp,
+  faDownload,
+  faUserGroup,
+  faChartColumn,
+  faCheckCircle,
+  faTrashCan,
+  faHashtag,
+  faLaptopCode,
+  faEnvelope,
+  faPhone,
+  faUserTie,
+  faSignal,
+  faChartLine,
+  faChevronDown,
+  faDesktop,
+  faFlagCheckered,
+  faFileExcel,
+  faSpinner
+);
+
+// ── 3. INICIALIZACIÓN DE LA INSTANCIA DE VUE ──
+const app = createApp(App);
+
+app.use(createPinia());
+app.use(router);
+app.use(Toast, toastOptions);
+
+// Registro global del componente de iconos
+app.component("font-awesome-icon", FontAwesomeIcon);
+
+app.mount("#app");

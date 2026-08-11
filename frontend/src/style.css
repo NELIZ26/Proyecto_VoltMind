@@ -1,0 +1,156 @@
+/* ==========================================================================
+   1. IMPORTACIÓN DE FUENTES (Obligatoria: Work Sans)
+   ========================================================================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Work+Sans:wght@300;400;500;600;700;800&display=swap');
+
+/* ==========================================================================
+   2. VARIABLES DE COLOR OFICIALES SENA 2024
+   ========================================================================== */
+
+:root {
+  /* Tipografía Corporativa Forzada */
+  --fuente-principal: "Work Sans", sans-serif;
+  /* Color Principal */
+  --sena-verde: #39a900;
+  /* Colores Secundarios */
+  --sena-verde-oscuro: #007832;
+  --sena-azul-oscuro: #003040;
+  --sena-azul-claro: #50e5f9;
+  --sena-violeta: #71277a;
+  --sena-amarillo: #fdc300;
+  /* Colores Neutros y Fondos (Caso 1 - Blanco Predominante) */
+  --sena-blanco: #ffffff;
+  --sena-negro: #000000;
+  --sena-gris-claro: #f8f9fa;
+  --sena-gris-fondo: #f8f9fa;
+  /* PALETA DE INTERFAZ (Aplicada a componentes) */
+  --fondo-app: var(--sena-gris-claro);
+  --fondo-tarjetas: var(--sena-blanco);
+  --texto-principal: var(--sena-azul-oscuro);
+  --texto-secundario: #555555;
+  /* Gris oscuro para legibilidad estándar */
+  --borde: #e0e0e0;
+  /* Gris sutil para separar elementos en fondos blancos */
+}
+
+/* ==========================================================================
+   TEMA OSCURO (DARK MODE)
+   ========================================================================== */
+[data-theme="dark"] {
+  --fondo-app: #121212;
+  --fondo-tarjetas: #1e1e1e;
+  --texto-principal: #ffffff;
+  --texto-secundario: #a0a0a0;
+  --borde: #333333;
+  --sombra-suave: rgba(0, 0, 0, 0.3);
+  --sombra-media: rgba(0, 0, 0, 0.5);
+  --sena-azul-oscuro: #50E5F9;
+  --sena-gris-claro: #484949;
+}
+
+
+/* ==========================================================================
+   3. RESET DE CAJA Y HERENCIA ESTRICTA
+   ========================================================================== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--fuente-principal);
+  background-color: var(--sena-gris-fondo);
+  color: var(--texto-principal);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Evita que los inputs y botones usen las fuentes por defecto del sistema en teléfonos */
+
+input,
+select,
+textarea,
+button {
+  font-family: var(--fuente-principal);
+}
+
+/* ==========================================================================
+   4. CLASES DE UTILIDAD GENERAL (CSS PURO)
+   ========================================================================== */
+
+.icon-margin {
+  margin-right: 10px;
+}
+
+.bg-sena {
+  background-color: var(--sena-verde);
+  color: white;
+}
+
+.text-sena {
+  color: var(--sena-verde);
+}
+
+/* Botón Primario Estándar para vistas generales (Fichas, Dashboards, etc.) */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--sena-verde);
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #2d8500;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(57, 169, 0, 0.2);
+}
+
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ==========================================================================
+   5. RESPONSIVE UTILITIES & MEDIA QUERIES
+   ========================================================================== */
+
+/* Tablet & Mobile (max-width: 992px) */
+@media (max-width: 992px) {
+  body {
+    font-size: 15px;
+  }
+}
+
+/* Mobile Devices (max-width: 768px) */
+@media (max-width: 768px) {
+  body {
+    font-size: 14px;
+  }
+  
+  .btn-primary {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+
+  .icon-margin {
+    margin-right: 8px;
+  }
+}
+
+/* Small Mobile Devices (max-width: 480px) */
+@media (max-width: 480px) {
+  .btn-primary {
+    width: 100%;
+    padding: 12px;
+  }
+}
