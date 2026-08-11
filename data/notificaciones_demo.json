@@ -1,0 +1,130 @@
+{
+  "notificaciones": [
+    {
+      "destinatario": "aguzman@sena.edu.co",
+      "tipo": "ficha_publicada",
+      "texto": "Su ficha complementaria \"Manipulación Higiénica de Alimentos\" fue publicada y está disponible para ejecución.",
+      "ficha_relacionada": "comp-6",
+      "leida": false,
+      "fecha": "2026-07-08T21:05:28-05:00",
+      "id": "notif-a4240a87"
+    },
+    {
+      "destinatario": "cdiaz@sena.edu.co",
+      "tipo": "ficha_publicada",
+      "texto": "Su ficha complementaria \"Excel Básico para el Registro de Información\" fue publicada y está disponible para ejecución.",
+      "ficha_relacionada": "comp-1",
+      "leida": false,
+      "fecha": "2026-07-08T21:08:15-05:00",
+      "id": "notif-0545ee65"
+    },
+    {
+      "destinatario": "aguzman@sena.edu.co",
+      "tipo": "ficha_publicada",
+      "texto": "Su ficha complementaria \"Manipulación Higiénica de Alimentos\" fue publicada y está disponible para ejecución.",
+      "ficha_relacionada": "comp-6",
+      "leida": false,
+      "fecha": "2026-07-08T21:11:03-05:00",
+      "id": "notif-a4725bf9"
+    },
+    {
+      "destinatario": "cdiaz@sena.edu.co",
+      "tipo": "ficha_publicada",
+      "texto": "Su ficha complementaria \"Excel Básico para el Registro de Información\" fue publicada y está disponible para ejecución.",
+      "ficha_relacionada": "comp-1",
+      "leida": false,
+      "fecha": "2026-07-11T18:13:56-05:00",
+      "id": "notif-69d8d88f"
+    },
+    {
+      "destinatario": "david.sena@com",
+      "tipo": "ficha_publicada",
+      "texto": "Su ficha complementaria \"sdhfauiosfhjasdfasdf\" fue publicada y está disponible para ejecución.",
+      "ficha_relacionada": "comp-a2036c1c",
+      "leida": false,
+      "fecha": "2026-07-11T18:25:50-05:00",
+      "id": "notif-9c36406f"
+    },
+    {
+      "destinatario": "admin",
+      "tipo": "solicitud_ficha",
+      "texto": "El instructor David Yles solicitó la creación de una ficha complementaria: ADSO.",
+      "ficha_relacionada": "comp-3bf41a4f",
+      "leida": true,
+      "fecha": "2026-07-12T14:41:10-05:00",
+      "id": "notif-8d2056f0"
+    },
+    {
+      "destinatario": "david@sena.edu.com",
+      "tipo": "ficha_publicada",
+      "texto": "Su ficha complementaria \"ADSO\" fue publicada y está disponible para ejecución.",
+      "ficha_relacionada": "comp-3bf41a4f",
+      "leida": true,
+      "fecha": "2026-07-12T14:48:21-05:00",
+      "id": "notif-b20ceaa4"
+    },
+    {
+      "destinatario": "admin",
+      "tipo": "solicitud_ficha",
+      "texto": "El instructor Kevin chupa monda solicitó la creación de una ficha complementaria: Acosador nivel avanzado.",
+      "ficha_relacionada": "comp-74695d6e",
+      "leida": true,
+      "fecha": "2026-07-13T11:13:08-05:00",
+      "id": "notif-c064e3ee"
+    },
+    {
+      "destinatario": "acosador@sena.edu.com",
+      "tipo": "ficha_publicada",
+      "texto": "Su ficha complementaria \"Acosador nivel avanzado\" fue publicada y está disponible para ejecución.",
+      "ficha_relacionada": "comp-74695d6e",
+      "leida": true,
+      "fecha": "2026-07-13T11:53:22-05:00",
+      "id": "notif-446f0eb5"
+    },
+    {
+      "destinatario": "aguzman@sena.edu.co",
+      "tipo": "ficha_publicada",
+      "texto": "Su ficha complementaria \"Manipulación Higiénica de Alimentos\" fue publicada y está disponible para ejecución.",
+      "ficha_relacionada": "comp-6",
+      "leida": false,
+      "fecha": "2026-07-14T15:40:09-05:00",
+      "id": "notif-05566aa0"
+    },
+    {
+      "destinatario": "admin",
+      "tipo": "solicitud_ficha",
+      "texto": "El instructor kaliche solicitó la creación de una ficha complementaria: ADSO.",
+      "ficha_relacionada": "comp-ec813731",
+      "leida": true,
+      "fecha": "2026-07-15T20:33:24-05:00",
+      "id": "notif-d39ef170"
+    },
+    {
+      "destinatario": "kaliche@sena.edu.com",
+      "tipo": "ficha_publicada",
+      "texto": "Su ficha complementaria \"ADSO\" fue publicada y está disponible para ejecución.",
+      "ficha_relacionada": "comp-ec813731",
+      "leida": true,
+      "fecha": "2026-07-15T20:38:17-05:00",
+      "id": "notif-5f1718d4"
+    },
+    {
+      "destinatario": "acosador@sena.edu.com",
+      "tipo": "ficha_publicada",
+      "texto": "Su ficha complementaria \"Acosador nivel avanzado\" fue publicada y está disponible para ejecución.",
+      "ficha_relacionada": "comp-74695d6e",
+      "leida": false,
+      "fecha": "2026-08-05T10:18:45-05:00",
+      "id": "notif-37c7ab7d"
+    },
+    {
+      "destinatario": "aguzman@sena.edu.co",
+      "tipo": "ficha_publicada",
+      "texto": "Su ficha complementaria \"Manipulación Higiénica de Alimentos\" fue publicada y está disponible para ejecución.",
+      "ficha_relacionada": "comp-6",
+      "leida": false,
+      "fecha": "2026-08-06T10:33:34-05:00",
+      "id": "notif-2ce97b42"
+    }
+  ]
+}

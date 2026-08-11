@@ -80,16 +80,16 @@ def serial_reader_thread():
             port = auto_detect_port()
             if port:
                 if port != last_port:
-                    logger.info(f"🔌 Intentando conectar al puerto Serial: {port}")
+                    logger.info(f" Intentando conectar al puerto Serial: {port}")
                     last_port = port
                 try:
                     # ⚠️ Ojo: Abrimos el puerto fuera del cerrojo para no colgar el hilo principal si la llamada del SO se bloquea
                     temp_conn = serial.Serial(port, 9600, timeout=1)
                     with ser_lock:
                         ser_conn = temp_conn
-                    logger.info(f"🟢 Conexión Serial establecida con éxito en {port}")
+                    logger.info(f" Conexión Serial establecida con éxito en {port}")
                 except Exception as e:
-                    logger.error(f"❌ Error al abrir puerto serial {port}: {e}")
+                    logger.error(f" Error al abrir puerto serial {port}: {e}")
                     ser_conn = None
                     time.sleep(5)
                     continue
@@ -122,7 +122,7 @@ def serial_reader_thread():
             
             time.sleep(0.1)
         except Exception as e:
-            logger.error(f"❌ Error leyendo del puerto serial: {e}")
+            logger.error(f" Error leyendo del puerto serial: {e}")
             acquired = ser_lock.acquire(timeout=1.0)
             if acquired:
                 try:
@@ -158,7 +158,7 @@ def send_serial_command(command: str) -> bool:
                 logger.info(f"✈️ [Serial Out] Enviado: {command}")
                 return True
             except Exception as e:
-                logger.error(f"❌ Fallo al enviar comando serial: {e}")
+                logger.error(f" Fallo al enviar comando serial: {e}")
         else:
             logger.warning(f"⚠️ Comando '{command}' no enviado: Puerto serial no conectado.")
     finally:
@@ -264,7 +264,7 @@ def queue_buzzer_command(status: int):
     global pending_commands
     command = f"BUZZER:{status}"
     pending_commands.append(command)
-    logger.info(f"🔊 Comando de Buzzer encolado: {command}")
+    logger.info(f" Comando de Buzzer encolado: {command}")
 
 class RFIDPayload(BaseModel):
     uid: str
@@ -275,7 +275,7 @@ async def validate_rfid(payload: RFIDPayload):
     Endpoint para validar una tarjeta RFID física enviada por el Edge Device.
     Responde con success=True para hacer sonar el buzzer.
     """
-    logger.info(f"💳 Solicitud de validación RFID recibida: UID={payload.uid}")
+    logger.info(f" Solicitud de validación RFID recibida: UID={payload.uid}")
     
     # Aquí iría la lógica real contra Dataverse. Por ahora:
     # TODO: Implementar búsqueda en Dataverse y registro de asistencia.
@@ -305,17 +305,17 @@ async def save_session_consumption(payload: SessionConsumptionPayload):
         
         # Guardar en cr6a3_consumo_electrico
         datos_hila = {
-            "cr6a3_identificador_medidor": f"Sensor {hila.sensor_id}",
-            "cr6a3_lectura_acumulada_kwh": hila.consumo_clase + hila.consumo_extra,
+            "cr6a3_identificador_medidor": hila.sensor_id,
+            "cr6a3_lectura_acumulada_kwh": round(hila.consumo_clase + hila.consumo_extra, 6),
             "cr6a3_Codigo_Sesion@odata.bind": f"/cr6a3_sesiones_de_clases({payload.session_id})"
         }
         await client.post("cr6a3_consumo_electricos", json=datos_hila)
     
     # Actualizar la sesión con los totales
     totales_sesion = {
-        "cr6a3_consumo_clase_kwh": total_clase,
-        "cr6a3_consumo_extra_kwh": total_extra,
-        "cr6a3_consumo_energetico_total_kwh": total_clase + total_extra
+        "cr6a3_consumo_clase_kwh": round(total_clase, 6),
+        "cr6a3_consumo_extra_kwh": round(total_extra, 6),
+        "cr6a3_consumo_energetico_total_kwh": round(total_clase + total_extra, 6)
     }
     await client.patch(f"cr6a3_sesiones_de_clases({payload.session_id})", json=totales_sesion)
     
