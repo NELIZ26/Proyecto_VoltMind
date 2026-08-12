@@ -11,28 +11,19 @@ from typing import Dict
 
 router = APIRouter(prefix="/api/iot", tags=["IoT"])
 logger = logging.getLogger("voltmind")
+from services.redis_client import get_redis_client
+import json
 
 # Determinamos si estamos en la nube (Azure App Service) o en local
 IS_CLOUD_MODE = bool(os.getenv("WEBSITE_SITE_NAME") or os.getenv("ENTORNO") == "produccion")
 
-# Global states
+# Global states (Solo se usan en modo local, en nube usamos Redis)
 telemetry_data = {
-    "3": 0.0,  # Banco 1 Watts
-    "4": 0.0,  # Banco 2 Watts
-    "5": 0.0,  # Zona 1 Watts
-    "6": 0.0,  # Zona 2 Watts
-    "7": 0.0,  # Zona 3 Watts
-    "8": 0.0,  # Zona 4 Watts
+    "3": 0.0, "4": 0.0, "5": 0.0, "6": 0.0, "7": 0.0, "8": 0.0
 }
 
-# Track virtual energized states of the relays
 relay_states = {
-    "R3": 0,
-    "R4": 0,
-    "R5": 0,
-    "R6": 0,
-    "R7": 0,
-    "R8": 0
+    "R3": 0, "R4": 0, "R5": 0, "R6": 0, "R7": 0, "R8": 0
 }
 
 pending_commands = []
@@ -115,6 +106,8 @@ def serial_reader_thread():
                                         val = float(parts[1])
                                         if sensor_id in telemetry_data:
                                             telemetry_data[sensor_id] = val
+                                            # Intentar guardar en Redis en un hilo asíncrono si fuera necesario,
+                                            # pero en modo local la variable global es suficiente.
                                     except ValueError:
                                         pass
                 finally:
@@ -173,7 +166,7 @@ else:
     reader_t.start()
 
 @router.post("/relay")
-def control_relay(payload: RelayControl):
+async def control_relay(payload: RelayControl):
     relay_id = payload.relay_id.upper()
     if relay_id not in ["R3", "R4", "R5", "R6", "R7", "R8"]:
         raise HTTPException(status_code=400, detail="ID de relé inválido. Usar R3-R8.")
@@ -186,6 +179,9 @@ def control_relay(payload: RelayControl):
     
     # Sincronizamos el estado virtual interno
     relay_states[relay_id] = payload.status
+    if IS_CLOUD_MODE:
+        r = await get_redis_client()
+        await r.hset("iot:relay_states", relay_id, payload.status)
     
     return {
         "relay_id": relay_id,
@@ -194,7 +190,7 @@ def control_relay(payload: RelayControl):
     }
 
 @router.post("/master")
-def control_master(payload: MasterControl):
+async def control_master(payload: MasterControl):
     if payload.status not in [0, 1]:
         raise HTTPException(status_code=400, detail="El estado debe ser 1 (ENCENDER) o 0 (APAGAR).")
     
@@ -202,8 +198,11 @@ def control_master(payload: MasterControl):
     success = send_serial_command(cmd)
     
     # Sincronizar todos los estados virtuales
-    for r in relay_states.keys():
-        relay_states[r] = payload.status
+    r = await get_redis_client() if IS_CLOUD_MODE else None
+    for r_id in relay_states.keys():
+        relay_states[r_id] = payload.status
+        if r:
+            await r.hset("iot:relay_states", r_id, payload.status)
         
     return {
         "status": payload.status,
@@ -224,7 +223,18 @@ def list_detected_ports():
     }
 
 @router.get("/telemetry")
-def get_telemetry():
+async def get_telemetry():
+    if IS_CLOUD_MODE:
+        r = await get_redis_client()
+        stored_states = await r.hgetall("iot:relay_states")
+        stored_tel = await r.hgetall("iot:telemetry")
+        
+        # Merge con default values para evitar KeyError en frontend
+        for k, v in stored_states.items():
+            relay_states[k] = int(v)
+        for k, v in stored_tel.items():
+            telemetry_data[k] = float(v)
+            
     return {
         "telemetry": telemetry_data,
         "relay_states": relay_states
@@ -235,14 +245,17 @@ class TelemetryPushPayload(BaseModel):
     # relay_states: dict (opcional, si el Edge device sincroniza los reles también, pero por ahora solo telemetría)
 
 @router.post("/telemetry/push")
-def push_telemetry(payload: TelemetryPushPayload):
+async def push_telemetry(payload: TelemetryPushPayload):
     """
     Endpoint para que el Edge Device (Raspberry Pi) envíe los datos leídos del Arduino
     a la nube.
     """
     global telemetry_data
+    r = await get_redis_client() if IS_CLOUD_MODE else None
     for k, v in payload.telemetry.items():
         telemetry_data[str(k)] = float(v)
+        if r:
+            await r.hset("iot:telemetry", str(k), float(v))
         
     return {"status": "ok"}
 
