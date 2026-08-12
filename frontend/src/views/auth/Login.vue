@@ -69,9 +69,16 @@ const processLoginSuccess = async (account) => {
         router.push("/card"); 
 
       } else {
-        const err = await response.json();
-        console.error("Error de vinculación:", err.detail);
-        toast.error(err.detail || "Autenticado en Microsoft, pero no estás registrado en Dataverse.");
+        let errStr = "Error desconocido";
+        try {
+          const err = await response.json();
+          errStr = err.detail || "Autenticado, pero no estás en Dataverse.";
+        } catch (parseError) {
+          errStr = `El servidor devolvió HTML o un formato inválido. Status: ${response.status}`;
+          console.error("HTML recibido en vez de JSON. Verifica la URL del backend:", BASE_URL);
+        }
+        console.error("Error de vinculación:", errStr);
+        toast.error(errStr);
       }
     } catch (error) {
       console.error("Error conectando con FastAPI:", error);
