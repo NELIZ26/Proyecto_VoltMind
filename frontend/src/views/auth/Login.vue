@@ -12,13 +12,14 @@ const authStore = useAuthStore();
 const isLoggingIn = ref(false);
 
 // 1. Configuración de MSAL
+import { Capacitor } from '@capacitor/core';
+import { App } from '@capacitor/app';
+
 const msalConfig = {
   auth: {
-    // Ahora Vite irá a buscar el ID correcto a tu archivo .env
     clientId: import.meta.env.VITE_AZURE_CLIENT_ID, 
-    // Y también buscará tu inquilino específico en lugar del genérico
     authority: import.meta.env.VITE_AZURE_AUTHORITY, 
-    redirectUri: window.location.origin, 
+    redirectUri: Capacitor.isNativePlatform() ? "voltmind://callback" : window.location.origin, 
     navigateToLoginRequestUrl: false, 
   },
   cache: {
@@ -93,19 +94,60 @@ const processLoginSuccess = async (account) => {
   }
 };
 
-// 3. Procesar el regreso de la redirección de Microsoft (Modificado para soportar la función async)
+// 3. Procesar el regreso de la redirección de Microsoft
 onMounted(async () => {
   try {
     await msalInstance.initialize();
     
-    const response = await msalInstance.handleRedirectPromise();
-    
-    if (response) {
-      await processLoginSuccess(response.account);
-    } else {
+    if (Capacitor.isNativePlatform()) {
+      const processDeepLink = async (deepLinkUrl) => {
+        const url = new URL(deepLinkUrl);
+        const hashToProcess = url.hash ? url.hash : url.search; 
+        
+        try {
+          if (hashToProcess) {
+            window.location.hash = hashToProcess;
+          }
+
+          const response = await msalInstance.handleRedirectPromise(); 
+          if (response) {
+            await processLoginSuccess(response.account);
+          } else {
+            const checkAccounts = msalInstance.getAllAccounts();
+            if (checkAccounts.length > 0) {
+              await processLoginSuccess(checkAccounts[0]);
+            }
+          }
+        } catch (err) {
+          console.error("Error procesando hash:", err);
+        }
+      };
+
+      const launchUrlData = await App.getLaunchUrl();
+      if (launchUrlData && launchUrlData.url && launchUrlData.url.includes('code=')) {
+        await processDeepLink(launchUrlData.url);
+      }
+
+      App.addListener('appUrlOpen', async (data) => {
+        if (data.url.includes('code=')) {
+          await processDeepLink(data.url);
+        }
+      });
+      
       const currentAccounts = msalInstance.getAllAccounts();
       if (currentAccounts.length > 0) {
         await processLoginSuccess(currentAccounts[0]);
+      }
+      
+    } else {
+      const response = await msalInstance.handleRedirectPromise();
+      if (response) {
+        await processLoginSuccess(response.account);
+      } else {
+        const currentAccounts = msalInstance.getAllAccounts();
+        if (currentAccounts.length > 0) {
+          await processLoginSuccess(currentAccounts[0]);
+        }
       }
     }
   } catch (error) {
