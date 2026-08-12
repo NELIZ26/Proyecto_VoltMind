@@ -704,6 +704,7 @@ const pollTelemetry = async () => {
     if (res.ok) {
       const data = await res.json();
       const tel = data.telemetry || {};
+      const states = data.states || {};
       // Estabilizar lecturas: Los sensores ACS712 a veces envían 0W erróneamente en AC.
       // Si el relé está encendido LOCALMENTE, ignoramos las caídas abruptas a 0 y mantenemos el último valor real.
       Object.keys(tel).forEach(key => {
