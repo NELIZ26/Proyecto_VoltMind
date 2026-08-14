@@ -46,7 +46,8 @@ const processLoginSuccess = async (account) => {
 
     try {
       // 🟢 CONSULTA AL BACKEND: Cruzamos el correo de Microsoft con Dataverse
-      const response = await fetch(`/api/usuarios/perfil?email=${userEmail}`);
+      const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+      const response = await fetch(`${BASE_URL}/api/usuarios/perfil?email=${userEmail}`);
       
       if (response.ok) {
         const perfilCompleto = await response.json();
