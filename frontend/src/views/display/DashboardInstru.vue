@@ -59,10 +59,10 @@ const systemAlerts = ref([]);
 const activeModal = ref(null);
 const selectedApprentice = ref(null);
 
-const thermometers = ref([
-  { id: 1, value: 24.5 },
-  { id: 2, value: 25.0 }
-]);
+const climaReal = ref({
+  temperatura: 0.0,
+  humedad: 0.0
+});
 
 const getTempHeight = (val) => {
   const min = 15;
@@ -79,9 +79,9 @@ const getTempColor = (val) => {
   return "#22c55e"; // Verde ok
 };
 
-watch(() => thermometers.value, (newVals) => {
-  const isHot = newVals.some(t => t.value > 26);
-  const isCold = newVals.some(t => t.value < 20);
+watch(() => climaReal.value.temperatura, (newTemp) => {
+  const isHot = newTemp > 26;
+  const isCold = newTemp < 20;
 
   // Filtrar alertas existentes de temperatura
   systemAlerts.value = systemAlerts.value.filter(a => a.source !== "Sensores de Temperatura");
@@ -98,12 +98,12 @@ watch(() => thermometers.value, (newVals) => {
     systemAlerts.value.push({
       id: Date.now(),
       severity: "info", // Aparecerá azul o neutral
-      message: "Temperatura muy baja. Sugerencia: Regular / Apagar AC.",
+      message: "Temperatura muy baja. Revisa la configuración del AC.",
       source: "Sensores de Temperatura",
       timestamp: new Date().toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' })
     });
   }
-}, { deep: true });
+});
 
 watch(() => apprentices.value, (newVals) => {
   systemAlerts.value = systemAlerts.value.filter(a => a.source !== "Asistencia");
@@ -705,6 +705,15 @@ const pollTelemetry = async () => {
       const data = await res.json();
       const tel = data.telemetry || {};
       const states = data.states || {};
+      const clima_backend = data.clima || {};
+      
+      if (clima_backend.temperatura !== undefined && clima_backend.temperatura !== null) {
+        climaReal.value.temperatura = clima_backend.temperatura;
+      }
+      if (clima_backend.humedad !== undefined && clima_backend.humedad !== null) {
+        climaReal.value.humedad = clima_backend.humedad;
+      }
+
       // Estabilizar lecturas: Los sensores ACS712 a veces envían 0W erróneamente en AC.
       // Si el relé está encendido LOCALMENTE, ignoramos las caídas abruptas a 0 y mantenemos el último valor real.
       Object.keys(tel).forEach(key => {
@@ -774,13 +783,6 @@ const pollTelemetry = async () => {
           if (states[relayKey] !== undefined) {
             light.energized = states[relayKey] === 1;
           }
-        });
-
-        // Simulación de temperatura si el aula está encendida
-        thermometers.value.forEach(t => {
-          t.value = parseFloat((t.value + (Math.random() - 0.5)).toFixed(1));
-          if (t.value > 30) t.value = 30;
-          if (t.value < 18) t.value = 18;
         });
       }
     }
@@ -1133,12 +1135,28 @@ onUnmounted(() => {
 
         <AlertPanel title="ALERTAS DEL AMBIENTE" icon="fa-solid fa-triangle-exclamation" :alerts="systemAlerts" @resolve="handleAlertResolution" />
 
-        <!-- GRÁFICAS DE TEMPERATURA USANDO CHART.JS -->
+        <!-- INDICADORES CLIMÁTICOS MODERNOS -->
         <div class="module-card">
-          <h2 class="module-title"><font-awesome-icon icon="fa-solid fa-temperature-half" /> CLIMATIZACIÓN (TEMP)</h2>
-          <div class="temp-charts-grid">
-            <div class="chart-box" v-for="t in thermometers" :key="t.id">
-              <ThermometerChart :currentValue="t.value" :label="'ZONA ' + t.id" />
+          <h2 class="module-title"><font-awesome-icon icon="fa-solid fa-cloud-sun" /> CLIMATIZACIÓN DEL AMBIENTE</h2>
+          <div class="climate-grid">
+            <div class="climate-widget">
+              <div class="climate-icon temp-icon">
+                <font-awesome-icon icon="fa-solid fa-temperature-half" />
+              </div>
+              <div class="climate-info">
+                <span class="climate-label">Temperatura</span>
+                <span class="climate-value">{{ climaReal.temperatura }} <small>°C</small></span>
+              </div>
+            </div>
+            
+            <div class="climate-widget">
+              <div class="climate-icon hum-icon">
+                <font-awesome-icon icon="fa-solid fa-droplet" />
+              </div>
+              <div class="climate-info">
+                <span class="climate-label">Humedad Relativa</span>
+                <span class="climate-value">{{ climaReal.humedad }} <small>%</small></span>
+              </div>
             </div>
           </div>
         </div>
@@ -1351,10 +1369,19 @@ onUnmounted(() => {
 .max-stat span { color: #ef4444; }
 
 /* ==========================================
-   TERMÓMETROS CHART.JS
+   INDICADORES CLIMÁTICOS
    ========================================== */
-.temp-charts-grid { display: flex; flex-wrap: wrap; gap: 1rem; padding-top: 1rem; }
-.chart-box { flex: 1 1 150px; min-width: 0; background: var(--fondo-app); border-radius: 12px; border: 1px solid var(--borde); padding: 1rem 0; }
+.climate-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; padding-top: 1rem; }
+.climate-widget { display: flex; align-items: center; gap: 1rem; background: var(--fondo-app); border: 1px solid var(--borde); border-radius: 12px; padding: 1.5rem 1rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); transition: transform 0.2s; }
+.climate-widget:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+.climate-icon { display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 12px; font-size: 1.5rem; }
+.temp-icon { background: rgba(239, 68, 68, 0.1); color: #ef4444; }
+.hum-icon { background: rgba(59, 130, 246, 0.1); color: #3b82f6; }
+.climate-info { display: flex; flex-direction: column; }
+.climate-label { font-size: 0.75rem; font-weight: 700; color: var(--texto-secundario); text-transform: uppercase; margin-bottom: 0.25rem; }
+.climate-value { font-size: 1.75rem; font-weight: 800; color: var(--sena-azul-oscuro); line-height: 1; }
+[data-theme="dark"] .climate-value { color: var(--sena-blanco); }
+.climate-value small { font-size: 1rem; font-weight: 600; color: var(--texto-secundario); }
 
 /* ==========================================
    BOTONERA LATERAL (3 COLUMNAS)
