@@ -7,6 +7,7 @@ import logging
 import os
 import sqlite3
 from datetime import datetime
+from dht22_sensor import leer_clima
 
 # Configuración de Logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - [%(levelname)s] - %(message)s")
@@ -31,6 +32,14 @@ def init_local_db():
                 sensor_id TEXT,
                 promedio_watts REAL,
                 consumo_kwh REAL
+            )
+        ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS clima_local (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+                temperatura REAL,
+                humedad REAL
             )
         ''')
         conn.commit()
@@ -72,15 +81,37 @@ def calcular_y_enviar_consumos(session_id, hora_limite_sql):
                 "consumo_clase": round(clase_val, 6),
                 "consumo_extra": round(extra_val, 6)
             })
+        
+        # Sacar el promedio y los registros de clima
+        cursor.execute("SELECT AVG(temperatura), AVG(humedad) FROM clima_local WHERE timestamp <= ?", (hora_limite_sql,))
+        clima_promedio = cursor.fetchone()
+        
+        cursor.execute("SELECT timestamp, temperatura, humedad FROM clima_local WHERE timestamp <= ?", (hora_limite_sql,))
+        clima_historial = cursor.fetchall()
+        
+        clima_data = {
+            "promedio_temperatura": round(clima_promedio[0], 2) if clima_promedio[0] else None,
+            "promedio_humedad": round(clima_promedio[1], 2) if clima_promedio[1] else None,
+            "historial": [
+                {"timestamp": c[0], "temperatura": c[1], "humedad": c[2]} for c in clima_historial
+            ]
+        }
+            
+        # Enviar al backend para que registre en Dataverse
         payload = {
             "session_id": session_id,
-            "hilas": hilas_data
+            "hilas": hilas_data,
+            "clima": clima_data
         }
+        
         close_url = f"{AZURE_API_BASE_URL}/api/iot/session/close"
         response = requests.post(close_url, json=payload, timeout=5.0)
+        
         if response.status_code == 200:
-            logger.info("✅ [SQLite] Consumos calculados y enviados al backend exitosamente.")
+            logger.info("✅ [SQLite] Consumos y Clima calculados y enviados al backend exitosamente.")
+            # Limpiar datos para la próxima clase
             cursor.execute("DELETE FROM consumo_local")
+            cursor.execute("DELETE FROM clima_local")
             conn.commit()
         else:
             logger.error(f"❌ [Azure] Falló el envío de consumos de cierre: {response.text}")
@@ -97,10 +128,14 @@ def main():
     last_db_save_time = time.time()
     PUSH_INTERVAL = 2.0
     DB_SAVE_INTERVAL = 300.0
-    power_accumulators = {}
-
+    # Diccionario para ir acumulando los Watts de cada sensor durante los 5 minutos
+    power_accumulators = {} 
+    
+    clima_accumulator = {'temp_sum': 0.0, 'hum_sum': 0.0, 'count': 0}
+    
+    # TAREA CADA 5 MINUTOS: Guardar Consumo Local (SQLite)
     def flush_accumulators_to_db(interval_seconds):
-        nonlocal power_accumulators
+        nonlocal power_accumulators, clima_accumulator
         if not power_accumulators:
             return
         try:
@@ -115,12 +150,22 @@ def main():
                         INSERT INTO consumo_local (sensor_id, promedio_watts, consumo_kwh)
                         VALUES (?, ?, ?)
                     ''', (sensor_pin, round(avg_watts, 2), round(kwh_consumido, 6)))
+                    
+            if clima_accumulator['count'] > 0:
+                avg_temp = clima_accumulator['temp_sum'] / clima_accumulator['count']
+                avg_hum = clima_accumulator['hum_sum'] / clima_accumulator['count']
+                cursor.execute('''
+                    INSERT INTO clima_local (temperatura, humedad)
+                    VALUES (?, ?)
+                ''', (round(avg_temp, 2), round(avg_hum, 2)))
+                
             conn.commit()
             conn.close()
-            logger.info("💾 [SQLite] Consumo local guardado exitosamente.")
+            logger.info("💾 [SQLite] Consumo y clima local guardado exitosamente.")
         except Exception as e:
             logger.error(f"❌ [SQLite] Error guardando en BD local: {e}")
         power_accumulators = {}
+        clima_accumulator = {'temp_sum': 0.0, 'hum_sum': 0.0, 'count': 0}
 
     while True:
         if not ser or not ser.is_open:
@@ -199,8 +244,20 @@ def main():
             
             # TAREA CADA 2 SEGUNDOS: Actualizar Frontend en Azure
             if current_time - last_push_time >= PUSH_INTERVAL:
-                if telemetry_data:
+                # 🌡️ Integrar la lectura de Clima
+                temp, hum = leer_clima()
+                clima_payload = None
+                if temp is not None:
+                    clima_payload = {"temperatura": temp, "humedad": hum}
+                    clima_accumulator['temp_sum'] += temp
+                    clima_accumulator['hum_sum'] += hum
+                    clima_accumulator['count'] += 1
+                
+                if telemetry_data or clima_payload:
                     payload = {"telemetry": telemetry_data}
+                    if clima_payload:
+                        payload["clima"] = clima_payload
+                        
                     try:
                         response = requests.post(TELEMETRY_URL, json=payload, timeout=3.0)
                         if response.status_code != 200:
