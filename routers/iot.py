@@ -21,6 +21,9 @@ IS_CLOUD_MODE = bool(os.getenv("WEBSITE_SITE_NAME") or os.getenv("ENTORNO") == "
 telemetry_data = {
     "3": 0.0, "4": 0.0, "5": 0.0, "6": 0.0, "7": 0.0, "8": 0.0
 }
+clima_data = {
+    "temperatura": None, "humedad": None
+}
 
 relay_states = {
     "R3": 0, "R4": 0, "R5": 0, "R6": 0, "R7": 0, "R8": 0
@@ -228,20 +231,27 @@ async def get_telemetry():
         r = await get_redis_client()
         stored_states = await r.hgetall("iot:relay_states")
         stored_tel = await r.hgetall("iot:telemetry")
+        stored_clima = await r.hgetall("iot:clima")
         
         # Merge con default values para evitar KeyError en frontend
         for k, v in stored_states.items():
             relay_states[k] = int(v)
         for k, v in stored_tel.items():
             telemetry_data[k] = float(v)
+        for k, v in stored_clima.items():
+            clima_data[k] = float(v) if v != "None" else None
             
     return {
         "telemetry": telemetry_data,
-        "relay_states": relay_states
+        "relay_states": relay_states,
+        "clima": clima_data
     }
+
+from typing import Optional
 
 class TelemetryPushPayload(BaseModel):
     telemetry: dict
+    clima: Optional[dict] = None
     # relay_states: dict (opcional, si el Edge device sincroniza los reles también, pero por ahora solo telemetría)
 
 @router.post("/telemetry/push")
@@ -250,12 +260,21 @@ async def push_telemetry(payload: TelemetryPushPayload):
     Endpoint para que el Edge Device (Raspberry Pi) envíe los datos leídos del Arduino
     a la nube.
     """
-    global telemetry_data
+    global telemetry_data, clima_data
     r = await get_redis_client() if IS_CLOUD_MODE else None
+    
+    # 1. Guardar Telemetría
     for k, v in payload.telemetry.items():
         telemetry_data[str(k)] = float(v)
         if r:
             await r.hset("iot:telemetry", str(k), float(v))
+            
+    # 2. Guardar Clima
+    if payload.clima:
+        for k, v in payload.clima.items():
+            clima_data[k] = float(v) if v is not None else None
+            if r:
+                await r.hset("iot:clima", str(k), str(v))
         
     return {"status": "ok"}
 
@@ -300,9 +319,20 @@ class HilaConsumo(BaseModel):
     consumo_clase: float
     consumo_extra: float
 
+class ClimaHistorial(BaseModel):
+    timestamp: str
+    temperatura: float
+    humedad: float
+
+class ClimaData(BaseModel):
+    promedio_temperatura: Optional[float] = None
+    promedio_humedad: Optional[float] = None
+    historial: list[ClimaHistorial] = []
+
 class SessionConsumptionPayload(BaseModel):
     session_id: str
     hilas: list[HilaConsumo]
+    clima: Optional[ClimaData] = None
 
 @router.post("/session/close")
 async def save_session_consumption(payload: SessionConsumptionPayload):
@@ -324,12 +354,31 @@ async def save_session_consumption(payload: SessionConsumptionPayload):
         }
         await client.post("cr6a3_consumo_electricos", json=datos_hila)
     
-    # Actualizar la sesión con los totales
+    # Guardar historial de clima cada 10/5 minutos
+    if payload.clima and payload.clima.historial:
+        for c_log in payload.clima.historial:
+            datos_clima = {
+                "cr6a3_temperatura": c_log.temperatura,
+                "cr6a3_humedad": c_log.humedad,
+                "cr6a3_timestamp": c_log.timestamp,
+                "cr6a3_Codigo_Sesion@odata.bind": f"/cr6a3_sesiones_de_clases({payload.session_id})"
+            }
+            try:
+                await client.post("cr6a3_registro_climas", json=datos_clima)
+            except Exception as e:
+                logger.error(f"Error guardando historial de clima en Dataverse: {e}")
+    
+    # Actualizar la sesión con los totales y el clima promedio
     totales_sesion = {
         "cr6a3_consumo_clase_kwh": round(total_clase, 6),
         "cr6a3_consumo_extra_kwh": round(total_extra, 6),
         "cr6a3_consumo_energetico_total_kwh": round(total_clase + total_extra, 6)
     }
+    
+    if payload.clima and payload.clima.promedio_temperatura is not None:
+        totales_sesion["cr6a3_temperatura_promedio"] = payload.clima.promedio_temperatura
+        totales_sesion["cr6a3_humedad_promedio"] = payload.clima.promedio_humedad
+
     await client.patch(f"cr6a3_sesiones_de_clases({payload.session_id})", json=totales_sesion)
     
     return {"status": "ok"}
