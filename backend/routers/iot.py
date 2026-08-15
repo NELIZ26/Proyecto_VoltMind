@@ -132,13 +132,19 @@ def serial_reader_thread():
                     ser_lock.release()
             time.sleep(2)
 
-def send_serial_command(command: str) -> bool:
+async def send_command_async(command: str) -> bool:
     global ser_conn, pending_commands
     
     if IS_CLOUD_MODE:
-        pending_commands.append(command)
-        logger.info(f"☁️ [Cloud Mode] Comando '{command}' encolado. ({len(pending_commands)} pendientes)")
-        return True
+        try:
+            r = await get_redis_client()
+            await r.rpush("iot:pending_commands", command)
+            logger.info(f"☁️ [Cloud Mode] Comando '{command}' encolado en Redis.")
+            return True
+        except Exception as e:
+            logger.error(f"❌ Error encolando comando en Redis: {e}")
+            pending_commands.append(command)
+            return True
 
     # Intentamos adquirir el cerrojo con timeout de 2 segundos para evitar deadlocks en la API
     acquired = ser_lock.acquire(timeout=2.0)
@@ -178,7 +184,7 @@ async def control_relay(payload: RelayControl):
         raise HTTPException(status_code=400, detail="El estado debe ser 1 (ENCENDER) o 0 (APAGAR).")
     
     cmd = f"{relay_id}:{payload.status}"
-    success = send_serial_command(cmd)
+    success = await send_command_async(cmd)
     
     # Sincronizamos el estado virtual interno
     relay_states[relay_id] = payload.status
@@ -198,7 +204,7 @@ async def control_master(payload: MasterControl):
         raise HTTPException(status_code=400, detail="El estado debe ser 1 (ENCENDER) o 0 (APAGAR).")
     
     cmd = f"M:{payload.status}"
-    success = send_serial_command(cmd)
+    success = await send_command_async(cmd)
     
     # Sincronizar todos los estados virtuales
     r = await get_redis_client() if IS_CLOUD_MODE else None
@@ -279,24 +285,45 @@ async def push_telemetry(payload: TelemetryPushPayload):
     return {"status": "ok"}
 
 @router.get("/commands/pending")
-def get_pending_commands():
+async def get_pending_commands():
     """
     Endpoint para que el Edge Device solicite los comandos encolados y los ejecute localmente.
     """
     global pending_commands
-    commands_to_send = pending_commands.copy()
-    pending_commands.clear()
+    commands_to_send = []
     
+    if IS_CLOUD_MODE:
+        try:
+            r = await get_redis_client()
+            cmds = await r.lrange("iot:pending_commands", 0, -1)
+            if cmds:
+                await r.delete("iot:pending_commands")
+                commands_to_send = [str(c) for c in cmds]
+        except Exception as e:
+            logger.error(f"❌ Error leyendo comandos de Redis: {e}")
+            
+    if pending_commands:
+        commands_to_send.extend(pending_commands.copy())
+        pending_commands.clear()
+        
     return {"commands": commands_to_send}
 
-def queue_buzzer_command(status: int):
+async def queue_buzzer_command(status: int):
     """
     Helper function to queue a buzzer command (1=Success, 0=Error) from other routers
     """
-    global pending_commands
     command = f"BUZZER:{status}"
-    pending_commands.append(command)
+    if IS_CLOUD_MODE:
+        try:
+            r = await get_redis_client()
+            await r.rpush("iot:pending_commands", command)
+        except Exception as e:
+            logger.error(f"❌ Error encolando buzzer en Redis: {e}")
+            pending_commands.append(command)
+    else:
+        pending_commands.append(command)
     logger.info(f" Comando de Buzzer encolado: {command}")
+
 
 class RFIDPayload(BaseModel):
     uid: str
