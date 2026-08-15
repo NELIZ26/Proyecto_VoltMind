@@ -62,7 +62,23 @@ void setup() {
 
   // Configurar Buzzer
   pinMode(buzzerPin, OUTPUT);
+  
+  // Pitido corto de confirmación al encender el Arduino
+  tone(buzzerPin, 2000, 100);
 }
+
+void sonarBuzzer(int tipo) {
+  if (tipo == 1) { // Éxito / Lectura (Dos pitidos cortos)
+    tone(buzzerPin, 2000, 100);
+    delay(150);
+    tone(buzzerPin, 2000, 100);
+  } else if (tipo == 0) { // Error (Pitido largo grave)
+    tone(buzzerPin, 800, 600);
+  } else if (tipo == 2) { // Pitido simple de lectura
+    tone(buzzerPin, 2200, 120);
+  }
+}
+
 
 void loop() {
   // 1. Escuchar comandos desde la Raspberry Pi (o PC por Serial USB)
@@ -100,13 +116,7 @@ void loop() {
         digitalWrite(rele8, valorPin);
       } else if (idStr == "BUZZER") {
         // Comandos de feedback sonoro desde el servidor
-        if (estado == 1) { // Éxito (Dos pitidos cortos)
-          tone(buzzerPin, 2500, 150);
-          delay(200);
-          tone(buzzerPin, 2500, 150);
-        } else if (estado == 0) { // Error (Un pitido largo y grave)
-          tone(buzzerPin, 1000, 800);
-        }
+        sonarBuzzer(estado);
       }
     }
   }
@@ -146,7 +156,7 @@ void loop() {
     Serial.println(uidString);
 
     // Pitido corto de confirmación de lectura local
-    tone(buzzerPin, 2500, 150);
+    sonarBuzzer(2);
 
     // Detener la lectura para no enviar el mismo ID repetidas veces muy rápido
     mfrc522.PICC_HaltA();

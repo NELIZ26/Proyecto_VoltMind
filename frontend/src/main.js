@@ -151,6 +151,12 @@ import {
   faBan,
   faFileSignature,
   faArrowRight,
+  // Clima e Indicadores
+  faCloudSun,
+  faTemperatureHalf,
+  faDroplet,
+  faSpinner,
+  faFlagCheckered,
   // Fichas Tituladas
   faLayerGroup,
 } from "@fortawesome/free-solid-svg-icons";
@@ -265,7 +271,12 @@ library.add(
   faPersonChalkboard,
   faBan,
   faFileSignature,
-  faArrowRight
+  faArrowRight,
+  faCloudSun,
+  faTemperatureHalf,
+  faDroplet,
+  faSpinner,
+  faFlagCheckered
 );
 
 // ── 3. INICIALIZACIÓN DE LA INSTANCIA DE VUE ──
