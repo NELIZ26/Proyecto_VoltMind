@@ -84,6 +84,12 @@ async def validar_pin(datos: PinValidate):
         await redis_client.expire(clave_ingresos, 43200)
         await redis_client.delete(clave_pin)
         
+        try:
+            from routers.iot import queue_buzzer_command
+            await queue_buzzer_command(1)
+        except Exception as e:
+            log.warning(f"No se pudo encolar comando de buzzer: {e}")
+
         log.info(f"Ingreso registrado para aprendiz {doc_aprendiz} en sesión {datos.sesion_id}")
         return {
             "accion": "ingreso_exitoso", 
