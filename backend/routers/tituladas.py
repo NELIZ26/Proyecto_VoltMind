@@ -14,9 +14,9 @@ from fastapi.responses import FileResponse
 from schemas.tituladas import (
     AsignacionTituladaCreate,
     AsignacionTituladaUpdate,
-    DiagnosticoUpdate,
     FichaTituladaCreate,
     ProgramaCreate,
+    DiagnosticoUpdate,
 )
 from services import tituladas_service as servicio
 
@@ -67,11 +67,13 @@ async def obtener_ficha(ficha_id: str):
 @router.put("/fichas/{ficha_id}/diagnostico")
 @_con_manejo_de_errores
 async def actualizar_diagnostico(ficha_id: str, datos: DiagnosticoUpdate):
-    """Reemplaza la matriz de competencias (diagnóstico) de la ficha. Las
-    competencias con asignaciones en el calendario no se pueden eliminar (409)."""
+    """Reemplaza la matriz de competencias (diagnóstico) de la ficha."""
     return await servicio.actualizar_diagnostico(
         ficha_id, [c.model_dump() for c in datos.competencias]
     )
+
+
+
 
 
 # ── RESPALDO DE ARCHIVOS (Excel históricos de la ficha, solo lectura) ────────

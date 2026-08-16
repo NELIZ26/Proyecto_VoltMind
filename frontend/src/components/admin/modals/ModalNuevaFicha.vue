@@ -106,7 +106,7 @@
         <button class="btn-guardar" :disabled="guardando" @click="guardar">
           <font-awesome-icon v-if="guardando" :icon="['fas', 'circle-notch']" spin />
           <font-awesome-icon v-else icon="fa-solid fa-check" />
-          Crear ficha
+          {{ guardando ? 'Creando...' : 'Crear ficha' }}
         </button>
       </template>
     </BaseModal>
@@ -174,6 +174,7 @@ const sedesConocidas = computed(() => {
 const colorTipo = (tipo) => COLORES_TIPO_COMPETENCIA[tipo] || 'var(--borde)';
 
 async function guardar() {
+  if (guardando.value) return; // Previene doble clic
   error.value = '';
   if (!form.programa_id) return (error.value = 'Seleccione el programa del catálogo.');
   if (!form.codigo || form.codigo.length < 4) return (error.value = 'Escriba el código de la ficha (mínimo 4 dígitos).');
@@ -183,10 +184,15 @@ async function guardar() {
   if (!form.numero_aprendices || form.numero_aprendices < 1) return (error.value = 'Indique el número de aprendices.');
 
   guardando.value = true;
+  const start = Date.now();
   const resultado = await store.crearFicha({
     ...form,
     instructor_titular_id: form.instructor_titular_id || null,
   });
+  const elapsed = Date.now() - start;
+  if (elapsed < 500) {
+    await new Promise(r => setTimeout(r, 500 - elapsed));
+  }
   guardando.value = false;
 
   if (resultado.success) {

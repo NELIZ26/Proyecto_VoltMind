@@ -66,7 +66,6 @@ async def cliente_dataverse() -> httpx.AsyncClient:
         timeout=15.0
     )
 
-# Adaptación de la función existente
 async def consultar_dataverse(query: str) -> dict:
     # Ahora usamos el cliente global sin cerrarlo
     client = obtener_cliente()
@@ -86,6 +85,57 @@ async def consultar_dataverse(query: str) -> dict:
             status_code=500, 
             detail="Error interno del servidor al conectar con Dataverse."
         )
+
+# 🚀 NUEVOS MÉTODOS PARA CRUD 
+async def crear_registro_dataverse(tabla: str, datos: dict) -> dict:
+    """Hace un POST a Dataverse para crear un registro y retorna la respuesta."""
+    client = obtener_cliente()
+    try:
+        # Prefer: return=representation devuelve el objeto creado con su ID
+        response = await client.post(tabla, json=datos, headers={"Prefer": "return=representation"})
+        response.raise_for_status()
+        
+        if response.status_code == 204:
+            import re
+            entity_id_url = response.headers.get("OData-EntityId", "")
+            match = re.search(r"\((.*?)\)", entity_id_url)
+            if match:
+                return {"cr6a3_programasid": match.group(1), "id_from_header": match.group(1)}
+            return {}
+            
+        return response.json()
+    except httpx.HTTPStatusError as exc:
+        print(f"Error HTTP de Dataverse al crear en {tabla}: {exc.response.text}")
+        raise HTTPException(status_code=exc.response.status_code, detail=f"Error al crear el registro en Dataverse: {exc.response.text}")
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Error interno al conectar con Dataverse.")
+
+async def actualizar_registro_dataverse(tabla: str, id_registro: str, datos: dict) -> dict:
+    """Hace un PATCH a Dataverse para actualizar un registro."""
+    client = obtener_cliente()
+    try:
+        url = f"{tabla}({id_registro})"
+        response = await client.patch(url, json=datos, headers={"Prefer": "return=representation"})
+        response.raise_for_status()
+        return response.json() if response.content else {}
+    except httpx.HTTPStatusError as exc:
+        print(f"Error HTTP de Dataverse al actualizar en {tabla}: {exc.response.text}")
+        raise HTTPException(status_code=exc.response.status_code, detail=f"Error al actualizar el registro en Dataverse.")
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Error interno al conectar con Dataverse.")
+
+async def eliminar_registro_dataverse(tabla: str, id_registro: str) -> None:
+    """Hace un DELETE a Dataverse para eliminar un registro."""
+    client = obtener_cliente()
+    try:
+        url = f"{tabla}({id_registro})"
+        response = await client.delete(url)
+        response.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        print(f"Error HTTP de Dataverse al eliminar en {tabla}: {exc.response.text}")
+        raise HTTPException(status_code=exc.response.status_code, detail=f"Error al eliminar el registro en Dataverse.")
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail="Error interno al conectar con Dataverse.")
 
 def sanitizar_odata(texto: str) -> str:
     """

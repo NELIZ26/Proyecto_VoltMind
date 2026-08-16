@@ -60,7 +60,7 @@
           <h4 class="seccion-titulo">
             <font-awesome-icon icon="fa-solid fa-list-check" /> 2. Competencia del programa
           </h4>
-          <select v-model="form.competencia_id" class="form-input select-completo">
+          <select v-model="form.competencia_id" class="form-input select-completo" :disabled="disponibilidad?.ficha_ocupada != null">
             <option value="" disabled>Seleccione la competencia a programar...</option>
             <option v-for="c in ficha.diagnostico" :key="c.id" :value="c.id">
               {{ c.nombre }} — {{ c.tipo }} ({{ c.horas_programadas }}/{{ c.horas }} h programadas)
@@ -69,7 +69,7 @@
         </section>
 
         <!-- 3. Instructor (semáforo de disponibilidad) -->
-        <section class="seccion">
+        <section v-if="!disponibilidad?.ficha_ocupada" class="seccion">
           <h4 class="seccion-titulo">
             <font-awesome-icon icon="fa-solid fa-chalkboard-user" /> 3. Instructor
             <span v-if="consultando" class="consultando">
@@ -135,8 +135,8 @@
           </p>
         </section>
 
-        <!-- 4. Ambiente -->
-        <section class="seccion">
+        <!-- 4. Ambiente (semáforo de disponibilidad) -->
+        <section v-if="!disponibilidad?.ficha_ocupada" class="seccion">
           <h4 class="seccion-titulo">
             <font-awesome-icon icon="fa-solid fa-location-dot" /> 4. Ambiente de formación
           </h4>
@@ -192,7 +192,7 @@
           <font-awesome-icon icon="fa-solid fa-trash-can" /> Eliminar
         </button>
         <button class="btn-cancelar" :disabled="guardando" @click="$emit('close')">Cancelar</button>
-        <button class="btn-guardar" :disabled="guardando" @click="guardar">
+        <button class="btn-guardar" :disabled="guardando || disponibilidad?.ficha_ocupada != null" @click="guardar">
           <font-awesome-icon v-if="guardando" :icon="['fas', 'circle-notch']" spin />
           <font-awesome-icon v-else icon="fa-solid fa-check" />
           {{ esEdicion ? 'Guardar cambios' : 'Programar' }}

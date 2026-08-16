@@ -16,10 +16,47 @@
       <li>
         <router-link to="/programador-academico/tituladas" class="menu-link" @click="handleMenuClick">
           <div class="icon-box">
-            <font-awesome-icon icon="fa-solid fa-layer-group" fixed-width />
+            <font-awesome-icon icon="fa-solid fa-chart-line" fixed-width />
           </div>
-          <span class="menu-text">Fichas Tituladas</span>
+          <span class="menu-text">Panel Principal</span>
         </router-link>
+      </li>
+      <li>
+        <router-link to="/programador-academico/directorio" class="menu-link" @click="handleMenuClick">
+          <div class="icon-box">
+            <font-awesome-icon icon="fa-solid fa-address-book" fixed-width />
+          </div>
+          <span class="menu-text">Directorio de Fichas</span>
+        </router-link>
+      </li>
+      <li class="menu-category">CONFIGURACIÓN</li>
+      <li>
+        <button class="menu-link button-link" @click="isConfigOpen = !isConfigOpen">
+          <div class="icon-box">
+            <font-awesome-icon icon="fa-solid fa-gear" fixed-width />
+          </div>
+          <span class="menu-text">Ajustes del Programa</span>
+          <font-awesome-icon :icon="isConfigOpen ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down'" class="chevron" />
+        </button>
+        
+        <ul v-show="isConfigOpen" class="submenu">
+          <li>
+            <button class="menu-link button-link submenu-btn" @click="abrirCatalogo">
+              <div class="icon-box">
+                <font-awesome-icon icon="fa-solid fa-folder-open" fixed-width />
+              </div>
+              <span class="menu-text">Catálogo de Programas</span>
+            </button>
+          </li>
+          <li>
+            <button class="menu-link button-link submenu-btn" @click="abrirNuevaFicha">
+              <div class="icon-box action-icon">
+                <font-awesome-icon icon="fa-solid fa-plus" fixed-width />
+              </div>
+              <span class="menu-text">Nueva Ficha</span>
+            </button>
+          </li>
+        </ul>
       </li>
       <li class="logout-item">
         <router-link to="/login" class="menu-link logout-link" @click="handleMenuClick">
@@ -35,6 +72,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useTituladasStore } from '@/stores/tituladas';
 
 const props = defineProps({
   isOpen: {
@@ -44,8 +82,20 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close']);
+const store = useTituladasStore();
+const isConfigOpen = ref(false);
 
 const handleMenuClick = () => {
+  emit('close');
+};
+
+const abrirCatalogo = () => {
+  store.abrirModalCatalogo();
+  emit('close');
+};
+
+const abrirNuevaFicha = () => {
+  store.abrirModalNuevaFicha();
   emit('close');
 };
 </script>
@@ -247,5 +297,43 @@ const handleMenuClick = () => {
   background-color: #E53E3E;
   color: white;
   box-shadow: 0 4px 12px rgba(229, 62, 62, 0.25);
+}
+
+.button-link {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.95rem;
+  border: 1px solid transparent; /* Ensure identical styling to router-links */
+}
+
+.submenu {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-left: 1rem;
+  margin-top: 0.5rem;
+  border-left: 2px solid var(--borde);
+  margin-left: 1.5rem;
+}
+
+.submenu-btn {
+  padding: 0.5rem 0.8rem;
+}
+
+.chevron {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--texto-secundario);
+}
+
+.action-icon {
+  color: var(--sena-verde);
+  background: rgba(57, 169, 0, 0.1);
 }
 </style>

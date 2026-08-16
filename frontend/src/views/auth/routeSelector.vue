@@ -9,6 +9,15 @@ const toast = useToast();
 // Mapeo de entornos de desarrollo con sus roles asociados (Limpio y fusionado)
 const devLogins = [
   {
+    role: "admin_dashboard",
+    path: "/admin/dashboard",
+    name: "Admin Dashboard",
+    desc: "Nueva ruta de administración y dashboard.",
+    icon: "chart-line",
+    color: "var(--sena-azul-oscuro, #003040)",
+    glow: "rgba(0, 48, 64, 0.25)",
+  },
+  {
     role: "dinamizador",
     path: "/dashboard-admin",
     name: "Dinamizador Energético",

@@ -61,6 +61,8 @@ export const useTituladasStore = defineStore('tituladas', {
     cargandoDetalle: false,
     errorConexion: null,
     modoDemo: false,
+    showModalNuevaFicha: false,
+    showModalCatalogo: false,
     _inicializado: false,
   }),
 
@@ -223,5 +225,11 @@ export const useTituladasStore = defineStore('tituladas', {
         return { success: false, error: e.message };
       }
     },
+
+    // ── Control de Modales Globales ──
+    abrirModalNuevaFicha() { this.showModalNuevaFicha = true; },
+    cerrarModalNuevaFicha() { this.showModalNuevaFicha = false; },
+    abrirModalCatalogo() { this.showModalCatalogo = true; },
+    cerrarModalCatalogo() { this.showModalCatalogo = false; },
   },
 });

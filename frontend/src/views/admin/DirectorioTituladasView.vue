@@ -4,12 +4,11 @@
     <header class="dash-header">
       <div class="header-left">
         <div class="environment-badge">
-          <h1>PANEL PRINCIPAL</h1>
+          <h1><font-awesome-icon :icon="['fas', 'address-book']" /> DIRECTORIO DE FICHAS</h1>
           <p class="header-meta">
-            Programación académica de la etapa lectiva
+            Buscador y listado completo de fichas programadas
             <span v-if="store.indicadores">
-              | {{ store.indicadores.total_fichas }} fichas ·
-              {{ store.indicadores.promedio_programacion }}% programado en promedio
+              | {{ store.indicadores.total_fichas }} fichas
             </span>
             <span v-if="store.modoDemo" class="chip-demo">MODO DEMO</span>
           </p>
@@ -18,7 +17,7 @@
     </header>
 
     <!-- ── INDICADORES ── -->
-    <section v-if="store.indicadores && !store.errorConexion" class="indicadores-grid">
+    <section v-if="false" class="indicadores-grid">
       <!-- Meta del 70% -->
       <article class="module-card ind-card">
         <p class="ind-titulo">
@@ -64,19 +63,8 @@
         <template v-if="store.indicadores.alertas_tecnica.length">
           <div class="ind-principal">
             <span class="ind-numero alerta">{{ store.indicadores.alertas_tecnica.length }}</span>
-            <span class="ind-contexto">
-              {{ store.indicadores.alertas_tecnica.length === 1 ? 'ficha con la parte técnica' : 'fichas con la parte técnica' }}
-              por debajo del {{ store.indicadores.meta_tecnica }}% de lo programado
-            </span>
+            <span class="ind-contexto"></span>
           </div>
-          <ul class="ind-lista">
-            <li v-for="a in store.indicadores.alertas_tecnica" :key="a.id">
-              <router-link :to="`/programador-academico/tituladas/${a.id}`" class="chip-ficha alerta" :title="a.programa">
-                {{ a.codigo }} · técnica {{ a.porcentaje_tecnica }}%
-              </router-link>
-              <span class="ind-lista-texto">{{ a.programa }}</span>
-            </li>
-          </ul>
         </template>
         <template v-else>
           <div class="ind-principal">
@@ -125,7 +113,7 @@
     </section>
 
     <!-- Filtros -->
-    <div v-if="false" class="module-card filtros-card">
+    <div class="module-card filtros-card">
       <div class="filters-group">
         <div class="search-box">
           <font-awesome-icon icon="fa-solid fa-magnifying-glass" class="search-icon" />
@@ -180,7 +168,7 @@
     </div>
 
     <!-- ── DIRECTORIO DE FICHAS ── -->
-    <main v-if="false" class="module-card tabla-card">
+    <main v-else class="module-card tabla-card">
       <div class="tabla-toolbar">
         <h2 class="module-title">
           <font-awesome-icon icon="fa-solid fa-clipboard-list" /> DIRECTORIO DE FICHAS TITULADAS
@@ -454,72 +442,38 @@ onMounted(() => store.initStore());
 .ind-card {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  background: linear-gradient(145deg, var(--fondo-tarjetas) 0%, rgba(57, 169, 0, 0.03) 100%);
-  border: 1px solid rgba(57, 169, 0, 0.15);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
-  border-radius: 16px;
-  padding: 1.8rem 1.5rem;
-}
-
-.ind-card::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 5px;
-  height: 100%;
-  background: var(--sena-verde);
-  border-radius: 4px 0 0 4px;
-  opacity: 0.9;
-}
-
-.ind-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 12px 32px rgba(57, 169, 0, 0.12);
+  gap: 0.8rem;
 }
 
 .ind-titulo {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 1px;
   color: var(--texto-secundario);
   display: flex;
   align-items: center;
-  gap: 10px;
-  text-transform: uppercase;
+  gap: 8px;
 }
 
-.ind-titulo svg { 
-  color: var(--sena-verde);
-  font-size: 1.2rem;
-  background: rgba(57, 169, 0, 0.1);
-  padding: 6px;
-  border-radius: 8px;
-}
+.ind-titulo svg { color: var(--sena-verde); }
 
 .ind-principal {
   display: flex;
   align-items: baseline;
   gap: 10px;
   flex-wrap: wrap;
-  margin-top: 0.5rem;
 }
 
 .ind-numero {
-  font-size: 2.8rem;
-  font-weight: 900;
+  font-size: 2rem;
+  font-weight: 800;
   color: var(--sena-verde);
   line-height: 1;
-  text-shadow: 0 2px 10px rgba(57, 169, 0, 0.2);
 }
 
-.ind-numero.alerta { color: #e67e22; text-shadow: 0 2px 10px rgba(230, 126, 34, 0.2); }
-.ind-numero.ok { color: var(--sena-verde); font-size: 2rem; }
+.ind-numero.alerta { color: #e67e22; }
+.ind-numero.ok { color: var(--sena-verde); font-size: 1.6rem; }
 
 .ind-contexto {
   font-size: 0.78rem;
@@ -582,33 +536,31 @@ onMounted(() => store.initStore());
 /* Barra de progreso con marca de meta */
 .barra {
   position: relative;
-  height: 10px;
-  background: var(--borde);
-  border-radius: 8px;
+  height: 8px;
+  background: var(--fondo-app);
+  border: 1px solid var(--borde);
+  border-radius: 6px;
   overflow: hidden;
   flex: 1;
 }
 
 .barra-relleno {
   height: 100%;
-  border-radius: 8px;
-  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  transition: width 0.4s ease;
 }
 
-.barra-ok { background: linear-gradient(90deg, #2ecc71, var(--sena-verde)); }
-.barra-alerta { background: linear-gradient(90deg, #f39c12, #e67e22); }
-.barra-roja { background: linear-gradient(90deg, #e74c3c, #c0392b); }
+.barra-ok { background: var(--sena-verde); }
+.barra-alerta { background: #e67e22; }
+.barra-roja { background: #e53e3e; }
 
 .barra-meta {
   position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 3px;
+  top: -2px;
+  bottom: -2px;
+  width: 2px;
   background: var(--sena-azul-oscuro);
-  opacity: 0.8;
-  border-radius: 2px;
-  box-shadow: 0 0 5px rgba(0,0,0,0.5);
+  opacity: 0.55;
 }
 
 /* Carga por instructor */
