@@ -10,6 +10,7 @@ from functools import wraps
 
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 
 from schemas.tituladas import (
     AsignacionTituladaCreate,
@@ -60,8 +61,17 @@ async def crear_ficha(datos: FichaTituladaCreate):
 @router.get("/fichas/{ficha_id}")
 @_con_manejo_de_errores
 async def obtener_ficha(ficha_id: str):
-    """Detalle de una ficha: diagnóstico de competencias + asignaciones del calendario."""
+    """Detalle completo de la ficha, incluyendo diagnóstico y calendario."""
     return await servicio.obtener_ficha(ficha_id)
+
+class AsignarTitularPayload(BaseModel):
+    instructor_titular_id: str | None = None
+
+@router.put("/fichas/{ficha_id}/titular")
+@_con_manejo_de_errores
+async def actualizar_titular(ficha_id: str, datos: AsignarTitularPayload):
+    """Actualiza el instructor titular de la ficha."""
+    return await servicio.actualizar_titular_ficha(ficha_id, datos.instructor_titular_id)
 
 
 @router.put("/fichas/{ficha_id}/diagnostico")
