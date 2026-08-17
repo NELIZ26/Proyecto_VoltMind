@@ -536,8 +536,10 @@ async def listar_fichas(buscar: str | None = None, jornada: str | None = None, s
         import asyncio
         res_comps_task = consultar_dataverse("cr6a3_competenciafichas?$select=cr6a3_horas,_cr6a3_fichaid_value,cr6a3_tipo")
         res_asig_task = consultar_dataverse("cr6a3_asignacioneses?$select=cr6a3_horas,_cr6a3_fichaid_value,_cr6a3_competenciafichaid_value")
+        res_inst_task = listar_instructores()
         
-        res_comps, res_asig = await asyncio.gather(res_comps_task, res_asig_task)
+        res_comps, res_asig, instructores_list = await asyncio.gather(res_comps_task, res_asig_task, res_inst_task)
+        instructores_dict = {i["id"]: i for i in instructores_list}
         
         # Agrupar por ficha
         from collections import defaultdict
@@ -584,6 +586,8 @@ async def listar_fichas(buscar: str | None = None, jornada: str | None = None, s
             
             pct_prog = round((horas_prog / total_horas * 100)) if total_horas > 0 else 0
             
+            titular_id = f.get("_cr6a3_instructorasignado_value")
+            
             fichas_mapeadas.append({
                 "id": fid,
                 "codigo": codigo,
@@ -595,8 +599,8 @@ async def listar_fichas(buscar: str | None = None, jornada: str | None = None, s
                 "fecha_inicio": f.get("cr6a3_fecha_inicio", "")[:10] if f.get("cr6a3_fecha_inicio") else "",
                 "fecha_fin": f.get("cr6a3_fecha_fin", "")[:10] if f.get("cr6a3_fecha_fin") else "",
                 "numero_aprendices": 0,
-                "instructor_titular": None,
-                "instructor_titular_id": f.get("_cr6a3_instructorasignado_value"),
+                "instructor_titular": instructores_dict.get(titular_id),
+                "instructor_titular_id": titular_id,
                 "tiene_diagnostico": len(comps_ficha) > 0,
                 "total_horas_programa": total_horas,
                 "horas_programadas": horas_prog,
@@ -660,6 +664,9 @@ async def obtener_ficha(ficha_id: str) -> dict:
         res_inst = await consultar_dataverse("cr6a3_instructors")
         instructores_dict = {(i.get("cr6a3_instructorid") or "").lower(): i.get("cr6a3_nombre_completo") or "Instructor Asignado" for i in res_inst.get("value", [])}
         
+        instructores_list = await listar_instructores()
+        instructores_full_dict = {i["id"]: i for i in instructores_list}
+        
         from collections import defaultdict
         horas_por_comp = defaultdict(int)
         instructores_por_comp = defaultdict(set)
@@ -722,7 +729,8 @@ async def obtener_ficha(ficha_id: str) -> dict:
             "fecha_inicio": ficha_db.get("cr6a3_fecha_inicio", "")[:10] if ficha_db.get("cr6a3_fecha_inicio") else "",
             "fecha_fin": ficha_db.get("cr6a3_fecha_fin", "")[:10] if ficha_db.get("cr6a3_fecha_fin") else "",
             "numero_aprendices": 0,
-            "instructor_titular": None,
+            "instructor_titular": instructores_full_dict.get(ficha_db.get("_cr6a3_instructorasignado_value")),
+            "instructor_titular_id": ficha_db.get("_cr6a3_instructorasignado_value"),
             "tiene_diagnostico": len(diagnostico) > 0,
             "diagnostico": diagnostico,
             "archivos": [],
@@ -1552,7 +1560,7 @@ async def actualizar_titular_ficha(ficha_id: str, instructor_id: str | None) -> 
             pass
             
         if payload:
-            await actualizar_registro_dataverse(f"cr6a3_fichas({ficha_id})", payload)
+            await actualizar_registro_dataverse("cr6a3_fichas", ficha_id, payload)
         return {"success": True}
 
     _exigir_demo()
