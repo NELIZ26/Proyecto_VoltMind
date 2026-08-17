@@ -211,11 +211,17 @@
                 </div>
               </td>
               <td>
-                <span v-if="f.instructor_titular" class="titular">
-                  <span class="punto-color" :style="{ background: f.instructor_titular.color }"></span>
-                  {{ f.instructor_titular.nombre }}
-                </span>
-                <span v-else class="titular sin-titular">Sin titular asignado</span>
+                <div class="titular-container">
+                  <span v-if="store.actualizandoTitularId === f.id" class="titular">
+                    <font-awesome-icon :icon="['fas', 'circle-notch']" spin />
+                    Guardando...
+                  </span>
+                  <span v-else-if="f.instructor_titular" class="titular">
+                    <span class="punto-color" :style="{ background: f.instructor_titular.color }"></span>
+                    {{ f.instructor_titular.nombre }}
+                  </span>
+                  <span v-else class="titular sin-titular">Sin titular asignado</span>
+                </div>
               </td>
               <td class="text-center">
                 <span class="badge-jornada" :class="`jornada-${f.jornada.toLowerCase()}`">

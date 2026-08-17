@@ -73,16 +73,20 @@ watch(
 async function guardar() {
   if (guardando.value || !props.ficha) return;
   error.value = '';
-  guardando.value = true;
+  
+  const fichaId = props.ficha.id;
+  const instructorId = form.instructor_id;
 
-  const resultado = await store.asignarTitular(props.ficha.id, form.instructor_id);
-  guardando.value = false;
+  // Cerramos el modal inmediatamente
+  emit('close');
+
+  // Ejecutamos la acción en background
+  const resultado = await store.asignarTitular(fichaId, instructorId);
 
   if (resultado.success) {
     toast.success('Instructor titular actualizado correctamente.');
-    emit('close');
   } else {
-    error.value = resultado.error;
+    toast.error('Error al asignar titular: ' + resultado.error);
   }
 }
 </script>
@@ -139,5 +143,42 @@ async function guardar() {
   align-items: center;
   gap: 0.5rem;
   margin: 0;
+}
+
+.btn-guardar {
+  background: var(--sena-verde);
+  color: var(--sena-blanco);
+  border: none;
+  padding: 0.7rem 1.4rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.btn-guardar:hover:not(:disabled) { background: var(--sena-verde-oscuro); }
+
+.btn-cancelar {
+  background: transparent;
+  border: 1px solid var(--borde);
+  color: var(--texto-secundario);
+  padding: 0.7rem 1.2rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-cancelar:hover:not(:disabled) { border-color: var(--texto-secundario); }
+
+.btn-guardar:disabled,
+.btn-cancelar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 </style>

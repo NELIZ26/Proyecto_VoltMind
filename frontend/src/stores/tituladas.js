@@ -63,6 +63,7 @@ export const useTituladasStore = defineStore('tituladas', {
     modoDemo: false,
     showModalNuevaFicha: false,
     showModalCatalogo: false,
+    actualizandoTitularId: null,
     _inicializado: false,
   }),
 
@@ -185,10 +186,31 @@ export const useTituladasStore = defineStore('tituladas', {
 
     async asignarTitular(fichaId, instructorId) {
       try {
+        this.actualizandoTitularId = fichaId;
+        
+        // Optimistic update local
+        const instructor = this.instructores.find(i => i.id === instructorId) || null;
+        const infoTitular = instructor ? { id: instructor.id, nombre: instructor.nombre, color: instructor.color } : null;
+        
+        if (this.fichaActual && this.fichaActual.id === fichaId) {
+          this.fichaActual.instructor_titular_id = instructorId;
+          this.fichaActual.instructor_titular = infoTitular;
+        }
+        const fichaEnLista = this.fichas.find(f => f.id === fichaId);
+        if (fichaEnLista) {
+          fichaEnLista.instructor_titular_id = instructorId;
+          fichaEnLista.instructor_titular = infoTitular;
+        }
+
         await tituladasService.actualizarTitular(fichaId, instructorId);
-        await this.cargarTodo();
+        
+        // Refrescamos en background
+        await this._refrescarTrasCambio(fichaId);
+        
+        this.actualizandoTitularId = null;
         return { success: true };
       } catch (e) {
+        this.actualizandoTitularId = null;
         return { success: false, error: e.message };
       }
     },

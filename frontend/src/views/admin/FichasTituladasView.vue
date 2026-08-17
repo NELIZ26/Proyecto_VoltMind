@@ -223,8 +223,12 @@
                 </div>
               </td>
               <td>
-                <div class="titular-container" @click.stop="abrirModalTitular(f)">
-                  <span v-if="f.instructor_titular" class="titular clickable">
+                <div class="titular-container" @click.stop="store.actualizandoTitularId === f.id ? null : abrirModalTitular(f)">
+                  <span v-if="store.actualizandoTitularId === f.id" class="titular">
+                    <font-awesome-icon :icon="['fas', 'circle-notch']" spin />
+                    Guardando...
+                  </span>
+                  <span v-else-if="f.instructor_titular" class="titular clickable">
                     <span class="punto-color" :style="{ background: f.instructor_titular.color }"></span>
                     {{ f.instructor_titular.nombre }}
                   </span>
