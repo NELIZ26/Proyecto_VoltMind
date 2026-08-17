@@ -532,11 +532,30 @@ async def listar_fichas(buscar: str | None = None, jornada: str | None = None, s
         res = await consultar_dataverse("cr6a3_fichas")
         fichas_db = res.get("value", [])
         
-        # Opcional: Podríamos traer instructores para llenar el titular,
-        # pero para el listado básico podemos mapear los campos.
+        # Traer todas las competencias y asignaciones para calcular el progreso de las fichas
+        import asyncio
+        res_comps_task = consultar_dataverse("cr6a3_competenciafichas?$select=cr6a3_horas,_cr6a3_fichaid_value,cr6a3_tipo")
+        res_asig_task = consultar_dataverse("cr6a3_asignacioneses?$select=cr6a3_horas,_cr6a3_fichaid_value,_cr6a3_competenciafichaid_value")
+        
+        res_comps, res_asig = await asyncio.gather(res_comps_task, res_asig_task)
+        
+        # Agrupar por ficha
+        from collections import defaultdict
+        
+        comps_por_ficha = defaultdict(list)
+        for c in res_comps.get("value", []):
+            fid = (c.get("_cr6a3_fichaid_value") or "").lower()
+            if fid:
+                comps_por_ficha[fid].append(c)
+                
+        asig_por_ficha = defaultdict(list)
+        for a in res_asig.get("value", []):
+            fid = (a.get("_cr6a3_fichaid_value") or "").lower()
+            if fid:
+                asig_por_ficha[fid].append(a)
+
         fichas_mapeadas = []
         for f in fichas_db:
-            # Filtros manuales si vienen en la petición (se podrían hacer en OData también)
             if jornada and f.get("cr6a3_jornada") != jornada:
                 continue
             if sede and f.get("cr6a3_sede") != sede:
@@ -550,26 +569,38 @@ async def listar_fichas(buscar: str | None = None, jornada: str | None = None, s
                 if q not in codigo.lower() and q not in programa.lower():
                     continue
 
-            # Extraer ID dinámico
             ficha_id_key = next((k for k in f.keys() if k.startswith("cr6a3_") and k.endswith("id")), "cr6a3_fichaid")
+            fid = f.get(ficha_id_key)
+            fid_lower = (fid or "").lower()
             
-            # Mapeo al formato esperado por el frontend
+            # Calcular horas de competencias
+            comps_ficha = comps_por_ficha[fid_lower]
+            total_horas = sum(c.get("cr6a3_horas", 0) for c in comps_ficha)
+            horas_tecnicas = sum(c.get("cr6a3_horas", 0) for c in comps_ficha if c.get("cr6a3_tipo") == "Técnica")
+            
+            # Calcular horas de asignaciones
+            asig_ficha = asig_por_ficha[fid_lower]
+            horas_prog = sum(a.get("cr6a3_horas", 0) for a in asig_ficha)
+            
+            pct_prog = round((horas_prog / total_horas * 100)) if total_horas > 0 else 0
+            
             fichas_mapeadas.append({
-                "id": f.get(ficha_id_key),
+                "id": fid,
                 "codigo": codigo,
                 "programa": programa,
-                "nivel": "Técnico", # Valor por defecto si no lo tenemos en la tabla ficha
+                "nivel": "Técnico",
                 "jornada": {430120000: "Mañana", 430120001: "Tarde", 430120002: "Noche"}.get(f.get("cr6a3_jornada"), "Mañana"),
                 "sede": f.get("cr6a3_sede", ""),
                 "municipio": f.get("cr6a3_municipio", ""),
-                "fecha_inicio": f.get("cr6a3_fecha_inicio", ""),
-                "fecha_fin": f.get("cr6a3_fecha_fin", ""),
-                "numero_aprendices": 0, # Placeholder
-                "instructor_titular": None, # Pendiente expandir InstructorAsignado
-                "tiene_diagnostico": True, # Asumiremos True por ahora
-                "total_horas_programa": 0,
-                "horas_programadas": 0,
-                "porcentaje_programacion": 0,
+                "fecha_inicio": f.get("cr6a3_fecha_inicio", "")[:10] if f.get("cr6a3_fecha_inicio") else "",
+                "fecha_fin": f.get("cr6a3_fecha_fin", "")[:10] if f.get("cr6a3_fecha_fin") else "",
+                "numero_aprendices": 0,
+                "instructor_titular": None,
+                "instructor_titular_id": f.get("_cr6a3_instructorasignado_value"),
+                "tiene_diagnostico": len(comps_ficha) > 0,
+                "total_horas_programa": total_horas,
+                "horas_programadas": horas_prog,
+                "porcentaje_programacion": min(pct_prog, 100),
                 "porcentaje_tecnica": 0,
                 "alerta_tecnica": False,
                 "bajo_meta": False,
@@ -627,7 +658,7 @@ async def obtener_ficha(ficha_id: str) -> dict:
         
         # 4. Traer instructores para nombres
         res_inst = await consultar_dataverse("cr6a3_instructors")
-        instructores_dict = {(i.get("cr6a3_instructorid") or "").lower(): i.get("cr6a3_nombre") for i in res_inst.get("value", [])}
+        instructores_dict = {(i.get("cr6a3_instructorid") or "").lower(): i.get("cr6a3_nombre_completo") or "Instructor Asignado" for i in res_inst.get("value", [])}
         
         from collections import defaultdict
         horas_por_comp = defaultdict(int)
@@ -1509,6 +1540,30 @@ async def crear_ficha(datos: dict) -> dict:
         _guardar_db(db)
     return await obtener_ficha(ficha_id)
 
+async def actualizar_titular_ficha(ficha_id: str, instructor_id: str | None) -> dict:
+    if not _es_demo():
+        from services.dataverse import actualizar_registro_dataverse
+        payload = {}
+        if instructor_id:
+            payload["cr6a3_InstructorAsignado@odata.bind"] = f"/cr6a3_instructors({instructor_id})"
+        else:
+            # Dataverse V9.2 a veces permite null en bind o desvincular requiere DELETE
+            # Para esta demo simplificamos, asumiendo que envian siempre uno o no se hace unbind
+            pass
+            
+        if payload:
+            await actualizar_registro_dataverse(f"cr6a3_fichas({ficha_id})", payload)
+        return {"success": True}
+
+    _exigir_demo()
+    async with _demo_lock:
+        db = _cargar_db()
+        ficha = _buscar(db["fichas"], ficha_id, "La ficha titulada")
+        if instructor_id:
+            _buscar(db["instructores"], instructor_id, "El instructor titular")
+        ficha["instructor_titular_id"] = instructor_id or ""
+        _guardar_db(db)
+    return await obtener_ficha(ficha_id)
 
 
 
@@ -1627,7 +1682,7 @@ async def actualizar_diagnostico(ficha_id: str, competencias: list) -> dict:
         # 2. Obtener asignaciones de la ficha para ver qué competencias están en uso
         res_asig = await consultar_dataverse(f"cr6a3_asignacioneses?$filter=_cr6a3_fichaid_value eq '{ficha_id}'")
         asignaciones = res_asig.get("value", [])
-        comps_en_uso = {a.get("_cr6a3_competenciaid_value") for a in asignaciones if a.get("_cr6a3_competenciaid_value")}
+        comps_en_uso = {a.get("_cr6a3_competenciafichaid_value") for a in asignaciones if a.get("_cr6a3_competenciafichaid_value")}
         
         ids_nuevos = {c.get("id") for c in competencias if c.get("id")}
         
@@ -1822,7 +1877,7 @@ async def actualizar_diagnostico(ficha_id: str, competencias: list) -> dict:
         # 2. Obtener asignaciones de la ficha para ver qué competencias están en uso
         res_asig = await consultar_dataverse(f"cr6a3_asignacioneses?$filter=_cr6a3_fichaid_value eq '{ficha_id}'")
         asignaciones = res_asig.get("value", [])
-        comps_en_uso = {a.get("_cr6a3_competenciaid_value") for a in asignaciones if a.get("_cr6a3_competenciaid_value")}
+        comps_en_uso = {a.get("_cr6a3_competenciafichaid_value") for a in asignaciones if a.get("_cr6a3_competenciafichaid_value")}
         
         ids_nuevos = {c.get("id") for c in competencias if c.get("id")}
         

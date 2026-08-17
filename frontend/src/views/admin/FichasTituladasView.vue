@@ -223,11 +223,13 @@
                 </div>
               </td>
               <td>
-                <span v-if="f.instructor_titular" class="titular">
-                  <span class="punto-color" :style="{ background: f.instructor_titular.color }"></span>
-                  {{ f.instructor_titular.nombre }}
-                </span>
-                <span v-else class="titular sin-titular">Sin titular asignado</span>
+                <div class="titular-container" @click.stop="abrirModalTitular(f)">
+                  <span v-if="f.instructor_titular" class="titular clickable">
+                    <span class="punto-color" :style="{ background: f.instructor_titular.color }"></span>
+                    {{ f.instructor_titular.nombre }}
+                  </span>
+                  <span v-else class="titular sin-titular clickable">Sin titular asignado</span>
+                </div>
               </td>
               <td class="text-center">
                 <span class="badge-jornada" :class="`jornada-${f.jornada.toLowerCase()}`">
@@ -280,6 +282,9 @@
       </div>
     </main>
 
+    <ModalNuevaFicha v-model:show="showModalNueva" />
+    <ModalCatalogoProgramas v-model:show="showModalCatalogo" />
+    <ModalAsignarTitular v-model:show="showModalTitular" :ficha="fichaSeleccionada" />
     <!-- Los modales ahora están centralizados en ProgramadorAcademicoLayout.vue -->
   </div>
 </template>
@@ -289,19 +294,40 @@
 // de programación (una fila por ficha, con su avance frente a la meta del 70 %).
 import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { useTituladasStore, COLORES_TIPO_COMPETENCIA } from '@/stores/tituladas';
+import ModalNuevaFicha from '@/components/admin/modals/ModalNuevaFicha.vue';
+import ModalCatalogoProgramas from '@/components/admin/modals/ModalCatalogoProgramas.vue';
+import ModalAsignarTitular from '@/components/admin/modals/ModalAsignarTitular.vue';
 import { useToast } from 'vue-toastification';
 import { tituladasService } from '@/services/tituladasService';
 import {
-  useTituladasStore,
   JORNADAS_TITULADAS,
   META_PROGRAMACION,
   META_TECNICA,
   horarioJornada,
 } from '@/stores/tituladas';
 
-const store = useTituladasStore();
 const router = useRouter();
+const store = useTituladasStore();
 const toast = useToast();
+
+const viewCargando = ref(true);
+
+// Estado de modales
+const showModalNueva = ref(false);
+const showModalCatalogo = ref(false);
+const showModalTitular = ref(false);
+const fichaSeleccionada = ref(null);
+
+// Filtros
+const qBuscar = ref('');
+const filterJornada = ref('');
+const filterSede = ref('');
+
+function abrirModalTitular(ficha) {
+  fichaSeleccionada.value = ficha;
+  showModalTitular.value = true;
+}
 
 const NOMBRES_MESES = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -917,13 +943,25 @@ onMounted(() => store.initStore());
 .programa-nivel { font-size: 0.7rem; color: var(--texto-secundario); }
 
 .titular {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 8px;
-  font-weight: 600;
-  white-space: nowrap;
+  gap: 0.5rem;
+  font-weight: 500;
+  transition: color 0.2s ease;
 }
-
+.titular-container {
+  display: inline-block;
+}
+.clickable {
+  cursor: pointer;
+}
+.titular-container:hover .titular {
+  color: var(--acento);
+}
+.titular-container:hover .sin-titular {
+  color: var(--acento);
+  opacity: 0.8;
+}
 .sin-titular { color: var(--texto-secundario); font-style: italic; font-weight: 400; }
 
 .badge-jornada {

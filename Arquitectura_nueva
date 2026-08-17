@@ -1,0 +1,63 @@
+# Arquitectura Dataverse: Catálogo de Programas y Fichas
+
+Para manejar correctamente la creación de **Programas de Formación (Catálogo)** con sus múltiples **Competencias** y luego instanciar **Fichas Tituladas** a partir de ellos, te sugiero la siguiente estructura relacional en Microsoft Dataverse.
+
+## 1. El Modelo Relacional (Tablas en Dataverse)
+
+Necesitamos 4 tablas (entidades) principales con sus respectivos prefijos (el prefijo actual configurado en Dataverse es `cr6a3_`).
+
+### 📁 1. Tabla: `cr6a3_programas` (Catálogo Base)
+Esta tabla actúa como la plantilla principal.
+* **`cr6a3_nombre`** (Texto, Columna principal) - Ej: "ADSO"
+* **`cr6a3_version`** (Texto) - Ej: "V1.0"
+* **`cr6a3_nivel`** (Opción/Choice) - "Técnico" (430120001), "Tecnólogo" (430120000), etc.
+
+### 🧩 2. Tabla: `cr6a3_competenciasprograma` (Plantilla de Competencias)
+Esta tabla guarda las competencias *maestras* asociadas a cada programa del catálogo.
+* **`cr6a3_nombre`** (Texto) - Nombre de la competencia
+* **`cr6a3_tipo`** (Texto o Choice) - "Técnica", "Básica", "Transversal", "Inducción"
+* **`cr6a3_horas`** (Número Entero)
+* **`cr6a3_ProgramaId`** (Búsqueda/Lookup) ➔ Relación N:1 con `cr6a3_programas`
+
+### 🎓 3. Tabla: `cr6a3_fichas` (Cohorte/Grupo)
+Representa la ficha específica que se está ejecutando. 
+* **`cr6a3_numero_ficha`** (Texto) - Ej: "2670689"
+* **`cr6a3_ProgramaId`** (Búsqueda/Lookup) ➔ Relación N:1 con `cr6a3_programas`. (De aquí hereda el nombre y el nivel).
+* **`cr6a3_jornada`** (Opción/Choice) - "Mañana" (430120001), "Tarde" (430120002), "Noche" (430120003)
+* **`cr6a3_fecha_inicio`**, **`cr6a3_fecha_fin`** (Fecha/Date)
+* **`cr6a3_sede`** (Texto)
+
+### 📊 4. Tabla: `cr6a3_competenciafichas` (Diagnóstico Instanciado)
+* **`cr6a3_nombre`** (Texto)
+* **`cr6a3_tipo`** (Texto o Choice)
+* **`cr6a3_horas`** (Número Entero)
+* **`cr6a3_FichaId`** (Búsqueda/Lookup) ➔ Relación N:1 con `cr6a3_fichas`
+
+---
+
+## 2. ESTADO ACTUAL DE LA MIGRACIÓN A DATAVERSE (PARA EL PRÓXIMO AGENTE)
+
+El proyecto funciona 100% conectado a Dataverse. Toda la lógica local (JSON) ha sido o está siendo descartada, garantizando que las operaciones de lectura, escritura y validación interactúen directamente con el entorno en la nube.
+
+**Módulo Tituladas (`tituladas_service.py`):**
+1. **Conexión a Dataverse:** Implementada usando `httpx` de forma asíncrona en `services/dataverse.py` (con `DataverseAuth` para obtener el token MSAL dinámicamente e inyectarlo).
+2. **Correcciones técnicas críticas ya resueltas:**
+   - **Pluralización automática de OData:** Dataverse renombra las tablas al exponerlas (ej. `cr6a3_programas` -> `cr6a3_programases`).
+   - **Extracción de Llaves Primarias:** Dataverse retorna código `204 No Content` al crear registros exitosamente, sin devolver un JSON body. El ID primario (ej. `cr6a3_programasid`, `cr6a3_fichasid`) se extrae dinámicamente desde el header `OData-EntityId` de la respuesta HTTP, procesado con Regex en `crear_registro_dataverse`.
+   - **Mapeos de Option Sets (Choice fields):** Dataverse requiere enteros `Edm.Int32` para los campos de selección. Se incluyeron diccionarios internos en `crear_programa` (`map_nivel`) y `crear_ficha` (`map_jornada`) para mapear textos (ej. "Tecnólogo" -> `430120000`, "Mañana" -> `430120001`) al enviarlos en los payloads.
+   - **Consultas OData Nativas:** La recuperación de listas (fichas, programas, instructores, ambientes e indicadores) consulta directamente el CRUD de Dataverse para renderizar el frontend en Vue.js.
+
+### LOGROS COMPLETADOS HASTA AHORA (DONE) ✅
+- **Lectura/Escritura de Programas:** CRUD de programas conectado (`crear_programa`, `listar_programas`). Al guardar el programa base, itera creando las competencias maestras (`cr6a3_competenciasprogramas`).
+- **Lectura/Escritura de Fichas:** CRUD de fichas conectado (`crear_ficha`, `listar_fichas`, `obtener_ficha`). Al guardar la ficha, clona automáticamente la matriz de competencias del programa y crea los registros en `cr6a3_competenciafichas` exitosamente.
+- **Motor de Programación de Horarios (Asignaciones):** 
+  - La creación y actualización de programación (`cr6a3_asignaciones`) cuenta con un riguroso sistema de validación (función `_validar_asignacion_dataverse`).
+  - **Bloqueo de cruces:** El motor verifica por medio de consultas `$filter` a Dataverse que la ficha no exceda sus fechas lectivas, ni posea doble programación en simultáneo. Igualmente restringe que el instructor o el ambiente no se solapen con otras asignaciones durante la misma jornada.
+
+### TAREAS PENDIENTES (TO-DO PARA EL PRÓXIMO AGENTE) 🚀
+
+1. **Módulo de Solicitudes Complementarias:**
+   - Crear el CRUD base (backend y rutado a Dataverse) para manejar el formulario naranja, guardando en la tabla `cr6a3_solicitudcomplementaria`.
+
+---
+*Fin del Contexto. ¡Buena suerte, Agente!*

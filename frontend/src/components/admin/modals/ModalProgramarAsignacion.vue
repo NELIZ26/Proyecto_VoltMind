@@ -26,8 +26,6 @@
                 v-model="form.fecha_inicio"
                 type="date"
                 class="form-input"
-                :min="ficha.fecha_inicio || undefined"
-                :max="ficha.fecha_fin || undefined"
               />
             </label>
             <label class="campo">
@@ -36,8 +34,7 @@
                 v-model="form.fecha_fin"
                 type="date"
                 class="form-input"
-                :min="form.fecha_inicio || ficha.fecha_inicio || undefined"
-                :max="ficha.fecha_fin || undefined"
+                :min="form.fecha_inicio || undefined"
               />
             </label>
             <div v-if="disponibilidad" class="chip-horas" title="Días lunes a viernes × bloque de 6 horas">
@@ -261,6 +258,18 @@ watch(
 
 // Cada cambio del rango recalcula el semáforo de disponibilidad
 watch(() => [form.fecha_inicio, form.fecha_fin], consultarDisponibilidad);
+
+// Pre-selección inteligente: Si la competencia es "Técnica" y la ficha tiene un titular, se auto-asigna
+watch(() => form.competencia_id, (nuevoId) => {
+  if (!nuevoId || !props.ficha || !props.ficha.instructor_titular_id) return;
+  // Solo auto-completar si no estamos en modo edición o si el instructor está vacío
+  if (esEdicion.value && props.asignacion?.instructor?.id) return;
+  
+  const comp = props.ficha.diagnostico?.find(c => c.id === nuevoId);
+  if (comp && comp.tipo === 'Técnica') {
+    form.instructor_id = props.ficha.instructor_titular_id;
+  }
+});
 
 async function consultarDisponibilidad() {
   errorRango.value = '';

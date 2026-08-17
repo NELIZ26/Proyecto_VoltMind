@@ -183,6 +183,16 @@ export const useTituladasStore = defineStore('tituladas', {
       }
     },
 
+    async asignarTitular(fichaId, instructorId) {
+      try {
+        await tituladasService.actualizarTitular(fichaId, instructorId);
+        await this.cargarTodo();
+        return { success: true };
+      } catch (e) {
+        return { success: false, error: e.message };
+      }
+    },
+
     /** Reemplaza la matriz de competencias (diagnóstico) de la ficha abierta. */
     async actualizarDiagnostico(fichaId, competencias) {
       try {

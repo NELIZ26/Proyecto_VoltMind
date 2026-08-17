@@ -58,6 +58,13 @@ export const tituladasService = {
     return solicitar(`/fichas/${fichaId}`);
   },
 
+  actualizarTitular(fichaId, instructorId) {
+    return solicitar(`/fichas/${fichaId}/titular`, {
+      method: 'PUT',
+      body: JSON.stringify({ instructor_titular_id: instructorId || null }),
+    });
+  },
+
   createFicha(datos) {
     return solicitar('/fichas', { method: 'POST', body: JSON.stringify(datos) });
   },
