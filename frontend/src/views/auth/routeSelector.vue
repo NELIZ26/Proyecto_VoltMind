@@ -80,15 +80,29 @@ const devLogins = [
     icon: "file-circle-plus",
     color: "var(--sena-verde, #39a900)",
     glow: "rgba(57, 169, 0, 0.25)"
-  }
+  },
+  {
+    role: "YOLIMA",
+    path: "/admin/instructores",
+    name: "Yolima (Instructores)",
+    desc: "Acceso directo al panel de control de instructores.",
+    icon: "user-tie",
+    color: "#6f42c1",
+    glow: "rgba(111, 66, 193, 0.25)",
+  },
 ];
 
 const simulateLogin = (devAccount) => {
   // 1. Quemamos el rol temporalmente en el entorno local
   localStorage.setItem("user_role", devAccount.role);
+  localStorage.setItem("token", "token_prueba_desarrollo");
+  localStorage.setItem("user", JSON.stringify({ name: devAccount.name, role: devAccount.role }));
 
   // 2. Notificación de éxito
-  toast.success(`Sesión de desarrollo: ${devAccount.name}`);
+  if (typeof authStore !== 'undefined') {
+    authStore.user = { name: devAccount.name, role: devAccount.role };
+    authStore.token = "token_prueba_desarrollo";
+  }
 
   // 3. Redirección al flujo correspondiente
   router.push(devAccount.path);
