@@ -71,7 +71,7 @@ def _exigir_demo() -> None:
 # FECHAS Y HORAS (días hábiles lunes-viernes × bloque de 6 h)
 # ─────────────────────────────────────────────────────────────────────────────
 def _fecha(valor: str) -> date:
-    return date.fromisoformat(valor[:10])
+    return date.fromisoformat(valor)
 
 
 def _dias_habiles(inicio: date, fin: date) -> int:
@@ -526,91 +526,6 @@ def _validar_asignacion(db: dict, datos: dict, excluir_id: str | None = None) ->
 # ─────────────────────────────────────────────────────────────────────────────
 async def listar_fichas(buscar: str | None = None, jornada: str | None = None, sede: str | None = None) -> list:
     """Listado de fichas tituladas con su % de programación calculado."""
-    if not _es_demo():
-        from services.dataverse import consultar_dataverse
-        # Traer todas las fichas
-        res = await consultar_dataverse("cr6a3_fichas")
-        fichas_db = res.get("value", [])
-        
-        # Traer todas las competencias y asignaciones para calcular el progreso de las fichas
-        import asyncio
-        res_comps_task = consultar_dataverse("cr6a3_competenciafichas?$select=cr6a3_horas,_cr6a3_fichaid_value,cr6a3_tipo")
-        res_asig_task = consultar_dataverse("cr6a3_asignacioneses?$select=cr6a3_horas,_cr6a3_fichaid_value,_cr6a3_competenciafichaid_value")
-        res_inst_task = listar_instructores()
-        
-        res_comps, res_asig, instructores_list = await asyncio.gather(res_comps_task, res_asig_task, res_inst_task)
-        instructores_dict = {i["id"]: i for i in instructores_list}
-        
-        # Agrupar por ficha
-        from collections import defaultdict
-        
-        comps_por_ficha = defaultdict(list)
-        for c in res_comps.get("value", []):
-            fid = (c.get("_cr6a3_fichaid_value") or "").lower()
-            if fid:
-                comps_por_ficha[fid].append(c)
-                
-        asig_por_ficha = defaultdict(list)
-        for a in res_asig.get("value", []):
-            fid = (a.get("_cr6a3_fichaid_value") or "").lower()
-            if fid:
-                asig_por_ficha[fid].append(a)
-
-        fichas_mapeadas = []
-        for f in fichas_db:
-            if jornada and f.get("cr6a3_jornada") != jornada:
-                continue
-            if sede and f.get("cr6a3_sede") != sede:
-                continue
-            
-            codigo = f.get("cr6a3_numero_ficha", "")
-            programa = f.get("cr6a3_nombre_programa", "")
-            
-            if buscar:
-                q = buscar.lower()
-                if q not in codigo.lower() and q not in programa.lower():
-                    continue
-
-            ficha_id_key = next((k for k in f.keys() if k.startswith("cr6a3_") and k.endswith("id")), "cr6a3_fichaid")
-            fid = f.get(ficha_id_key)
-            fid_lower = (fid or "").lower()
-            
-            # Calcular horas de competencias
-            comps_ficha = comps_por_ficha[fid_lower]
-            total_horas = sum(c.get("cr6a3_horas", 0) for c in comps_ficha)
-            horas_tecnicas = sum(c.get("cr6a3_horas", 0) for c in comps_ficha if c.get("cr6a3_tipo") == "Técnica")
-            
-            # Calcular horas de asignaciones
-            asig_ficha = asig_por_ficha[fid_lower]
-            horas_prog = sum(a.get("cr6a3_horas", 0) for a in asig_ficha)
-            
-            pct_prog = round((horas_prog / total_horas * 100)) if total_horas > 0 else 0
-            
-            titular_id = f.get("_cr6a3_instructorasignado_value")
-            
-            fichas_mapeadas.append({
-                "id": fid,
-                "codigo": codigo,
-                "programa": programa,
-                "nivel": "Técnico",
-                "jornada": {430120000: "Mañana", 430120001: "Tarde", 430120002: "Noche"}.get(f.get("cr6a3_jornada"), "Mañana"),
-                "sede": f.get("cr6a3_sede", ""),
-                "municipio": f.get("cr6a3_municipio", ""),
-                "fecha_inicio": f.get("cr6a3_fecha_inicio", "")[:10] if f.get("cr6a3_fecha_inicio") else "",
-                "fecha_fin": f.get("cr6a3_fecha_fin", "")[:10] if f.get("cr6a3_fecha_fin") else "",
-                "numero_aprendices": 0,
-                "instructor_titular": instructores_dict.get(titular_id),
-                "instructor_titular_id": titular_id,
-                "tiene_diagnostico": len(comps_ficha) > 0,
-                "total_horas_programa": total_horas,
-                "horas_programadas": horas_prog,
-                "porcentaje_programacion": min(pct_prog, 100),
-                "porcentaje_tecnica": 0,
-                "alerta_tecnica": False,
-                "bajo_meta": False,
-            })
-        return fichas_mapeadas
-
     _exigir_demo()
     db = _cargar_db()
     instructores = {i["id"]: i for i in db["instructores"]}
@@ -644,106 +559,6 @@ async def listar_fichas(buscar: str | None = None, jornada: str | None = None, s
 
 async def obtener_ficha(ficha_id: str) -> dict:
     """Detalle de la ficha: diagnóstico de competencias + asignaciones del calendario."""
-    if not _es_demo():
-        from services.dataverse import consultar_dataverse
-        # 1. Traer la ficha principal
-        try:
-            ficha_db = await consultar_dataverse(f"cr6a3_fichas({ficha_id})")
-        except Exception:
-            raise HTTPException(status_code=404, detail="La ficha no existe.")
-            
-        # 2. Traer las competencias de esta ficha
-        res_comps = await consultar_dataverse(f"cr6a3_competenciafichas?$filter=_cr6a3_fichaid_value eq '{ficha_id}'")
-        competencias_db = res_comps.get("value", [])
-        
-        # 3. Traer asignaciones de la ficha
-        res_asig = await consultar_dataverse(f"cr6a3_asignacioneses?$filter=_cr6a3_fichaid_value eq '{ficha_id}'")
-        asignaciones_db = res_asig.get("value", [])
-        
-        # 4. Traer instructores para nombres
-        res_inst = await consultar_dataverse("cr6a3_instructors")
-        instructores_dict = {(i.get("cr6a3_instructorid") or "").lower(): i.get("cr6a3_nombre_completo") or "Instructor Asignado" for i in res_inst.get("value", [])}
-        
-        instructores_list = await listar_instructores()
-        instructores_full_dict = {i["id"]: i for i in instructores_list}
-        
-        from collections import defaultdict
-        horas_por_comp = defaultdict(int)
-        instructores_por_comp = defaultdict(set)
-        
-        asignaciones = []
-        for a in asignaciones_db:
-            cid = a.get("_cr6a3_competenciafichaid_value") or a.get("_cr6a3_competenciaid_value", "")
-            h = a.get("cr6a3_horas", 0)
-            iid = a.get("_cr6a3_instructorid_value", "")
-            
-            if cid:
-                horas_por_comp[cid.lower()] += h
-                if iid:
-                    instructores_por_comp[cid.lower()].add(instructores_dict.get(iid.lower(), "Instructor Asignado"))
-                    
-            asignaciones.append({
-                "id": a.get("cr6a3_asignacionesid"),
-                "competencia_id": cid,
-                "instructor_id": iid,
-                "ambiente_id": a.get("_cr6a3_ambienteid_value"),
-                "fecha_inicio": a.get("cr6a3_fecha_inicio", "")[:10] if a.get("cr6a3_fecha_inicio") else "",
-                "fecha_fin": a.get("cr6a3_fecha_fin", "")[:10] if a.get("cr6a3_fecha_fin") else "",
-                "horas": h
-            })
-        
-        diagnostico = []
-        for c in competencias_db:
-            cid = c.get("cr6a3_competenciafichaid", "")
-            cid_lower = cid.lower() if cid else ""
-            h_totales = c.get("cr6a3_horas", 0)
-            h_prog = horas_por_comp[cid_lower]
-            pct = round((h_prog / h_totales * 100)) if h_totales > 0 else 0
-            
-            diagnostico.append({
-                "id": cid,
-                "nombre": c.get("cr6a3_nombre", ""),
-                "tipo": c.get("cr6a3_tipo", ""),
-                "horas": h_totales,
-                "horas_programadas": h_prog,
-                "porcentaje": min(pct, 100),
-                "instructores": list(instructores_por_comp[cid_lower]),
-            })
-            
-        # Extraer ID dinámico por si Dataverse lo llama cr6a3_fichasid o cr6a3_fichaid
-        ficha_id_key = next((k for k in ficha_db.keys() if k.startswith("cr6a3_") and k.endswith("id")), "cr6a3_fichaid")
-        
-        map_j = {430120000: "Mañana", 430120001: "Tarde", 430120002: "Noche"}
-        
-        total_prog = sum(c["horas"] for c in diagnostico)
-        horas_prog_total = sum(a["horas"] for a in asignaciones)
-        
-        return {
-            "id": ficha_db.get(ficha_id_key),
-            "codigo": ficha_db.get("cr6a3_numero_ficha", ""),
-            "programa": ficha_db.get("cr6a3_nombre_programa", ""),
-            "nivel": "Técnico",
-            "jornada": map_j.get(ficha_db.get("cr6a3_jornada"), "Mañana"),
-            "sede": ficha_db.get("cr6a3_sede", ""),
-            "municipio": ficha_db.get("cr6a3_municipio", ""),
-            "fecha_inicio": ficha_db.get("cr6a3_fecha_inicio", "")[:10] if ficha_db.get("cr6a3_fecha_inicio") else "",
-            "fecha_fin": ficha_db.get("cr6a3_fecha_fin", "")[:10] if ficha_db.get("cr6a3_fecha_fin") else "",
-            "numero_aprendices": 0,
-            "instructor_titular": instructores_full_dict.get(ficha_db.get("_cr6a3_instructorasignado_value")),
-            "instructor_titular_id": ficha_db.get("_cr6a3_instructorasignado_value"),
-            "tiene_diagnostico": len(diagnostico) > 0,
-            "diagnostico": diagnostico,
-            "archivos": [],
-            "asignaciones": asignaciones,
-            "total_horas_programa": total_prog,
-            "horas_programadas": horas_prog_total,
-            "porcentaje_programacion": round((horas_prog_total / total_prog * 100)) if total_prog > 0 else 0,
-            "porcentaje_tecnica": 0,
-            "alerta_tecnica": False,
-            "bajo_meta": False,
-        }
-
-
     _exigir_demo()
     db = _cargar_db()
     ficha = _buscar(db["fichas"], ficha_id, "La ficha titulada")
@@ -790,37 +605,11 @@ async def obtener_ficha(ficha_id: str) -> dict:
 # CATÁLOGOS (selects del formulario de programación)
 # ─────────────────────────────────────────────────────────────────────────────
 async def listar_instructores() -> list:
-    if not _es_demo():
-        from services.dataverse import consultar_dataverse
-        try:
-            res = await consultar_dataverse("cr6a3_instructors")
-            return [{"id": i.get("cr6a3_instructorid"), "nombre": i.get("cr6a3_nombre_completo", "")} for i in res.get("value", [])]
-        except Exception:
-            return []
     _exigir_demo()
     return _cargar_db()["instructores"]
 
 
 async def listar_ambientes() -> list:
-    if not _es_demo():
-        from services.dataverse import consultar_dataverse
-        try:
-            res = await consultar_dataverse("cr6a3_ambiente_formacions?$expand=cr6a3_sede")
-            lista = []
-            for a in res.get("value", []):
-                sede_obj = a.get("cr6a3_sede") or {}
-                sede_str = sede_obj.get("cr6a3_nombre", "")
-                mun_str = sede_obj.get("cr6a3_municipio", "")
-                ubicacion = f"{sede_str} ({mun_str})" if mun_str else sede_str
-                lista.append({
-                    "id": a.get("cr6a3_ambiente_formacionid"), 
-                    "nombre": a.get("cr6a3_nombre_ambiente", ""), 
-                    "capacidad": a.get("cr6a3_capacidad_aprendices", 30),
-                    "sede": ubicacion
-                })
-            return lista
-        except Exception:
-            return []
     _exigir_demo()
     return _cargar_db()["ambientes"]
 
@@ -843,160 +632,35 @@ async def consultar_disponibilidad(
     if fin < inicio:
         raise HTTPException(status_code=409, detail="La fecha final del rango no puede ser anterior a la inicial.")
 
-    if not _es_demo():
-        from services.dataverse import consultar_dataverse
-        
-        # 1. Ficha info
-        ficha = await obtener_ficha(ficha_id)
-        if not ficha:
-            raise HTTPException(status_code=404, detail="La ficha no existe.")
-        jornada = ficha.get("jornada", "")
-        sede = ficha.get("sede", "")
-        numero_aprendices = ficha.get("numero_aprendices", 0)
-
-        # 2. Instructores, Ambientes, Fichas y Competencias
-        instructores_raw = await consultar_dataverse("cr6a3_instructors")
-        ambientes_raw = await consultar_dataverse("cr6a3_ambiente_formacions?$expand=cr6a3_sede")
-        fichas_raw = await consultar_dataverse("cr6a3_fichas")
-        competencias_raw = await consultar_dataverse("cr6a3_competenciafichas")
-        
-        fichas_dict = {(f.get("cr6a3_fichaid") or "").lower(): f for f in fichas_raw.get("value", [])}
-        comp_dict = {(c.get("cr6a3_competenciafichaid") or "").lower(): c for c in competencias_raw.get("value", [])}
-        
-        # 3. Asignaciones que se cruzan en fecha (inicio <= fin AND fin >= inicio)
-        query_asig = f"cr6a3_asignacioneses?$filter=cr6a3_fecha_inicio le '{fecha_fin}' and cr6a3_fecha_fin ge '{fecha_inicio}'"
-        asignaciones_raw = await consultar_dataverse(query_asig)
-        asignaciones_db = asignaciones_raw.get("value", [])
-
-        map_jornada_inv = {430120000: "Mañana", 430120001: "Tarde", 430120002: "Noche"}
-        map_vinculacion_inv = {430120000: "Planta", 430120001: "Contratista"}
-
-        def cruces_de_dv(campo: str, id_valor: str) -> list:
-            res = []
-            for a in asignaciones_db:
-                if (a.get("cr6a3_asignacionesid") or "").lower() == (excluir_asignacion or "").lower(): continue
-                if (a.get(campo) or "").lower() != (id_valor or "").lower(): continue
-                ficha_rel = fichas_dict.get((a.get("_cr6a3_fichaid_value") or "").lower()) or {}
-                jornada_rel = map_jornada_inv.get(ficha_rel.get("cr6a3_jornada"), "")
-                if jornada_rel != jornada: continue
-                res.append(a)
-            return res
-
-        ficha_ocupada = None
-        ocupada_por_ficha = [a for a in asignaciones_db if (a.get("_cr6a3_fichaid_value") or "").lower() == (ficha_id or "").lower() and (a.get("cr6a3_asignacionesid") or "").lower() != (excluir_asignacion or "").lower()]
-        if ocupada_por_ficha:
-            primera = ocupada_por_ficha[0]
-            ficha_ocupada = {"detalle": f"La ficha ya tiene clase del {_formatear(primera.get('cr6a3_fecha_inicio', ''))} al {_formatear(primera.get('cr6a3_fecha_fin', ''))}."}
-
-        instructores = []
-        for i in instructores_raw.get("value", []):
-            i_id = i.get("cr6a3_instructorid")
-            fin_contrato = i.get("cr6a3_fin_contrato")
-            if fin_contrato and fin > _fecha(fin_contrato[:10]):
-                estado, detalle = "contrato_vencido", f"Contrato hasta el {_formatear(fin_contrato[:10])}"
-            else:
-                cruces = cruces_de_dv("_cr6a3_instructorid_value", i_id)
-                if cruces:
-                    c = cruces[0]
-                    ficha_rel = fichas_dict.get((c.get("_cr6a3_fichaid_value") or "").lower()) or {}
-                    estado = "ocupado"
-                    detalle = f"Ocupado con ficha {ficha_rel.get('cr6a3_numero_ficha')} ({ficha_rel.get('cr6a3_nombre_programa')}) del {_formatear(c.get('cr6a3_fecha_inicio', ''))} al {_formatear(c.get('cr6a3_fecha_fin', ''))}"
-                else:
-                    estado, detalle = "disponible", "Disponible en todo el rango"
-            
-            ocupaciones = []
-            for a in asignaciones_db:
-                if (a.get("_cr6a3_instructorid_value") or "").lower() != (i_id or "").lower() or (a.get("cr6a3_asignacionesid") or "").lower() == (excluir_asignacion or "").lower(): continue
-                ficha_rel = fichas_dict.get((a.get("_cr6a3_fichaid_value") or "").lower()) or {}
-                comp_rel = comp_dict.get((a.get("_cr6a3_competenciafichaid_value") or "").lower()) or {}
-                ocupaciones.append({
-                    "ficha_codigo": ficha_rel.get("cr6a3_numero_ficha", ""),
-                    "programa": ficha_rel.get("cr6a3_nombre_programa", ""),
-                    "jornada": map_jornada_inv.get(ficha_rel.get("cr6a3_jornada"), ""),
-                    "competencia": comp_rel.get("cr6a3_nombre", ""),
-                    "fecha_inicio": a.get("cr6a3_fecha_inicio", "")[:10] if a.get("cr6a3_fecha_inicio") else "",
-                    "fecha_fin": a.get("cr6a3_fecha_fin", "")[:10] if a.get("cr6a3_fecha_fin") else "",
-                })
-            
-            # Extract perfil properly
-            perfil_str = i.get("cr6a3_perfil", "")
-            perfil_list = [p.strip() for p in perfil_str.split(",")] if perfil_str else []
-
-            instructores.append({
-                "id": i_id, "nombre": i.get("cr6a3_nombre_completo", ""),
-                "tipo_vinculacion": map_vinculacion_inv.get(i.get("cr6a3_tipo_vinculacion"), "Desconocido"),
-                "perfil": perfil_list,
-                "estado": estado, "detalle": detalle, "ocupaciones": ocupaciones
-            })
-
-        ambientes = []
-        for am in ambientes_raw.get("value", []):
-            am_id = am.get("cr6a3_ambiente_formacionid")
-            cruces = cruces_de_dv("_cr6a3_ambienteid_value", am_id)
-            if cruces:
-                c = cruces[0]
-                ficha_rel = fichas_dict.get((c.get("_cr6a3_fichaid_value") or "").lower()) or {}
-                estado = "ocupado"
-                detalle = f"Reservado por ficha {ficha_rel.get('cr6a3_numero_ficha')} del {_formatear(c.get('cr6a3_fecha_inicio', ''))} al {_formatear(c.get('cr6a3_fecha_fin', ''))}"
-            else:
-                estado, detalle = "disponible", "Disponible en todo el rango"
-            
-            sede_obj = am.get("cr6a3_sede") or {}
-            sede_str = sede_obj.get("cr6a3_nombre", "")
-            mun_str = sede_obj.get("cr6a3_municipio", "")
-            ubicacion_completa = f"{sede_str} ({mun_str})" if mun_str else sede_str
-            
-            capacidad = am.get("cr6a3_capacidad_aprendices", 0)
-            cap_ok = capacidad >= numero_aprendices
-            
-            import unicodedata
-            def normalizar(texto):
-                return unicodedata.normalize('NFKD', texto).encode('ASCII', 'ignore').decode('utf-8').lower().strip()
-                
-            ficha_sede_norm = normalizar(sede) if sede else ""
-            sede_ok = (not ficha_sede_norm) or (ficha_sede_norm in normalizar(mun_str)) or (ficha_sede_norm in normalizar(sede_str))
-            
-            if not sede_ok:
-                detalle = f"{ubicacion_completa} (La ficha pertenece a {sede})"
-            
-            ambientes.append({
-                "id": am_id, "nombre": am.get("cr6a3_nombre_ambiente", ""), "sede": ubicacion_completa,
-                "capacidad": capacidad, "tipo": am.get("cr6a3_tipo_ambiente"),
-                "capacidad_suficiente": cap_ok, "sede_coincide": sede_ok,
-                "estado": estado, "detalle": detalle
-            })
-            
-        return {
-            "jornada": jornada,
-            "dias_habiles": _dias_habiles(inicio, fin),
-            "horas_estimadas": _horas_rango(inicio, fin),
-            "ficha_ocupada": ficha_ocupada,
-            "instructores": instructores,
-            "ambientes": ambientes,
-        }
-
-    _exigir_demo()
-    db = _cargar_db()
-    ficha = _buscar(db["fichas"], ficha_id, "La ficha titulada")
-    _exigir_diagnostico(ficha)
-
     fichas_por_id = {f["id"]: f for f in db["fichas"]}
     jornada = ficha.get("jornada", "")
 
     def cruces_de(campo: str, valor: str) -> list:
+        """Asignaciones en la MISMA jornada que se solapan con el rango pedido."""
         resultado = []
         for a in db["asignaciones"]:
-            if a["id"] == excluir_asignacion or a[campo] != valor: continue
-            if fichas_por_id.get(a["ficha_id"], {}).get("jornada") != jornada: continue
+            if a["id"] == excluir_asignacion or a[campo] != valor:
+                continue
+            if fichas_por_id.get(a["ficha_id"], {}).get("jornada") != jornada:
+                continue
             if _solapan(inicio, fin, _fecha(a["fecha_inicio"]), _fecha(a["fecha_fin"])):
                 resultado.append(a)
         return resultado
 
-    ocupada = [a for a in db["asignaciones"] if a["ficha_id"] == ficha_id and a["id"] != excluir_asignacion and _solapan(inicio, fin, _fecha(a["fecha_inicio"]), _fecha(a["fecha_fin"]))]
+    # ¿La propia ficha ya tiene clase en esas fechas? (bloquea a todos)
+    ocupada = [
+        a for a in db["asignaciones"]
+        if a["ficha_id"] == ficha_id and a["id"] != excluir_asignacion
+        and _solapan(inicio, fin, _fecha(a["fecha_inicio"]), _fecha(a["fecha_fin"]))
+    ]
     ficha_ocupada = None
     if ocupada:
         primera = _enriquecer_asignacion(ocupada[0], db)
-        ficha_ocupada = {"detalle": f"La ficha ya tiene programado a {(primera['instructor'] or {}).get('nombre', 'un instructor')} del {_formatear(primera['fecha_inicio'])} al {_formatear(primera['fecha_fin'])}."}
+        ficha_ocupada = {
+            "detalle": f"La ficha ya tiene programado a "
+                       f"{(primera['instructor'] or {}).get('nombre', 'un instructor')} del "
+                       f"{_formatear(primera['fecha_inicio'])} al {_formatear(primera['fecha_fin'])}.",
+        }
 
     instructores = []
     for i in db["instructores"]:
@@ -1058,119 +722,7 @@ async def consultar_disponibilidad(
 # ─────────────────────────────────────────────────────────────────────────────
 # ASIGNACIONES (crear / actualizar / eliminar)
 # ─────────────────────────────────────────────────────────────────────────────
-
-async def _validar_asignacion_dataverse(datos: dict, excluir_id: str | None = None):
-    from services.dataverse import consultar_dataverse
-    from datetime import date
-    
-    fecha_inicio = datos.get("fecha_inicio")
-    fecha_fin = datos.get("fecha_fin")
-    ficha_id = datos.get("ficha_id")
-    instructor_id = datos.get("instructor_id")
-    ambiente_id = datos.get("ambiente_id")
-    
-    # Necesitamos la jornada de la ficha actual
-    ficha_actual = await consultar_dataverse(f"cr6a3_fichas({ficha_id})")
-    if not ficha_actual:
-        raise HTTPException(status_code=404, detail="La ficha seleccionada no existe en Dataverse.")
-    jornada_actual = ficha_actual.get("cr6a3_jornada")
-    codigo_actual = ficha_actual.get("cr6a3_numero_ficha", "")
-    
-    inicio_ficha = ficha_actual.get("cr6a3_fecha_inicio")
-    fin_ficha = ficha_actual.get("cr6a3_fecha_fin")
-    
-    dt_inicio = date.fromisoformat(fecha_inicio[:10])
-    dt_fin = date.fromisoformat(fecha_fin[:10])
-    
-    if inicio_ficha and dt_inicio < date.fromisoformat(inicio_ficha[:10]):
-        raise HTTPException(status_code=409, detail=f"La ficha {codigo_actual} inicia el {inicio_ficha[:10]}: no se puede programar antes.")
-    if fin_ficha and dt_fin > date.fromisoformat(fin_ficha[:10]):
-        raise HTTPException(status_code=409, detail=f"La ficha {codigo_actual} termina su etapa lectiva el {fin_ficha[:10]}: no se puede programar después.")
-        
-    query_asig = f"cr6a3_asignacioneses?$filter=cr6a3_fecha_inicio le '{fecha_fin}' and cr6a3_fecha_fin ge '{fecha_inicio}'"
-    asignaciones_raw = await consultar_dataverse(query_asig)
-    asignaciones_cruce = asignaciones_raw.get("value", [])
-    
-    map_jornada_inv = {430120000: "Mañana", 430120001: "Tarde", 430120002: "Noche"}
-    jornada_texto_actual = map_jornada_inv.get(jornada_actual, "")
-    
-    # Obtener todas las fichas cruzadas para comparar su jornada
-    fichas_cruzadas_ids = list(set(a.get("_cr6a3_fichaid_value") for a in asignaciones_cruce if a.get("_cr6a3_fichaid_value")))
-    fichas_dict = {}
-    if fichas_cruzadas_ids:
-        filtros_fichas = " or ".join([f"cr6a3_fichaid eq {fid}" for fid in fichas_cruzadas_ids])
-        f_raw = await consultar_dataverse(f"cr6a3_fichas?$filter={filtros_fichas}")
-        for f in f_raw.get("value", []):
-            fichas_dict[f.get("cr6a3_fichaid")] = f
-            
-    for otra in asignaciones_cruce:
-        if (otra.get("cr6a3_asignacionesid") or "").lower() == (excluir_id or "").lower():
-            continue
-            
-        # 1. Cruce misma ficha
-        if (otra.get("_cr6a3_fichaid_value") or "").lower() == (ficha_id or "").lower():
-            raise HTTPException(
-                status_code=409,
-                detail=f"La ficha {codigo_actual} ya tiene una programación que se cruza entre el {otra.get('cr6a3_fecha_inicio')} y el {otra.get('cr6a3_fecha_fin')}."
-            )
-            
-        ficha_otra = fichas_dict.get(otra.get("_cr6a3_fichaid_value")) or {}
-        
-        if ficha_otra.get("cr6a3_jornada") != jornada_actual:
-            continue
-            
-        # 2. Cruce instructor (misma jornada)
-        if (otra.get("_cr6a3_instructorid_value") or "").lower() == (instructor_id or "").lower():
-            raise HTTPException(
-                status_code=409,
-                detail=f"El instructor ya está ocupado en la jornada {jornada_texto_actual} con otra ficha del {otra.get('cr6a3_fecha_inicio')} al {otra.get('cr6a3_fecha_fin')}."
-            )
-            
-        # 3. Cruce ambiente (misma jornada)
-        if (otra.get("_cr6a3_ambienteid_value") or "").lower() == (ambiente_id or "").lower():
-            raise HTTPException(
-                status_code=409,
-                detail=f"El ambiente ya está ocupado en la jornada {jornada_texto_actual} con otra ficha del {otra.get('cr6a3_fecha_inicio')} al {otra.get('cr6a3_fecha_fin')}."
-            )
-
 async def crear_asignacion(datos: dict) -> dict:
-    if not _es_demo():
-        from services.dataverse import crear_registro_dataverse
-        from datetime import date, timedelta
-        
-        await _validar_asignacion_dataverse(datos)
-        
-        inicio = date.fromisoformat(datos["fecha_inicio"])
-        fin = date.fromisoformat(datos["fecha_fin"])
-        dias = sum(1 for d in range((fin - inicio).days + 1) if (inicio + timedelta(days=d)).weekday() < 5)
-        horas = dias * 6
-        
-        # Nota: Dataverse suele requerir el nombre lógico en plural para los @odata.bind. 
-        # Ejemplo: cr6a3_instructors para cr6a3_instructor.
-        payload = {
-            "cr6a3_nombre": f"Asignación Ficha",
-            "cr6a3_fecha_inicio": datos["fecha_inicio"],
-            "cr6a3_fecha_fin": datos["fecha_fin"],
-            "cr6a3_horas": horas,
-            "cr6a3_FichaId@odata.bind": f"/cr6a3_fichas({datos['ficha_id']})",
-            "cr6a3_CompetenciaFichaId@odata.bind": f"/cr6a3_competenciafichas({datos['competencia_id']})",
-            "cr6a3_InstructorId@odata.bind": f"/cr6a3_instructors({datos['instructor_id']})",
-            "cr6a3_AmbienteId@odata.bind": f"/cr6a3_ambiente_formacions({datos['ambiente_id']})"
-        }
-        
-        res = await crear_registro_dataverse("cr6a3_asignacioneses", payload)
-        
-        return {
-            "id": res.get("cr6a3_asignacionid"), 
-            "ficha_id": datos["ficha_id"],
-            "instructor_id": datos["instructor_id"],
-            "competencia_id": datos["competencia_id"],
-            "ambiente_id": datos["ambiente_id"],
-            "fecha_inicio": datos["fecha_inicio"],
-            "fecha_fin": datos["fecha_fin"],
-            "horas": horas
-        }
-
     _exigir_demo()
     async with _demo_lock:
         db = _cargar_db()
@@ -1183,44 +735,6 @@ async def crear_asignacion(datos: dict) -> dict:
 
 async def actualizar_asignacion(asignacion_id: str, datos: dict) -> dict:
     """Edita una asignación revalidando todas las reglas (se excluye a sí misma)."""
-    if not _es_demo():
-        from services.dataverse import actualizar_registro_dataverse, consultar_dataverse
-        from datetime import date, timedelta
-        
-        actual_raw = await consultar_dataverse(f"cr6a3_asignacioneses({asignacion_id})")
-        if not actual_raw:
-            raise HTTPException(status_code=404, detail="La asignación no existe en Dataverse.")
-            
-        propuesta = {
-            "fecha_inicio": datos.get("fecha_inicio", actual_raw.get("cr6a3_fecha_inicio")),
-            "fecha_fin": datos.get("fecha_fin", actual_raw.get("cr6a3_fecha_fin")),
-            "ficha_id": datos.get("ficha_id", actual_raw.get("_cr6a3_fichaid_value")),
-            "instructor_id": datos.get("instructor_id", actual_raw.get("_cr6a3_instructorid_value")),
-            "ambiente_id": datos.get("ambiente_id", actual_raw.get("_cr6a3_ambienteid_value"))
-        }
-        
-        await _validar_asignacion_dataverse(propuesta, excluir_id=asignacion_id)
-        
-        payload = {}
-        if "fecha_inicio" in datos and "fecha_fin" in datos:
-            inicio = date.fromisoformat(datos["fecha_inicio"])
-            fin = date.fromisoformat(datos["fecha_fin"])
-            dias = sum(1 for d in range((fin - inicio).days + 1) if (inicio + timedelta(days=d)).weekday() < 5)
-            horas = dias * 6
-            payload["cr6a3_fecha_inicio"] = datos["fecha_inicio"]
-            payload["cr6a3_fecha_fin"] = datos["fecha_fin"]
-            payload["cr6a3_horas"] = horas
-            
-        if "instructor_id" in datos:
-            payload["cr6a3_InstructorId@odata.bind"] = f"/cr6a3_instructors({datos['instructor_id']})"
-        if "ambiente_id" in datos:
-            payload["cr6a3_AmbienteId@odata.bind"] = f"/cr6a3_ambiente_formacions({datos['ambiente_id']})"
-            
-        if payload:
-            await actualizar_registro_dataverse("cr6a3_asignacioneses", asignacion_id, payload)
-            
-        return {"id": asignacion_id, "mensaje": "Asignación actualizada en Dataverse"}
-
     _exigir_demo()
     cambios = {k: v for k, v in datos.items() if v is not None}
     async with _demo_lock:
@@ -1252,7 +766,7 @@ async def eliminar_asignacion(asignacion_id: str) -> dict:
         except httpx.HTTPStatusError as exc:
             from fastapi import HTTPException
             raise HTTPException(status_code=exc.response.status_code, detail="No se pudo eliminar de Dataverse.")
-        return {"mensaje": "Asignación eliminada de Dataverse."}
+        return {"mensaje": "Asignaci├│n eliminada de Dataverse."}
 
     _exigir_demo()
     async with _demo_lock:
@@ -1268,18 +782,6 @@ async def eliminar_asignacion(asignacion_id: str) -> dict:
 # ─────────────────────────────────────────────────────────────────────────────
 async def obtener_indicadores(mes: str | None = None) -> dict:
     """`mes` en formato YYYY-MM; por defecto el mes actual de Bogotá."""
-    if not _es_demo():
-        return {
-            "modo_demo": False,
-            "mes": mes or datetime.now(_ZONA_BOGOTA).date().strftime("%Y-%m"),
-            "total_fichas": 0,
-            "promedio_programacion": 0,
-            "meta_programacion": 70,
-            "meta_tecnica": 60,
-            "fichas_bajo_meta": [],
-            "alertas_tecnica": [],
-            "carga_instructores": [],
-        }
     _exigir_demo()
     db = _cargar_db()
 
@@ -1344,78 +846,12 @@ def _resumen_programa(p: dict) -> dict:
 
 
 async def listar_programas() -> list:
-    if not _es_demo():
-        from services.dataverse import consultar_dataverse
-        # 1. Traer todos los programas
-        res_prog = await consultar_dataverse("cr6a3_programases")
-        programas_db = res_prog.get("value", [])
-        
-        # 2. Mapearlos al formato esperado
-        programas_mapeados = []
-        for p in programas_db:
-            programas_mapeados.append({
-                "id": p.get("cr6a3_programasid"),
-                "nombre": p.get("cr6a3_nombre", ""),
-                "version": p.get("cr6a3_version", ""),
-                "nivel": p.get("cr6a3_nivel", "Técnico"),
-                "total_horas": 0, # Podríamos traer las competencias para sumar, pero en el listado básico puede omitirse o calcularse luego
-                "competencias": []
-            })
-        return programas_mapeados
-
     _exigir_demo()
     return [_resumen_programa(p) for p in _cargar_db()["programas"]]
 
 
 async def crear_programa(datos: dict) -> dict:
     """Registra un programa en el catálogo (nombre + versión únicos)."""
-    if not _es_demo():
-        from services.dataverse import crear_registro_dataverse
-        
-        map_nivel = {
-            "Tecnólogo": 430120000,
-            "Técnico": 430120001,
-            "Operario": 430120002,
-            "Auxiliar": 430120003,
-            "Complementario": 430120004
-        }
-        
-        # 1. Crear el programa base en Dataverse
-        payload_programa = {
-            "cr6a3_nombre": datos["nombre"].strip(),
-            "cr6a3_version": datos["version"].strip(),
-            "cr6a3_nivel": map_nivel.get(datos["nivel"], 430120001)
-        }
-        
-        programa_creado = await crear_registro_dataverse("cr6a3_programases", payload_programa)
-        
-        # Extraer dinámicamente la llave primaria (puede llamarse cr6a3_programaid o cr6a3_programasid)
-        programa_id_key = next((k for k in programa_creado.keys() if k.startswith("cr6a3_") and k.endswith("id")), "cr6a3_programasid")
-        programa_id = programa_creado.get(programa_id_key)
-        
-        if not programa_id:
-            print(f"Error: Dataverse no devolvió un ID reconocido. Respuesta: {programa_creado}")
-            raise HTTPException(status_code=500, detail="El programa se creó pero no se pudo obtener su ID interno.")
-        
-        # 2. Iterar y crear las competencias maestras asociadas
-        for comp in datos["competencias"]:
-            payload_comp = {
-                "cr6a3_nombre": comp["nombre"].strip(),
-                "cr6a3_tipo": comp["tipo"],
-                "cr6a3_horas": comp["horas"],
-                "cr6a3_ProgramaId@odata.bind": f"/cr6a3_programases({programa_id})"
-            }
-            await crear_registro_dataverse("cr6a3_competenciasprogramas", payload_comp)
-            
-        return {
-            "id": programa_id,
-            "nombre": datos["nombre"].strip(),
-            "version": datos["version"].strip(),
-            "nivel": datos["nivel"],
-            "total_horas": sum(comp["horas"] for comp in datos["competencias"]),
-            "competencias": datos["competencias"]
-        }
-        
     _exigir_demo()
     async with _demo_lock:
         db = _cargar_db()
@@ -1447,66 +883,6 @@ async def crear_programa(datos: dict) -> dict:
 async def crear_ficha(datos: dict) -> dict:
     """Crea una ficha titulada copiando la matriz de competencias del programa
     elegido en el catálogo (así la ficha nace con su diagnóstico registrado)."""
-    if not _es_demo():
-        from services.dataverse import consultar_dataverse, crear_registro_dataverse
-        
-        programa_id = datos["programa_id"]
-        # 1. Obtener el programa para sacar su nombre y nivel (y verificar que existe)
-        try:
-            programa_db = await consultar_dataverse(f"cr6a3_programases({programa_id})")
-        except Exception:
-            raise HTTPException(status_code=404, detail="El programa seleccionado no existe en el catálogo.")
-            
-        map_jornada = {
-            "Mañana": 430120000,
-            "Tarde": 430120001,
-            "Noche": 430120002
-        }
-        
-        # 2. Crear la ficha
-        payload_ficha = {
-            "cr6a3_numero_ficha": datos["codigo"].strip(),
-            "cr6a3_nombre_programa": programa_db.get("cr6a3_nombre", ""),
-            "cr6a3_jornada": map_jornada.get(datos["jornada"], 430120000),
-            "cr6a3_fecha_inicio": datos["fecha_inicio"],
-            "cr6a3_fecha_fin": datos["fecha_fin"],
-            "cr6a3_sede": datos["sede"].strip(),
-            "cr6a3_municipio": (datos.get("municipio") or "").strip(),
-            "cr6a3_ProgramaId@odata.bind": f"/cr6a3_programases({programa_id})"
-        }
-        
-        # Opcional: si hay instructor titular
-        instructor_id = datos.get("instructor_titular_id")
-        if instructor_id:
-            payload_ficha["cr6a3_InstructorAsignado@odata.bind"] = f"/cr6a3_instructors({instructor_id})"
-            
-        try:
-            ficha_creada = await crear_registro_dataverse("cr6a3_fichas", payload_ficha)
-            ficha_nueva_id = ficha_creada.get("id_from_header") or ficha_creada.get("cr6a3_fichasid") or ficha_creada.get("cr6a3_fichaid")
-            if not ficha_nueva_id:
-                raise HTTPException(status_code=500, detail="Ficha creada pero no se pudo leer su ID de Dataverse.")
-        except HTTPException as e:
-            if "duplicate" in str(e.detail).lower() or e.status_code == 409:
-                raise HTTPException(status_code=409, detail=f"Ya existe una ficha con el código {datos['codigo']}. Verifique el número en Sofía Plus.")
-            raise e
-            
-        # 3. Obtener competencias del catálogo
-        res_comps = await consultar_dataverse(f"cr6a3_competenciasprogramas?$filter=_cr6a3_programaid_value eq '{programa_id}'")
-        competencias_programa = res_comps.get("value", [])
-        
-        # 4. Clonarlas hacia cr6a3_competenciafichas
-        for comp in competencias_programa:
-            payload_comp = {
-                "cr6a3_nombre": comp.get("cr6a3_nombre"),
-                "cr6a3_tipo": comp.get("cr6a3_tipo"),
-                "cr6a3_horas": comp.get("cr6a3_horas"),
-                "cr6a3_FichaId@odata.bind": f"/cr6a3_fichas({ficha_nueva_id})"
-            }
-            await crear_registro_dataverse("cr6a3_competenciafichas", payload_comp)
-            
-        return await obtener_ficha(ficha_nueva_id)
-
-
     _exigir_demo()
     async with _demo_lock:
         db = _cargar_db()
@@ -1548,222 +924,37 @@ async def crear_ficha(datos: dict) -> dict:
         _guardar_db(db)
     return await obtener_ficha(ficha_id)
 
-async def actualizar_titular_ficha(ficha_id: str, instructor_id: str | None) -> dict:
-    if not _es_demo():
-        from services.dataverse import actualizar_registro_dataverse
-        payload = {}
-        if instructor_id:
-            payload["cr6a3_InstructorAsignado@odata.bind"] = f"/cr6a3_instructors({instructor_id})"
-        else:
-            # Dataverse V9.2 a veces permite null en bind o desvincular requiere DELETE
-            # Para esta demo simplificamos, asumiendo que envian siempre uno o no se hace unbind
-            pass
-            
-        if payload:
-            await actualizar_registro_dataverse("cr6a3_fichas", ficha_id, payload)
-        return {"success": True}
-
-    _exigir_demo()
-    async with _demo_lock:
-        db = _cargar_db()
-        ficha = _buscar(db["fichas"], ficha_id, "La ficha titulada")
-        if instructor_id:
-            _buscar(db["instructores"], instructor_id, "El instructor titular")
-        ficha["instructor_titular_id"] = instructor_id or ""
-        _guardar_db(db)
-    return await obtener_ficha(ficha_id)
-
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# CALENDARIO DEL INSTRUCTOR (la "matriz por instructor" del Excel)
-# ─────────────────────────────────────────────────────────────────────────────
-async def calendario_instructor(instructor_id: str | None = None, correo: str | None = None) -> dict:
-    """Programación completa de un instructor (por id o por correo institucional):
-    lo que cada instructor consulta en su propia matriz."""
-    _exigir_demo()
-    if not instructor_id and not correo:
-        raise HTTPException(status_code=422, detail="Indique el instructor (instructor_id o correo).")
-    db = _cargar_db()
-
-    instructor = None
-    if instructor_id:
-        instructor = next((i for i in db["instructores"] if i["id"] == instructor_id), None)
-    elif correo:
-        instructor = next(
-            (i for i in db["instructores"] if i.get("correo", "").lower() == correo.strip().lower()), None)
-    if not instructor:
-        raise HTTPException(
-            status_code=404,
-            detail="No se encontró un instructor con esos datos en la programación de tituladas.",
-        )
-
-    propias = sorted(
-        (a for a in db["asignaciones"] if a["instructor_id"] == instructor["id"]),
-        key=lambda a: a["fecha_inicio"],
-    )
-    return {
-        "modo_demo": _es_demo(),
-        "instructor": {
-            **_resumen_instructor(instructor),
-            "correo": instructor.get("correo", ""),
-            "tipo_vinculacion": instructor.get("tipo_vinculacion", ""),
-            "fin_contrato": instructor.get("fin_contrato", ""),
-            "perfil": instructor.get("perfil", []),
-            "limite_mensual": LIMITES_MENSUALES.get(instructor.get("tipo_vinculacion"), 160),
-        },
-        "asignaciones": [_enriquecer_asignacion(a, db) for a in propias],
-    }
-
-
-# ─────────────────────────────────────────────────────────────────────────────
-# RESPALDO DE ARCHIVOS (los Excel históricos de cada ficha, solo lectura)
-# ─────────────────────────────────────────────────────────────────────────────
-def _nombre_seguro(valor: str) -> str:
-    return re.sub(r"[^a-zA-Z0-9_.-]", "_", valor or "archivo")
-
-
-def _carpeta_ficha(ficha_id: str) -> Path:
-    carpeta = _RUTA_STORAGE / _nombre_seguro(ficha_id)
-    carpeta.mkdir(parents=True, exist_ok=True)
-    return carpeta
-
-
-async def agregar_archivo_ficha(ficha_id: str, nombre: str, contenido: bytes) -> list:
-    """Guarda un archivo histórico de la ficha (no se modifica: solo respaldo
-    descargable) y registra sus metadatos. Devuelve la lista actualizada."""
-    _exigir_demo()
-    async with _demo_lock:
-        db = _cargar_db()
-        ficha = _buscar(db["fichas"], ficha_id, "La ficha titulada")
-        archivo_id = f"arch-{uuid.uuid4().hex[:8]}"
-        nombre_limpio = _nombre_seguro(nombre)
-        (_carpeta_ficha(ficha_id) / f"{archivo_id}__{nombre_limpio}").write_bytes(contenido)
-        ficha.setdefault("archivos", []).append({
-            "id": archivo_id,
-            "nombre": nombre,
-            "tamano": len(contenido),
-            "fecha": datetime.now(_ZONA_BOGOTA).strftime("%Y-%m-%d %H:%M"),
-        })
-        _guardar_db(db)
-        return ficha["archivos"]
-
-
-def obtener_archivo_ficha(ficha_id: str, archivo_id: str) -> tuple:
-    """Devuelve (ruta, nombre_original) del archivo pedido, o 404."""
-    db = _cargar_db()
-    ficha = _buscar(db["fichas"], ficha_id, "La ficha titulada")
-    meta = next((a for a in ficha.get("archivos", []) if a["id"] == archivo_id), None)
-    carpeta = _RUTA_STORAGE / _nombre_seguro(ficha_id)
-    coincidencias = sorted(carpeta.glob(f"{_nombre_seguro(archivo_id)}__*")) if carpeta.exists() else []
-    if not meta or not coincidencias:
-        raise HTTPException(status_code=404, detail="El archivo solicitado no existe en el servidor.")
-    return coincidencias[0], meta["nombre"]
-
-
-async def eliminar_archivo_ficha(ficha_id: str, archivo_id: str) -> dict:
-    _exigir_demo()
-    async with _demo_lock:
-        db = _cargar_db()
-        ficha = _buscar(db["fichas"], ficha_id, "La ficha titulada")
-        archivos = ficha.get("archivos", [])
-        if not any(a["id"] == archivo_id for a in archivos):
-            raise HTTPException(status_code=404, detail="El archivo indicado no existe en la ficha.")
-        carpeta = _RUTA_STORAGE / _nombre_seguro(ficha_id)
-        for ruta in carpeta.glob(f"{_nombre_seguro(archivo_id)}__*"):
-            ruta.unlink(missing_ok=True)
-        ficha["archivos"] = [a for a in archivos if a["id"] != archivo_id]
-        _guardar_db(db)
-        return {"mensaje": "Archivo eliminado del respaldo.", "archivos": ficha["archivos"]}
-
 
 async def actualizar_diagnostico(ficha_id: str, competencias: list) -> dict:
     """Reemplaza la matriz de competencias de la ficha. Las competencias que ya
     tienen asignaciones en el calendario no se pueden eliminar (409)."""
-    if not _es_demo():
-        from services.dataverse import consultar_dataverse, crear_registro_dataverse, eliminar_registro_dataverse, actualizar_registro_dataverse
-        
-        # 1. Obtener competencias actuales
-        res_comps = await consultar_dataverse(f"cr6a3_competenciafichas?$filter=_cr6a3_fichaid_value eq '{ficha_id}'")
-        actuales = res_comps.get("value", [])
-        
-        # 2. Obtener asignaciones de la ficha para ver qué competencias están en uso
-        res_asig = await consultar_dataverse(f"cr6a3_asignacioneses?$filter=_cr6a3_fichaid_value eq '{ficha_id}'")
-        asignaciones = res_asig.get("value", [])
-        comps_en_uso = {a.get("_cr6a3_competenciafichaid_value") for a in asignaciones if a.get("_cr6a3_competenciafichaid_value")}
-        
+    _exigir_demo()
+    async with _demo_lock:
+        db = _cargar_db()
+        ficha = _buscar(db["fichas"], ficha_id, "La ficha titulada")
+
         ids_nuevos = {c.get("id") for c in competencias if c.get("id")}
-        
-        # Verificar eliminadas en uso
-        eliminadas_en_uso = []
-        for c in actuales:
-            cid = c.get("cr6a3_competenciafichaid")
-            if cid and cid not in ids_nuevos and cid in comps_en_uso:
-                eliminadas_en_uso.append(c.get("cr6a3_nombre", "Desconocida"))
-                
+        usadas = {a["competencia_id"] for a in db["asignaciones"] if a["ficha_id"] == ficha_id}
+        eliminadas_en_uso = [
+            c["nombre"] for c in ficha.get("competencias", [])
+            if c["id"] in usadas and c["id"] not in ids_nuevos
+        ]
         if eliminadas_en_uso:
             raise HTTPException(
                 status_code=409,
-                detail=f"No se pueden eliminar competencias que ya tienen asignaciones: {', '.join(eliminadas_en_uso)}"
+                detail="No se pueden eliminar competencias que ya tienen asignaciones en el calendario: "
+                       f"{', '.join(eliminadas_en_uso)}. Elimine primero esas asignaciones.",
             )
-            
-        # Ejecutar eliminaciones
-        for c in actuales:
-            cid = c.get("cr6a3_competenciafichaid")
-            if cid and cid not in ids_nuevos:
-                await eliminar_registro_dataverse(f"cr6a3_competenciafichas({cid})")
-                
-        # Ejecutar creaciones y actualizaciones
-        for c in competencias:
-            payload_comp = {
-                "cr6a3_nombre": comp.get("cr6a3_nombre"),
-                "cr6a3_tipo": comp.get("cr6a3_tipo"),
-                "cr6a3_horas": comp.get("cr6a3_horas"),
-                "cr6a3_FichaId@odata.bind": f"/cr6a3_fichas({ficha_nueva_id})"
+
+        ficha["competencias"] = [
+            {
+                "id": c.get("id") or f"c-{uuid.uuid4().hex[:8]}",
+                "nombre": c["nombre"].strip(),
+                "tipo": c["tipo"],
+                "horas": c["horas"],
             }
-            await crear_registro_dataverse("cr6a3_competenciafichas", payload_comp)
-            
-        return await obtener_ficha(ficha_nueva_id)
-
-
-    _exigir_demo()
-    async with _demo_lock:
-        db = _cargar_db()
-        if any(f["codigo"] == datos["codigo"].strip() for f in db["fichas"]):
-            raise HTTPException(
-                status_code=409,
-                detail=f"Ya existe una ficha con el código {datos['codigo']}. Verifique el número en Sofía Plus.",
-            )
-        programa = _buscar(db["programas"], datos["programa_id"], "El programa del catálogo")
-        if datos.get("instructor_titular_id"):
-            _buscar(db["instructores"], datos["instructor_titular_id"], "El instructor titular")
-        if _fecha(datos["fecha_fin"]) < _fecha(datos["fecha_inicio"]):
-            raise HTTPException(
-                status_code=409,
-                detail="La fecha de fin de la etapa lectiva no puede ser anterior a la de inicio.",
-            )
-
-        ficha_id = f"fic-{uuid.uuid4().hex[:8]}"
-        ficha = {
-            "id": ficha_id,
-            "codigo": datos["codigo"].strip(),
-            "programa": programa["nombre"],
-            "nivel": programa["nivel"],
-            "jornada": datos["jornada"],
-            "sede": datos["sede"].strip(),
-            "municipio": (datos.get("municipio") or "").strip(),
-            "instructor_titular_id": datos.get("instructor_titular_id") or "",
-            "fecha_inicio": datos["fecha_inicio"],
-            "fecha_fin": datos["fecha_fin"],
-            "numero_aprendices": datos["numero_aprendices"],
-            # El diagnóstico nace copiado del catálogo (con ids propios de la ficha)
-            "competencias": [
-                {"id": f"c-{uuid.uuid4().hex[:8]}", "nombre": c["nombre"], "tipo": c["tipo"], "horas": c["horas"]}
-                for c in programa.get("competencias", [])
-            ],
-            "archivos": [],
-        }
-        db["fichas"].append(ficha)
+            for c in competencias
+        ]
         _guardar_db(db)
     return await obtener_ficha(ficha_id)
 
@@ -1771,8 +962,6 @@ async def actualizar_diagnostico(ficha_id: str, competencias: list) -> dict:
 # ─────────────────────────────────────────────────────────────────────────────
 # CALENDARIO DEL INSTRUCTOR (la "matriz por instructor" del Excel)
 # ─────────────────────────────────────────────────────────────────────────────
-
-
 async def calendario_instructor(instructor_id: str | None = None, correo: str | None = None) -> dict:
     """Programación completa de un instructor (por id o por correo institucional):
     lo que cada instructor consulta en su propia matriz."""
@@ -1882,10 +1071,10 @@ async def actualizar_diagnostico(ficha_id: str, competencias: list) -> dict:
         res_comps = await consultar_dataverse(f"cr6a3_competenciafichas?$filter=_cr6a3_fichaid_value eq '{ficha_id}'")
         actuales = res_comps.get("value", [])
         
-        # 2. Obtener asignaciones de la ficha para ver qué competencias están en uso
+        # 2. Obtener asignaciones de la ficha para ver qu├® competencias est├ín en uso
         res_asig = await consultar_dataverse(f"cr6a3_asignacioneses?$filter=_cr6a3_fichaid_value eq '{ficha_id}'")
         asignaciones = res_asig.get("value", [])
-        comps_en_uso = {a.get("_cr6a3_competenciafichaid_value") for a in asignaciones if a.get("_cr6a3_competenciafichaid_value")}
+        comps_en_uso = {a.get("_cr6a3_competenciaid_value") for a in asignaciones if a.get("_cr6a3_competenciaid_value")}
         
         ids_nuevos = {c.get("id") for c in competencias if c.get("id")}
         
