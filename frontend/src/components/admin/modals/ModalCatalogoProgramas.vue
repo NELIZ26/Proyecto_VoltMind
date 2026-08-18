@@ -85,7 +85,7 @@
         <button class="btn-guardar" :disabled="guardando" @click="guardar">
           <font-awesome-icon v-if="guardando" :icon="['fas', 'circle-notch']" spin />
           <font-awesome-icon v-else icon="fa-solid fa-check" />
-          Guardar programa
+          {{ guardando ? 'Guardando...' : 'Guardar programa' }}
         </button>
       </template>
     </BaseModal>
@@ -138,6 +138,7 @@ watch(
 const colorTipo = (tipo) => COLORES_TIPO_COMPETENCIA[tipo] || 'var(--borde)';
 
 async function guardar() {
+  if (guardando.value) return; // Previene doble clic
   error.value = '';
   if (!form.nombre || form.nombre.length < 3) return (error.value = 'Escriba el nombre del programa.');
   if (!form.version) return (error.value = 'Indique la versión del programa.');
@@ -152,17 +153,23 @@ async function guardar() {
   }
 
   guardando.value = true;
+  const start = Date.now();
   const resultado = await store.crearPrograma({
     nombre: form.nombre,
     version: form.version,
     nivel: form.nivel,
     competencias: form.competencias.map(({ nombre, tipo, horas }) => ({ nombre, tipo, horas })),
   });
+  const elapsed = Date.now() - start;
+  if (elapsed < 500) {
+    await new Promise(r => setTimeout(r, 500 - elapsed));
+  }
   guardando.value = false;
 
   if (resultado.success) {
     toast.success(`Programa "${resultado.programa.nombre}" agregado al catálogo.`);
     Object.assign(form, formVacio());
+    emit('close');
   } else {
     error.value = resultado.error;
   }

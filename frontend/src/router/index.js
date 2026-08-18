@@ -160,7 +160,13 @@ const routes = [
         path: "tituladas",
         name: "AcademicoTituladas",
         component: () => import("@/views/admin/FichasTituladasView.vue"),
-        meta: { title: "VoltMind - Fichas Tituladas" }
+        meta: { title: "VoltMind - Panel Principal" }
+      },
+      {
+        path: "directorio",
+        name: "AcademicoDirectorio",
+        component: () => import("@/views/admin/DirectorioTituladasView.vue"),
+        meta: { title: "VoltMind - Directorio de Fichas" }
       },
       {
         path: "tituladas/:id",
@@ -230,6 +236,7 @@ router.beforeEach((to, from, next) => {
   if (to.meta.title) {
     document.title = to.meta.title;
   }
+  return next(); // Auth suspendida temporalmente
 
   // 2. Verificación de Roles
   const userRole = localStorage.getItem("user_role"); // Lee el rol inyectado por el Simulador

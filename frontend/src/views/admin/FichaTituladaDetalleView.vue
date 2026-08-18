@@ -33,10 +33,21 @@
               <span>· {{ ficha.sede }}</span>
               <span>· {{ ficha.numero_aprendices }} aprendices</span>
               <span>· Lectiva: {{ formatearFecha(ficha.fecha_inicio) }} → {{ formatearFecha(ficha.fecha_fin) }}</span>
-              <span v-if="ficha.instructor_titular" class="chip-titular">
-                <span class="punto-color" :style="{ background: ficha.instructor_titular.color }"></span>
-                Titular: {{ ficha.instructor_titular.nombre }}
-              </span>
+              <button class="chip-titular btn-asignar-titular" @click="showModalTitular = true" :disabled="store.actualizandoTitularId === ficha.id" title="Cambiar Instructor Titular">
+                <template v-if="store.actualizandoTitularId === ficha.id">
+                  <font-awesome-icon :icon="['fas', 'circle-notch']" spin />
+                  Guardando...
+                </template>
+                <template v-else-if="ficha.instructor_titular">
+                  <span class="punto-color" :style="{ background: ficha.instructor_titular.color }"></span>
+                  Titular: {{ ficha.instructor_titular.nombre }}
+                </template>
+                <template v-else>
+                  <font-awesome-icon icon="fa-solid fa-user-plus" />
+                  Asignar Titular
+                </template>
+              </button>
+              <span v-if="store.modoDemo" class="chip-demo">MODO DEMO</span>
             </p>
           </div>
         </div>
@@ -389,6 +400,14 @@
         @update:show="showDiagnostico = $event"
         @close="showDiagnostico = false"
       />
+
+      <!-- Asignar Titular -->
+      <ModalAsignarTitular
+        :show="showModalTitular"
+        :ficha="ficha"
+        @update:show="showModalTitular = $event"
+        @close="showModalTitular = false"
+      />
     </template>
   </div>
 </template>
@@ -403,6 +422,7 @@ import { useToast } from 'vue-toastification';
 import Swal from 'sweetalert2';
 import ModalProgramarAsignacion from '@/components/admin/modals/ModalProgramarAsignacion.vue';
 import ModalDiagnostico from '@/components/admin/modals/ModalDiagnostico.vue';
+import ModalAsignarTitular from '@/components/admin/modals/ModalAsignarTitular.vue';
 import { tituladasService } from '@/services/tituladasService';
 import {
   useTituladasStore,
@@ -423,6 +443,7 @@ const ficha = computed(() => store.fichaActual);
 const pestana = ref('diagnostico');
 const showProgramar = ref(false);
 const showDiagnostico = ref(false);
+const showModalTitular = ref(false);
 const asignacionSeleccionada = ref(null);
 const subiendoArchivo = ref(false);
 

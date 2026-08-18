@@ -43,7 +43,7 @@
         <button class="btn-guardar" :disabled="guardando" @click="guardar">
           <font-awesome-icon v-if="guardando" :icon="['fas', 'circle-notch']" spin />
           <font-awesome-icon v-else icon="fa-solid fa-check" />
-          Guardar diagnóstico
+          {{ guardando ? 'Guardando...' : 'Guardar diagnóstico' }}
         </button>
       </template>
     </BaseModal>
@@ -97,6 +97,7 @@ watch(programaElegido, (id) => {
 });
 
 async function guardar() {
+  if (guardando.value) return; // Previene doble clic
   error.value = '';
   const filas = competencias.value;
   if (!filas.length) {
@@ -110,7 +111,12 @@ async function guardar() {
   }
 
   guardando.value = true;
+  const start = Date.now();
   const resultado = await store.actualizarDiagnostico(props.ficha.id, filas);
+  const elapsed = Date.now() - start;
+  if (elapsed < 500) {
+    await new Promise(r => setTimeout(r, 500 - elapsed));
+  }
   guardando.value = false;
 
   if (resultado.success) {

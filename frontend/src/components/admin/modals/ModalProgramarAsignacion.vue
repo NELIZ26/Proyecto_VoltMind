@@ -26,8 +26,6 @@
                 v-model="form.fecha_inicio"
                 type="date"
                 class="form-input"
-                :min="ficha.fecha_inicio || undefined"
-                :max="ficha.fecha_fin || undefined"
               />
             </label>
             <label class="campo">
@@ -36,8 +34,7 @@
                 v-model="form.fecha_fin"
                 type="date"
                 class="form-input"
-                :min="form.fecha_inicio || ficha.fecha_inicio || undefined"
-                :max="ficha.fecha_fin || undefined"
+                :min="form.fecha_inicio || undefined"
               />
             </label>
             <div v-if="disponibilidad" class="chip-horas" title="Días lunes a viernes × bloque de 6 horas">
@@ -60,7 +57,7 @@
           <h4 class="seccion-titulo">
             <font-awesome-icon icon="fa-solid fa-list-check" /> 2. Competencia del programa
           </h4>
-          <select v-model="form.competencia_id" class="form-input select-completo">
+          <select v-model="form.competencia_id" class="form-input select-completo" :disabled="disponibilidad?.ficha_ocupada != null">
             <option value="" disabled>Seleccione la competencia a programar...</option>
             <option v-for="c in ficha.diagnostico" :key="c.id" :value="c.id">
               {{ c.nombre }} — {{ c.tipo }} ({{ c.horas_programadas }}/{{ c.horas }} h programadas)
@@ -69,13 +66,19 @@
         </section>
 
         <!-- 3. Instructor (semáforo de disponibilidad) -->
-        <section class="seccion">
-          <h4 class="seccion-titulo">
-            <font-awesome-icon icon="fa-solid fa-chalkboard-user" /> 3. Instructor
-            <span v-if="consultando" class="consultando">
-              <font-awesome-icon :icon="['fas', 'circle-notch']" spin /> calculando disponibilidad...
-            </span>
-          </h4>
+        <section v-if="!disponibilidad?.ficha_ocupada" class="seccion">
+          <div class="seccion-header">
+            <h4 class="seccion-titulo">
+              <font-awesome-icon icon="fa-solid fa-chalkboard-user" /> 3. Instructor
+              <span v-if="consultando" class="consultando">
+                <font-awesome-icon :icon="['fas', 'circle-notch']" spin /> calculando disponibilidad...
+              </span>
+            </h4>
+            <label v-if="disponibilidad && esTecnicaConTitular" class="toggle-titular">
+              <input type="checkbox" v-model="mostrarTodosInstructores" />
+              <span>Ver otros instructores</span>
+            </label>
+          </div>
 
           <p v-if="!disponibilidad && !consultando" class="ayuda">
             Seleccione primero el rango de días para calcular la disponibilidad
@@ -83,7 +86,7 @@
           </p>
 
           <ul v-if="disponibilidad" class="lista-opciones">
-            <li v-for="i in disponibilidad.instructores" :key="i.id" class="opcion-instructor">
+            <li v-for="i in instructoresVisibles" :key="i.id" class="opcion-instructor">
               <label
                 class="opcion"
                 :class="{
@@ -99,19 +102,28 @@
                   :disabled="i.estado !== 'disponible'"
                 />
                 <span class="semaforo" :class="`semaforo-${i.estado}`" aria-hidden="true"></span>
-                <span class="punto-color" :style="{ background: i.color }"></span>
                 <span class="opcion-info">
                   <span class="opcion-nombre">
                     {{ i.nombre }} <small>({{ i.iniciales }} · {{ i.tipo_vinculacion }})</small>
                   </span>
                   <span class="opcion-detalle" :class="`texto-${i.estado}`">{{ i.detalle }}</span>
                 </span>
+                <button
+                  type="button"
+                  class="btn-toggle-horario"
+                  :title="horariosAbiertos[i.id] ? 'Ocultar horario' : 'Ver horario del instructor'"
+                  @click.prevent="horariosAbiertos[i.id] = !horariosAbiertos[i.id]"
+                >
+                  <font-awesome-icon icon="fa-solid fa-calendar" />
+                  {{ horariosAbiertos[i.id] ? 'Ocultar' : 'Ver horario' }}
+                </button>
               </label>
-              <!-- Mini-horario: aparece al pasar el cursor sobre el instructor -->
-              <div class="mini-horario">
+
+              <!-- Mini-horario: se despliega al hacer clic en el botón -->
+              <div v-if="horariosAbiertos[i.id]" class="mini-horario">
                 <p class="mini-titulo">
                   <font-awesome-icon icon="fa-solid fa-calendar-days" />
-                  Mini horario de {{ i.iniciales }} en el rango elegido
+                  Horario de {{ i.iniciales }} en el rango elegido
                 </p>
                 <ul v-if="i.ocupaciones?.length" class="mini-lista">
                   <li v-for="(o, indice) in i.ocupaciones" :key="indice">
@@ -127,16 +139,10 @@
               </div>
             </li>
           </ul>
-
-          <p v-if="disponibilidad" class="leyenda-semaforo">
-            <span><span class="semaforo semaforo-disponible"></span> Disponible</span>
-            <span><span class="semaforo semaforo-ocupado"></span> Ocupado (se indica la ficha)</span>
-            <span><span class="semaforo semaforo-contrato_vencido"></span> Contrato vencido</span>
-          </p>
         </section>
 
-        <!-- 4. Ambiente -->
-        <section class="seccion">
+        <!-- 4. Ambiente (semáforo de disponibilidad) -->
+        <section v-if="!disponibilidad?.ficha_ocupada" class="seccion">
           <h4 class="seccion-titulo">
             <font-awesome-icon icon="fa-solid fa-location-dot" /> 4. Ambiente de formación
           </h4>
@@ -176,6 +182,13 @@
           <p v-else class="ayuda">La lista de ambientes aparece al definir el rango de días.</p>
         </section>
 
+        <!-- Leyenda de colores del semáforo (Aplica a Instructores y Ambientes) -->
+        <p v-if="!disponibilidad?.ficha_ocupada && disponibilidad" class="leyenda-semaforo">
+          <span><span class="semaforo semaforo-disponible"></span> Disponible</span>
+          <span><span class="semaforo semaforo-ocupado"></span> Ocupado (se indica el motivo)</span>
+          <span><span class="semaforo semaforo-contrato_vencido"></span> No disponible / Contrato vencido</span>
+        </p>
+
         <!-- Error de guardado (conflictos 409 del backend) -->
         <p v-if="errorGuardar" class="banner banner-error">
           <font-awesome-icon icon="fa-solid fa-triangle-exclamation" /> {{ errorGuardar }}
@@ -192,7 +205,7 @@
           <font-awesome-icon icon="fa-solid fa-trash-can" /> Eliminar
         </button>
         <button class="btn-cancelar" :disabled="guardando" @click="$emit('close')">Cancelar</button>
-        <button class="btn-guardar" :disabled="guardando" @click="guardar">
+        <button class="btn-guardar" :disabled="guardando || disponibilidad?.ficha_ocupada != null" @click="guardar">
           <font-awesome-icon v-if="guardando" :icon="['fas', 'circle-notch']" spin />
           <font-awesome-icon v-else icon="fa-solid fa-check" />
           {{ esEdicion ? 'Guardar cambios' : 'Programar' }}
@@ -261,6 +274,35 @@ watch(
 
 // Cada cambio del rango recalcula el semáforo de disponibilidad
 watch(() => [form.fecha_inicio, form.fecha_fin], consultarDisponibilidad);
+
+// Pre-selección inteligente: Si la competencia es "Técnica" y la ficha tiene un titular, se auto-asigna
+const mostrarTodosInstructores = ref(false);
+const horariosAbiertos = reactive({});
+
+const esTecnicaConTitular = computed(() => {
+  if (!props.ficha?.instructor_titular_id || !form.competencia_id) return false;
+  const comp = props.ficha.diagnostico?.find(c => c.id === form.competencia_id);
+  return comp && comp.tipo === 'Técnica';
+});
+
+const instructoresVisibles = computed(() => {
+  if (!disponibilidad.value) return [];
+  if (esTecnicaConTitular.value && !mostrarTodosInstructores.value) {
+    return disponibilidad.value.instructores.filter(i => i.id === props.ficha.instructor_titular_id);
+  }
+  return disponibilidad.value.instructores;
+});
+
+watch(() => form.competencia_id, (nuevoId) => {
+  if (!nuevoId || !props.ficha || !props.ficha.instructor_titular_id) return;
+  // Solo auto-completar si no estamos en modo edición o si el instructor está vacío
+  if (esEdicion.value && props.asignacion?.instructor?.id) return;
+  
+  if (esTecnicaConTitular.value) {
+    form.instructor_id = props.ficha.instructor_titular_id;
+    mostrarTodosInstructores.value = false; // Reset to hide others by default
+  }
+});
 
 async function consultarDisponibilidad() {
   errorRango.value = '';
@@ -411,6 +453,32 @@ async function eliminar() {
   gap: 8px;
 }
 
+.seccion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.toggle-titular {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--texto-secundario);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle-titular input {
+  accent-color: var(--sena-verde);
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+}
+
 .seccion-titulo svg { color: var(--sena-verde); }
 
 .consultando {
@@ -548,6 +616,28 @@ async function eliminar() {
 
 .opcion input[type='radio'] { accent-color: var(--sena-verde); }
 
+.btn-toggle-horario {
+  background: transparent;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  color: var(--texto-secundario);
+  padding: 0.55rem 0.8rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.btn-toggle-horario:hover {
+  background: var(--fondo-app);
+  color: var(--texto-principal);
+  border-color: var(--texto-secundario);
+}
+
 .semaforo {
   width: 12px;
   height: 12px;
@@ -573,6 +663,7 @@ async function eliminar() {
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  flex: 1;
 }
 
 .opcion-nombre {
@@ -596,24 +687,18 @@ async function eliminar() {
 [data-theme="dark"] .texto-ocupado { color: #fc8181; }
 .texto-contrato_vencido { font-style: italic; }
 
-/* ── Mini-horario del instructor (se despliega al pasar el cursor) ── */
+/* ── Mini-horario del instructor (se despliega bajo demanda) ── */
 .opcion-instructor .mini-horario {
-  display: none;
-  margin: 4px 0 2px 30px;
+  margin: 6px 0 6px 30px;
   background: var(--fondo-tarjetas);
   border: 1px dashed var(--borde);
   border-radius: 10px;
-  padding: 0.6rem 0.9rem;
-}
-
-.opcion-instructor:hover .mini-horario,
-.opcion-instructor:focus-within .mini-horario {
-  display: block;
+  padding: 0.8rem 1rem;
 }
 
 .mini-titulo {
-  margin: 0 0 6px;
-  font-size: 0.68rem;
+  margin: 0 0 8px;
+  font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.4px;
   color: var(--texto-secundario);
