@@ -47,6 +47,14 @@
           <h3>Carnet Maestro</h3>
           <p>Utiliza tu dispositivo para encender el aula presencialmente.</p>
         </button>
+        <!-- 🟣 Opción 3: Módulo Instructores (Yolima) -->
+        <button class="option-card" @click="goToInstructoresYolima">
+          <div class="icon-wrapper bg-purple" style="background-color: #6f42c1; color: white;">
+            <font-awesome-icon icon="fa-solid fa-user-tie" />
+          </div>
+          <h3>Gestión Instructores</h3>
+          <p>Acceso directo al panel de instructores (Rol Yolima).</p>
+        </button>
       </div>
     </div>
   </div>
@@ -112,6 +120,18 @@ onMounted(async () => {
     router.push('/login');
   }
 });
+// 🟣 FUNCIÓN PARA EL ROL DE YOLIMA (INSTRUCTORES)
+const goToInstructoresYolima = () => {
+  localStorage.setItem('user_role', 'yolima');
+  localStorage.setItem('instructorName', 'Yolima');
+  
+  if (userStore) {
+    userStore.role = 'yolima';
+    userStore.name = 'Yolima';
+  }
+
+  router.push('/admin/instructores');
+};
 
 // 💥 FUNCIÓN PARA MATAR LA SESIÓN
 const forzarCierreSesion = async () => {
