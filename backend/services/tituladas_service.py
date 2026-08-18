@@ -666,6 +666,8 @@ async def obtener_ficha(ficha_id: str) -> dict:
         
         instructores_list = await listar_instructores()
         instructores_full_dict = {i["id"]: i for i in instructores_list}
+        ambientes_list = await listar_ambientes()
+        ambientes_full_dict = {a["id"]: a for a in ambientes_list}
         
         from collections import defaultdict
         horas_por_comp = defaultdict(int)
@@ -676,20 +678,30 @@ async def obtener_ficha(ficha_id: str) -> dict:
             cid = a.get("_cr6a3_competenciafichaid_value") or a.get("_cr6a3_competenciaid_value", "")
             h = a.get("cr6a3_horas", 0)
             iid = a.get("_cr6a3_instructorid_value", "")
+            amb_id = a.get("_cr6a3_ambienteid_value", "")
             
             if cid:
                 horas_por_comp[cid.lower()] += h
                 if iid:
                     instructores_por_comp[cid.lower()].add(instructores_dict.get(iid.lower(), "Instructor Asignado"))
-                    
+            
+            comp_db_obj = next((c for c in competencias_db if c.get("cr6a3_competenciafichaid") == cid), None)
+            comp_obj = {"id": cid, "nombre": comp_db_obj.get("cr6a3_nombre", ""), "tipo": comp_db_obj.get("cr6a3_tipo", "")} if comp_db_obj else None
+            
+            inst_obj = instructores_full_dict.get(iid)
+            ambiente_obj = ambientes_full_dict.get(amb_id)
+            
             asignaciones.append({
                 "id": a.get("cr6a3_asignacionesid"),
                 "competencia_id": cid,
                 "instructor_id": iid,
-                "ambiente_id": a.get("_cr6a3_ambienteid_value"),
+                "ambiente_id": amb_id,
                 "fecha_inicio": a.get("cr6a3_fecha_inicio", "")[:10] if a.get("cr6a3_fecha_inicio") else "",
                 "fecha_fin": a.get("cr6a3_fecha_fin", "")[:10] if a.get("cr6a3_fecha_fin") else "",
-                "horas": h
+                "horas": h,
+                "instructor": {"id": inst_obj["id"], "nombre": inst_obj["nombre"], "iniciales": "".join([p[0].upper() for p in inst_obj["nombre"].split() if p]), "color": "#39A900"} if inst_obj else None,
+                "ambiente": {"id": ambiente_obj["id"], "nombre": ambiente_obj["nombre"], "sede": ambiente_obj["sede"]} if ambiente_obj else None,
+                "competencia": comp_obj
             })
         
         diagnostico = []

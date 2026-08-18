@@ -273,13 +273,17 @@
                   :key="a.id"
                   class="cal-chip"
                   :style="estiloChip(a)"
-                  :title="`${a.instructor?.nombre} · ${a.competencia?.nombre} (${a.competencia?.tipo})\n` +
-                    `${formatearFecha(a.fecha_inicio)} → ${formatearFecha(a.fecha_fin)} · ${a.horas} h · ` +
+                  :title="`${a.instructor?.nombre || 'Sin instructor'} · ${a.competencia?.nombre || 'Sin competencia'} (${a.competencia?.tipo || 'N/A'})\n` +
+                    `${formatearFecha(a.fecha_inicio)} → ${formatearFecha(a.fecha_fin)} · ${a.horas || 0} h · ` +
                     `Ambiente: ${a.ambiente?.nombre || '—'}\nClic para editar la asignación`"
                   @click="abrirProgramar(a)"
                 >
-                  <strong>{{ a.instructor?.iniciales }}</strong>
-                  <span class="cal-chip-texto">{{ a.competencia?.nombre }}</span>
+                  <div class="cal-chip-header">
+                    <strong>{{ a.instructor?.iniciales || 'S/I' }}</strong>
+                    <span class="cal-chip-ambiente">{{ a.ambiente?.nombre || 'Sin amb' }}</span>
+                  </div>
+                  <span class="cal-chip-texto">{{ a.competencia?.nombre || 'Sin competencia' }}</span>
+                  <span class="cal-chip-horas">{{ a.horas || 0 }}h programadas</span>
                 </button>
               </div>
             </div>
@@ -541,7 +545,9 @@ const leyendaMes = computed(() => {
 });
 
 const estiloChip = (a) => {
-  const color = a.instructor?.color || '#39A900';
+  const tipoColor = a.competencia?.tipo ? colorTipo(a.competencia.tipo) : null;
+  const color = tipoColor && tipoColor !== 'var(--borde)' ? tipoColor : (a.instructor?.color || '#39A900');
+  
   return {
     background: hexARgba(color, 0.14),
     borderLeft: `3px solid ${color}`,
@@ -626,7 +632,14 @@ const confirmarEliminarArchivo = async (a) => {
   }
 };
 
-const volver = () => router.push('/admin/tituladas');
+const volver = () => {
+  if (window.history.state && window.history.state.back) {
+    router.back();
+  } else {
+    // Si abrieron el link directo y no hay historial, lo mandamos al directorio
+    router.push('/programador-academico/directorio');
+  }
+};
 
 // ── Carga del detalle ──
 const cargar = async () => {
@@ -1107,13 +1120,13 @@ watch(() => route.params.id, (nuevo, anterior) => {
 .cal-chip {
   border: none;
   border-radius: 6px;
-  padding: 3px 6px;
+  padding: 4px 6px;
   font-size: 0.64rem;
   text-align: left;
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
   font-family: inherit;
   line-height: 1.25;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
@@ -1124,14 +1137,45 @@ watch(() => route.params.id, (nuevo, anterior) => {
   box-shadow: 0 2px 6px rgba(0, 48, 64, 0.18);
 }
 
-.cal-chip strong { font-size: 0.66rem; }
+.cal-chip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 4px;
+  width: 100%;
+}
+
+.cal-chip strong { 
+  font-size: 0.7rem; 
+  color: inherit;
+}
+
+.cal-chip-ambiente {
+  font-size: 0.58rem;
+  font-weight: 700;
+  opacity: 0.8;
+  color: inherit;
+  text-align: right;
+}
+
+.cal-chip-horas {
+  font-size: 0.55rem;
+  opacity: 0.9;
+  font-style: italic;
+  color: inherit;
+  margin-top: 2px;
+}
 
 .cal-chip-texto {
-  white-space: nowrap;
+  font-size: 0.6rem;
+  line-height: 1.2;
+  color: inherit;
+  opacity: 0.85;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 120px;
-  color: var(--texto-secundario);
+  margin-top: 1px;
 }
 
 .leyenda-calendario {
