@@ -23,9 +23,12 @@ class InstructorSchema(BaseModel):
     tipo_vinculacion: Optional[str] = "PLANTA"
     max_horas_mensuales: Optional[int] = 160
     jornada: Optional[str] = "Mañana"
+    # Se agregan los campos de fecha de contrato
+    fecha_inicio_contrato: Optional[str] = None
+    fecha_fin_contrato: Optional[str] = None
 
 # -------------------------------------------------------------
-# NUEVO: Endpoint GET para obtener la lista desde Dataverse
+# Endpoint GET para obtener la lista desde Dataverse
 # -------------------------------------------------------------
 @router.get("", status_code=status.HTTP_200_OK)
 async def obtener_instructores():
@@ -43,7 +46,6 @@ async def obtener_instructores():
 
             if response.status_code == 200:
                 data = response.json()
-                # Dataverse devuelve los registros dentro del array 'value'
                 return data.get("value", [])
             else:
                 raise HTTPException(status_code=response.status_code, detail=response.text)
@@ -57,6 +59,9 @@ async def obtener_instructores():
 # -------------------------------------------------------------
 # Endpoint POST (Crear)
 # -------------------------------------------------------------
+# ---------------------------------------------------------
+# Endpoint POST (Crear)
+# ---------------------------------------------------------
 @router.post("", status_code=status.HTTP_201_CREATED)
 async def crear_instructor(instructor: InstructorSchema):
     try:
@@ -66,31 +71,32 @@ async def crear_instructor(instructor: InstructorSchema):
         headers = {
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
-            "Prefer": "return=representation"  # Pide a Dataverse que devuelva el registro creado con su GUID
+            "Prefer": "return=representation"
         }
 
+        # Mapeo del payload incorporando las nuevas columnas para Dataverse
         payload = {
             "cr6a3_nombre_completo": instructor.nombre,
             "cr6a3_correo_institucional": instructor.correo,
+            "cr6a3_fecha_inicio_contrato": instructor.fecha_inicio_contrato,
+            "cr6a3_fecha_fin_contrato": instructor.fecha_fin_contrato,
         }
 
         async with httpx.AsyncClient() as client:
             response = await client.post(endpoint, headers=headers, json=payload)
 
-            if response.status_code in [201, 200]:
-                data = response.json()
-                return {
-                    "status": "success",
-                    "data": data,
-                    "id": data.get("cr6a3_instructorid")  # Devuelve el GUID asignado por Dataverse
-                }
-            else:
-                raise HTTPException(status_code=response.status_code, detail=response.text)
-
+        if response.status_code in [201, 200]:
+            data = response.json()
+            return data
+        
+            raise HTTPException(
+            status_code=response.status_code,
+            detail=f"Error de Dataverse al crear instructor: {response.text}"
+            )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al crear en Dataverse: {str(e)}"
+            detail=f"Error al crear instructor en Dataverse: {str(e)}"
         )
 
 # -------------------------------------------------------------
