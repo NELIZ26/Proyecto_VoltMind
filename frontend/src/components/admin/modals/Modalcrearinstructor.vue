@@ -87,7 +87,7 @@
 
         <div class="modal-footer">
           <button type="button" class="btn-cancel" @click="closeModal">Cancelar</button>
-          <button type="submit" class="btn-primary">Guardar Instructor</button>
+          <button type="submit" class="btn-primary"  :disabled="isSaving">{{ isSaving ? 'Guardando...' : 'Guardar Instructor' }}</button>
         </div>
       </form>
     </div>
@@ -96,10 +96,11 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue';
+import { reactive, watch } from 'vue';
 
 const props = defineProps({
-  isOpen: Boolean
+  isOpen: Boolean,
+  isSaving: Boolean
 });
 
 const emit = defineEmits(['close', 'created']);
@@ -111,23 +112,45 @@ const form = reactive({
   telefono: '',
   area_especialidad: '',
   tipo_vinculacion: 'PLANTA',
-  jornada: 'Manana',
+  jornada: 'MAÑANA',
   max_horas_mensuales: 160,
   fecha_inicio_contrato: '',
   fecha_fin_contrato: ''
 });
 
+// Limpia todos los campos del formulario
+const resetForm = () => {
+  form.nombre = '';
+  form.documento = '';
+  form.correo = '';
+  form.telefono = '';
+  form.area_especialidad = '';
+  form.tipo_vinculacion = 'PLANTA';
+  form.jornada = 'MAÑANA';
+  form.max_horas_mensuales = 160;
+  form.fecha_inicio_contrato = '';
+  form.fecha_fin_contrato = '';
+};
+
+watch(
+  () => props.isOpen,
+  (isOpen) => {
+    if (isOpen) {
+      resetForm();
+    }
+  }
+);
+
 const closeModal = () => {
+  resetForm();
   emit('close');
 };
 
 const handleSubmit = () => {
-  // Aquí se enviarán los datos a la API o al Store
+  if (props.isSaving) return;
+
   emit('created', { ...form });
-  closeModal();
-
 };
-
 </script>
 
 <style scoped>
