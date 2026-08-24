@@ -314,7 +314,8 @@ const toggleRelay = async (modulo) => {
     // Si es el módulo Master (ID: 1), enviamos comando global al backend
     if (modulo.id === 1) {
       try {
-        await fetch(`http://127.0.0.1:8000/api/iot/master`, {
+        const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+        await fetch(`${BASE_URL}/api/iot/master`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ estado: modulo.powerOn ? "1" : "0" })
