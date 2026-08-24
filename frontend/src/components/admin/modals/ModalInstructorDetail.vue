@@ -1,9 +1,9 @@
 <template>
   <div v-if="show" class="modal-overlay" @click.self="closeModal">
-    <div class="modal-content detail-modal">
+    <div class="modal-content detail-modal" style="height: 85vh; max-height: 85vh; display: flex; flex-direction: column; overflow: hidden; background-color: #181818;">
       
-      <!-- HEADER -->
-      <header class="modal-header">
+      <!-- HEADER (FIJO) -->
+      <header class="modal-header" style="flex-shrink: 0;">
         <div class="header-left">
           <UserAvatar :alt="instructorData?.name" />
           <div class="info-texts">
@@ -21,162 +21,211 @@
         </button>
       </header>
 
-      <!-- STAT CARDS -->
-      <div class="stats-cards-container">
-        <div class="stat-card">
-          <span class="stat-label">Horas Asignadas</span>
-          <span class="stat-value">{{ instructorData?.hours }} h</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Máximo Horas</span>
-          <span class="stat-value">{{ instructorData?.maxHours }} h</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Horas Disponibles</span>
-          <span class="stat-value">{{ getAvailableHours }} h</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Fichas Asg.</span>
-          <span class="stat-value">{{ instructorData?.fichas }}</span>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Estado</span>
-          <span class="stat-value status-text" :style="{ color: instructorData?.progressColor || '#10B981' }">
-            {{ instructorData?.statusLabel }}
-          </span>
-        </div>
-      </div>
-
-      <!-- TABS SELECTOR -->
-      <div class="tabs-nav">
-        <button 
-          v-for="tab in tabs" 
-          :key="tab.id" 
-          :class="['tab-btn', { active: activeTab === tab.id }]"
-          @click="activeTab = tab.id"
-        >
-          {{ tab.label }}
-        </button>
-      </div>
-
-      <!-- TAB CONTENT -->
-      <div class="tab-content-container">
+      <!-- CONTENIDO MEDIO SCROLLEABLE (STAT CARDS + TABS + CONTENIDO) -->
+      <div class="modal-body-scrollable" style="flex: 1; min-height: 0; overflow-y: auto; padding-right: 4px;">
         
-        <!-- RESUMEN TAB -->
-        <div v-if="activeTab === 'resumen'" class="tab-pane resumen-grid">
-          <div class="info-card">
-            <h4>INFORMACIÓN GENERAL</h4>
-            <div class="info-row">
-              <span class="info-label">Documento</span>
-              <span class="info-value">{{ getInstructorDoc }}</span>
+        <!-- STAT CARDS -->
+        <div class="stats-cards-container">
+          <div class="stat-card">
+            <span class="stat-label">Horas Asignadas</span>
+            <span class="stat-value">{{ instructorData?.hours }} h</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Máximo Horas</span>
+            <span class="stat-value">{{ instructorData?.maxHours }} h</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Horas Disponibles</span>
+            <span class="stat-value">{{ getAvailableHours }} h</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Fichas Asg.</span>
+            <span class="stat-value">{{ instructorData?.fichas }}</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Estado</span>
+            <span class="stat-value status-text" :style="{ color: instructorData?.progressColor || '#10B981' }">
+              {{ instructorData?.statusLabel }}
+            </span>
+          </div>
+          <!-- Fechas de Contrato -->
+          <div class="stat-card">
+            <span class="stat-label">Inicio Contrato</span>
+            <span class="stat-value">{{ instructorData?.fecha_inicio_contrato || instructorData?.fechaInicioContrato || 'Sin fecha' }}</span>
+          </div>
+
+          <div class="stat-card">
+            <span class="stat-label">Fin Contrato</span>
+            <span class="stat-value">{{ instructorData?.fecha_fin_contrato || instructorData?.fechaFinContrato || 'Sin fecha' }}</span>
+          </div>
+        </div>
+
+        <!-- TABS SELECTOR -->
+        <div class="tabs-nav">
+          <button 
+            v-for="tab in tabs" 
+            :key="tab.id" 
+            :class="['tab-btn', { active: activeTab === tab.id }]"
+            @click="activeTab = tab.id"
+          >
+            {{ tab.label }}
+          </button>
+        </div>
+
+        <!-- TAB CONTENT -->
+        <div class="tab-content-container">
+          
+          <!-- RESUMEN TAB -->
+          <div v-if="activeTab === 'resumen'" class="tab-pane resumen-grid">
+            <div class="info-card">
+              <h4>INFORMACIÓN GENERAL</h4>
+              <div class="info-row">
+                <span class="info-label">Documento</span>
+                <span class="info-value">{{ getInstructorDoc }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Correo</span>
+                <span class="info-value">{{ getInstructorEmail }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Teléfono</span>
+                <span class="info-value">{{ getInstructorPhone }}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Jornada</span>
+                <span class="info-value">Mañana</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Competencia</span>
+                <span class="info-value">Técnica</span>
+              </div>
             </div>
-            <div class="info-row">
-              <span class="info-label">Correo</span>
-              <span class="info-value">{{ getInstructorEmail }}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Teléfono</span>
-              <span class="info-value">{{ getInstructorPhone }}</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Jornada</span>
-              <span class="info-value">Mañana</span>
-            </div>
-            <div class="info-row">
-              <span class="info-label">Competencia</span>
-              <span class="info-value">Técnica</span>
+
+            <div class="connections-row">
+              <div class="connection-card">
+                <div class="conn-icon-label">
+                  <font-awesome-icon icon="fa-solid fa-clock" class="icon-green" />
+                  <div class="conn-texts">
+                    <span class="conn-title">Ultima conexión</span>
+                    <span class="conn-value-main">Hoy, 10:45 a.m.</span>
+                  </div>
+                </div>
+                <span class="conn-date">17/06/2026</span>
+              </div>
+
+              <div class="connection-card">
+                <div class="conn-icon-label">
+                  <font-awesome-icon icon="fa-solid fa-clock" class="icon-green" />
+                  <div class="conn-texts">
+                    <span class="conn-title">Tiempo Con.</span>
+                    <span class="conn-value-main">28h 45 min</span>
+                  </div>
+                </div>
+                <span class="conn-date">En los últimos días</span>
+              </div>
             </div>
           </div>
 
-          <div class="connections-row">
-            <div class="connection-card">
-              <div class="conn-icon-label">
-                <font-awesome-icon icon="fa-solid fa-clock" class="icon-green" />
-                <div class="conn-texts">
-                  <span class="conn-title">Ultima conexión</span>
-                  <span class="conn-value-main">Hoy, 10:45 a.m.</span>
+          <!-- HORARIOS TAB -->
+          <div v-if="activeTab === 'horarios'" class="tab-pane">
+            <div class="schedule-grid" v-if="instructorSchedule.length > 0">
+              <div class="schedule-card" v-for="item in instructorSchedule" :key="item.id">
+                <div class="card-top-banner">
+                  <span class="env-name">AMBIENTE {{ getAmbienteName(item.ambienteId).toUpperCase() }}</span>
+                  <span class="time-range">{{ formatTimeRange(item.bloque) }}</span>
+                </div>
+                <div class="card-main-content">
+                  <h5>{{ getProgramName(item.ficha) }} ({{ item.ficha }})</h5>
+                  <p>{{ instructorData?.specialty }} | Transversal</p>
                 </div>
               </div>
-              <span class="conn-date">17/06/2026</span>
             </div>
+            <div v-else class="empty-state">
+              <font-awesome-icon icon="fa-regular fa-calendar" class="empty-icon" />
+              <p>No hay bloques horarios asignados para este instructor.</p>
+            </div>
+          </div>
 
-            <div class="connection-card">
-              <div class="conn-icon-label">
-                <font-awesome-icon icon="fa-solid fa-clock" class="icon-green" />
-                <div class="conn-texts">
-                  <span class="conn-title">Tiempo Conn.</span>
-                  <span class="conn-value-main">28h 45 min</span>
+          <!-- ASIGNACIONES TAB -->
+          <div v-if="activeTab === 'asignaciones'" class="tab-pane">
+            <div class="assignments-grid" v-if="instructorSchedule.length > 0">
+              <div class="assignment-card" v-for="item in instructorSchedule" :key="item.id">
+                <h5>{{ getProgramName(item.ficha) }} | Mañana</h5>
+                <p class="subtitle">{{ instructorData?.specialty }} | Transversal</p>
+                <div class="detail-line">
+                  <span class="label">Competencia:</span>
+                  <span class="val">240201530</span>
+                </div>
+                <div class="detail-line font-bold">
+                  <span class="label">Horas:</span>
+                  <span class="val text-green">40h</span>
+                </div>
+                <div class="detail-line">
+                  <span class="label">Fecha Inicio:</span>
+                  <span class="val">08/05/2026</span>
+                </div>
+                <div class="detail-line">
+                  <span class="label">Fecha Fin:</span>
+                  <span class="val">08/08/2026</span>
                 </div>
               </div>
-              <span class="conn-date">En los últimos días</span>
+            </div>
+            <div v-else class="empty-state">
+              <font-awesome-icon icon="fa-solid fa-list-check" class="empty-icon" />
+              <p>No hay asignaciones registradas para este instructor.</p>
             </div>
           </div>
-        </div>
 
-        <!-- HORARIOS TAB -->
-        <div v-if="activeTab === 'horarios'" class="tab-pane">
-          <div class="schedule-grid" v-if="instructorSchedule.length > 0">
-            <div class="schedule-card" v-for="item in instructorSchedule" :key="item.id">
-              <div class="card-top-banner">
-                <span class="env-name">AMBIENTE {{ getAmbienteName(item.ambienteId).toUpperCase() }}</span>
-                <span class="time-range">{{ formatTimeRange(item.bloque) }}</span>
-              </div>
-              <div class="card-main-content">
-                <h5>{{ getProgramName(item.ficha) }} ({{ item.ficha }})</h5>
-                <p>{{ instructorData?.specialty }} | Transversal</p>
-              </div>
+          <!-- NOVEDADES TAB -->
+          <div v-if="activeTab === 'novedades'" class="tab-pane">
+            <div class="empty-state">
+              <font-awesome-icon icon="fa-solid fa-bell-slash" class="empty-icon" />
+              <p>No se registran novedades para este instructor.</p>
             </div>
           </div>
-          <div v-else class="empty-state">
-            <font-awesome-icon icon="fa-regular fa-calendar" class="empty-icon" />
-            <p>No hay bloques horarios asignados para este instructor.</p>
-          </div>
-        </div>
 
-        <!-- ASIGNACIONES TAB -->
-        <div v-if="activeTab === 'asignaciones'" class="tab-pane">
-          <div class="assignments-grid" v-if="instructorSchedule.length > 0">
-            <div class="assignment-card" v-for="item in instructorSchedule" :key="item.id">
-              <h5>{{ getProgramName(item.ficha) }} | Mañana</h5>
-              <p class="subtitle">{{ instructorData?.specialty }} | Transversal</p>
-              <div class="detail-line">
-                <span class="label">Competencia:</span>
-                <span class="val">240201530</span>
-              </div>
-              <div class="detail-line font-bold">
-                <span class="label">Horas:</span>
-                <span class="val text-green">40h</span>
-              </div>
-              <div class="detail-line">
-                <span class="label">Fecha Inicio:</span>
-                <span class="val">08/05/2026</span>
-              </div>
-              <div class="detail-line">
-                <span class="label">Fecha Fin:</span>
-                <span class="val">08/08/2026</span>
-              </div>
-            </div>
-          </div>
-          <div v-else class="empty-state">
-            <font-awesome-icon icon="fa-solid fa-list-check" class="empty-icon" />
-            <p>No hay asignaciones registradas para este instructor.</p>
-          </div>
-        </div>
-
-        <!-- NOVEDADES TAB -->
-        <div v-if="activeTab === 'novedades'" class="tab-pane">
-          <div class="empty-state">
-            <font-awesome-icon icon="fa-solid fa-bell-slash" class="empty-icon" />
-            <p>No se registran novedades para este instructor.</p>
-          </div>
         </div>
 
       </div>
 
-      <!-- FOOTER -->
-      <footer class="modal-footer">
-        <button class="btn-cancel" @click="closeModal">Cerrar</button>
-      </footer>
+      <!-- FOOTER NORMAL -->
+<footer v-if="!showConfirmDelete" class="modal-footer" style="flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; width: 100%; padding-top: 1rem; margin-top: auto; border-top: 1px solid #333; background-color: #181818;">
+  <button 
+    type="button" 
+    class="btn-delete" 
+    style="background-color: #dc3545; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-weight: bold;"
+    @click="showConfirmDelete = true"
+  >
+    <font-awesome-icon icon="fa-solid fa-trash" /> Eliminar Instructor
+  </button>
+
+  <button type="button" class="btn-cancel" @click="closeModal">Cerrar</button>
+</footer>
+
+<!-- CONFIRMACIÓN INTEGRADA (Misma estética VoltMind) -->
+<footer v-else class="modal-footer" style="flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 0.8rem 1rem; margin-top: auto; border-top: 1px solid #dc3545; background-color: #2a1215; border-radius: 6px;">
+  <span style="color: #f8d7da; font-size: 0.9rem; font-weight: 500;">
+    ⚠️ ¿Seguro que deseas eliminar este instructor?
+  </span>
+  
+  <div style="display: flex; gap: 0.5rem;">
+    <button 
+      type="button" 
+      style="background-color: #dc3545; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer; font-weight: bold;"
+      @click="$emit('delete', instructorData?.cr6a3_instructorid || instructorData?.id); showConfirmDelete = false;"
+    >
+      Sí, eliminar
+    </button>
+    
+    <button 
+      type="button" 
+      style="background-color: #444; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 4px; cursor: pointer;"
+      @click="showConfirmDelete = false"
+    >
+      Cancelar
+    </button>
+  </div>
+</footer>
     </div>
   </div>
 </template>
@@ -194,7 +243,7 @@ const props = defineProps({
   }
 });
 
-const emit = defineEmits(['update:show', 'close']);
+const emit = defineEmits(['update:show', 'close', 'delete']);
 
 const store = useProgramacionStore();
 
@@ -213,6 +262,11 @@ watch(() => props.show, (newVal) => {
   }
 });
 
+
+
+//alerta de eliminacion//
+const showConfirmDelete = ref(false)
+  
 const getInitials = (name) => {
   if (!name) return '';
   return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
@@ -712,4 +766,23 @@ const closeModal = () => {
 .btn-cancel:hover {
   background: var(--borde, #cbd5e1);
 }
+
+/* Todo tu CSS actual del modal va aquí arriba ... */
+
+.detail-modal {
+  max-height: 85vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+.tab-content-container {
+  overflow-y: auto !important;
+  flex: 1 !important;
+}
+
+.modal-footer {
+  flex-shrink: 0 !important;
+}
+
 </style>
