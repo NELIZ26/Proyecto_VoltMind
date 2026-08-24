@@ -10,13 +10,14 @@ from functools import wraps
 
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 
 from schemas.tituladas import (
     AsignacionTituladaCreate,
     AsignacionTituladaUpdate,
-    DiagnosticoUpdate,
     FichaTituladaCreate,
     ProgramaCreate,
+    DiagnosticoUpdate,
 )
 from services import tituladas_service as servicio
 
@@ -60,18 +61,29 @@ async def crear_ficha(datos: FichaTituladaCreate):
 @router.get("/fichas/{ficha_id}")
 @_con_manejo_de_errores
 async def obtener_ficha(ficha_id: str):
-    """Detalle de una ficha: diagnóstico de competencias + asignaciones del calendario."""
+    """Detalle completo de la ficha, incluyendo diagnóstico y calendario."""
     return await servicio.obtener_ficha(ficha_id)
+
+class AsignarTitularPayload(BaseModel):
+    instructor_titular_id: str | None = None
+
+@router.put("/fichas/{ficha_id}/titular")
+@_con_manejo_de_errores
+async def actualizar_titular(ficha_id: str, datos: AsignarTitularPayload):
+    """Actualiza el instructor titular de la ficha."""
+    return await servicio.actualizar_titular_ficha(ficha_id, datos.instructor_titular_id)
 
 
 @router.put("/fichas/{ficha_id}/diagnostico")
 @_con_manejo_de_errores
 async def actualizar_diagnostico(ficha_id: str, datos: DiagnosticoUpdate):
-    """Reemplaza la matriz de competencias (diagnóstico) de la ficha. Las
-    competencias con asignaciones en el calendario no se pueden eliminar (409)."""
+    """Reemplaza la matriz de competencias (diagnóstico) de la ficha."""
     return await servicio.actualizar_diagnostico(
         ficha_id, [c.model_dump() for c in datos.competencias]
     )
+
+
+
 
 
 # ── RESPALDO DE ARCHIVOS (Excel históricos de la ficha, solo lectura) ────────

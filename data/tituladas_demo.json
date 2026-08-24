@@ -470,126 +470,6 @@
   ],
   "asignaciones": [
     {
-      "id": "asig-01",
-      "ficha_id": "fic-deportes",
-      "instructor_id": "inst-jir",
-      "competencia_id": "f1-c1",
-      "ambiente_id": "amb-cancha",
-      "fecha_inicio": "2026-03-05",
-      "fecha_fin": "2026-03-11",
-      "horas": 30
-    },
-    {
-      "id": "asig-02",
-      "ficha_id": "fic-deportes",
-      "instructor_id": "inst-jir",
-      "competencia_id": "f1-c2",
-      "ambiente_id": "amb-cancha",
-      "fecha_inicio": "2026-03-12",
-      "fecha_fin": "2026-03-20",
-      "horas": 42
-    },
-    {
-      "id": "asig-03",
-      "ficha_id": "fic-deportes",
-      "instructor_id": "inst-slo",
-      "competencia_id": "f1-c4",
-      "ambiente_id": "amb-101",
-      "fecha_inicio": "2026-03-24",
-      "fecha_fin": "2026-03-31",
-      "horas": 36
-    },
-    {
-      "id": "asig-04",
-      "ficha_id": "fic-deportes",
-      "instructor_id": "inst-jir",
-      "competencia_id": "f1-c2",
-      "ambiente_id": "amb-cancha",
-      "fecha_inicio": "2026-04-01",
-      "fecha_fin": "2026-04-17",
-      "horas": 78
-    },
-    {
-      "id": "asig-05",
-      "ficha_id": "fic-deportes",
-      "instructor_id": "inst-rer",
-      "competencia_id": "f1-c5",
-      "ambiente_id": "amb-101",
-      "fecha_inicio": "2026-04-20",
-      "fecha_fin": "2026-04-24",
-      "horas": 30
-    },
-    {
-      "id": "asig-06",
-      "ficha_id": "fic-deportes",
-      "instructor_id": "inst-dmu",
-      "competencia_id": "f1-c7",
-      "ambiente_id": "amb-101",
-      "fecha_inicio": "2026-04-27",
-      "fecha_fin": "2026-04-30",
-      "horas": 24
-    },
-    {
-      "id": "asig-07",
-      "ficha_id": "fic-deportes",
-      "instructor_id": "inst-jir",
-      "competencia_id": "f1-c3",
-      "ambiente_id": "amb-cancha",
-      "fecha_inicio": "2026-05-04",
-      "fecha_fin": "2026-05-15",
-      "horas": 60
-    },
-    {
-      "id": "asig-08",
-      "ficha_id": "fic-deportes",
-      "instructor_id": "inst-jir",
-      "competencia_id": "f1-c2",
-      "ambiente_id": "amb-cancha",
-      "fecha_inicio": "2026-08-03",
-      "fecha_fin": "2026-08-14",
-      "horas": 60
-    },
-    {
-      "id": "asig-09",
-      "ficha_id": "fic-deportes",
-      "instructor_id": "inst-rer",
-      "competencia_id": "f1-c8",
-      "ambiente_id": "amb-101",
-      "fecha_inicio": "2026-08-18",
-      "fecha_fin": "2026-08-21",
-      "horas": 24
-    },
-    {
-      "id": "asig-10",
-      "ficha_id": "fic-deportes",
-      "instructor_id": "inst-jir",
-      "competencia_id": "f1-c3",
-      "ambiente_id": "amb-cancha",
-      "fecha_inicio": "2026-08-24",
-      "fecha_fin": "2026-08-28",
-      "horas": 30
-    },
-    {
-      "id": "asig-11",
-      "ficha_id": "fic-adso",
-      "instructor_id": "inst-mgo",
-      "competencia_id": "f2-c1",
-      "ambiente_id": "amb-sistemas",
-      "fecha_inicio": "2026-07-21",
-      "fecha_fin": "2026-07-27",
-      "horas": 30
-    },
-    {
-      "id": "asig-13",
-      "ficha_id": "fic-adso",
-      "instructor_id": "inst-dmu",
-      "competencia_id": "f2-c4",
-      "ambiente_id": "amb-sistemas",
-      "fecha_inicio": "2026-08-24",
-      "fecha_fin": "2026-08-28",
-      "horas": 30
-    },
-    {
       "id": "asig-15",
       "ficha_id": "fic-cocina",
       "instructor_id": "inst-slo",
@@ -610,36 +490,6 @@
       "horas": 30
     },
     {
-      "id": "asig-2f829814",
-      "ficha_id": "fic-deportes",
-      "instructor_id": "inst-cpe",
-      "competencia_id": "f1-c8",
-      "ambiente_id": "amb-biling",
-      "fecha_inicio": "2026-09-04",
-      "fecha_fin": "2026-09-11",
-      "horas": 36
-    },
-    {
-      "id": "asig-3ff4a893",
-      "ficha_id": "fic-adso",
-      "instructor_id": "inst-mgo",
-      "competencia_id": "f2-c2",
-      "ambiente_id": "amb-cancha",
-      "fecha_inicio": "2026-08-03",
-      "fecha_fin": "2026-08-14",
-      "horas": 60
-    },
-    {
-      "id": "asig-c9ece142",
-      "ficha_id": "fic-fc1ce799",
-      "instructor_id": "inst-rer",
-      "competencia_id": "c-40a88c56",
-      "ambiente_id": "amb-101",
-      "fecha_inicio": "2026-08-04",
-      "fecha_fin": "2026-08-10",
-      "horas": 30
-    },
-    {
       "id": "asig-f588e411",
       "ficha_id": "fic-27284546",
       "instructor_id": "inst-slo",
@@ -647,26 +497,6 @@
       "ambiente_id": "amb-102",
       "fecha_inicio": "2026-08-12",
       "fecha_fin": "2026-08-20",
-      "horas": 42
-    },
-    {
-      "id": "asig-c72d84e4",
-      "ficha_id": "fic-fc1ce799",
-      "instructor_id": "inst-slo",
-      "competencia_id": "c-40a88c56",
-      "ambiente_id": "amb-biblio",
-      "fecha_inicio": "2026-08-21",
-      "fecha_fin": "2026-08-25",
-      "horas": 18
-    },
-    {
-      "id": "asig-4c57ab6e",
-      "ficha_id": "fic-deportes",
-      "instructor_id": "inst-rer",
-      "competencia_id": "f1-c6",
-      "ambiente_id": "amb-102",
-      "fecha_inicio": "2026-09-23",
-      "fecha_fin": "2026-10-01",
       "horas": 42
     },
     {
@@ -697,6 +527,26 @@
       "ambiente_id": "amb-101",
       "fecha_inicio": "2026-09-14",
       "fecha_fin": "2026-09-18",
+      "horas": 30
+    },
+    {
+      "id": "asig-203e1323",
+      "ficha_id": "fic-deportes",
+      "instructor_id": "inst-jir",
+      "competencia_id": "f1-c1",
+      "ambiente_id": "amb-102",
+      "fecha_inicio": "2026-08-01",
+      "fecha_fin": "2026-08-08",
+      "horas": 30
+    },
+    {
+      "id": "asig-85766d80",
+      "ficha_id": "fic-adso",
+      "instructor_id": "inst-jir",
+      "competencia_id": "f2-c1",
+      "ambiente_id": "amb-101",
+      "fecha_inicio": "2026-08-01",
+      "fecha_fin": "2026-08-07",
       "horas": 30
     }
   ],
