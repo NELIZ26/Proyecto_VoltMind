@@ -11,14 +11,12 @@ const routes = [
     component: () => import("@/views/auth/Login.vue"),
     meta: { title: "VoltMind Access - Iniciar Sesión", requiresAuth: false },
   },
-  /*
   {
     path: "/route-selector",
     name: "RouteSelector",
     component: () => import("@/views/auth/routeSelector.vue"),
     meta: { title: "Entorno de Desarrollo - Sandbox", requiresAuth: false },
   },
-  */
   {
     path: "/select-ficha",
     name: "SelectFicha",
@@ -126,11 +124,21 @@ const routes = [
       },
 
       {
-        path: "instructores",
-        name: "AdminInstructores",
-        component: () => import("@/views/admin/InstructoresView.vue"),
-        meta: { title: "VoltMind Admin - Instructores" }
-      },
+         // Permitir acceso a Yolima
+        
+  
+  path: "instructores",
+  name: "AdminInstructores",
+  component: () => import("@/views/admin/InstructoresView.vue"),
+  meta: { 
+    title: "VoltMind Admin - Instructores",
+    requiresAuth: true, 
+    roles: ['dinamizador', 'admin', 'yolima', 'YOLIMA'] 
+  }
+},
+ 
+
+      
       {
         path: "aprendices",
         name: "AdminAprendices",
@@ -160,7 +168,13 @@ const routes = [
         path: "tituladas",
         name: "AcademicoTituladas",
         component: () => import("@/views/admin/FichasTituladasView.vue"),
-        meta: { title: "VoltMind - Fichas Tituladas" }
+        meta: { title: "VoltMind - Panel Principal" }
+      },
+      {
+        path: "directorio",
+        name: "AcademicoDirectorio",
+        component: () => import("@/views/admin/DirectorioTituladasView.vue"),
+        meta: { title: "VoltMind - Directorio de Fichas" }
       },
       {
         path: "tituladas/:id",
@@ -225,32 +239,45 @@ const router = createRouter({
 });
 
 // ── GUARD GLOBAL: GESTIÓN DE TÍTULOS Y ROLES (RBAC) ──
+// — GUARD GLOBAL: GESTIÓN DE TÍTULOS Y ROLES (RBAC) —
 router.beforeEach((to, from, next) => {
-  // 1. Actualizar el título de la pestaña del navegador
-  if (to.meta.title) {
+  const userRole = localStorage.getItem("user_role");
+
+  // 1. Bypass directo para Yolima
+  if (userRole && userRole.toLowerCase() === "yolima") {
+    if (to.meta && to.meta.title) document.title = to.meta.title;
+    return next();
+  }
+
+  // 2. Título de la pestaña para el resto de usuarios
+  if (to.meta && to.meta.title) {
     document.title = to.meta.title;
   }
+  return next(); // Auth suspendida temporalmente
 
-  // 2. Verificación de Roles
-  const userRole = localStorage.getItem("user_role"); // Lee el rol inyectado por el Simulador
-
-  // Si la ruta exige estar autenticado...
-  if (to.meta.requiresAuth) {
-    // Si no hay rol (nadie ha iniciado sesión o no pasaron por el selector)
+  // 3. Verificación de Roles para el resto
+  if (to.meta && to.meta.requiresAuth) {
     if (!userRole) {
-      return next("/login"); // En producción, redirigirá a '/login'
+      return next("/login");
     }
 
-    // Si el usuario tiene un rol, pero ese rol no está en la lista permitida de la ruta
-    if (to.meta.roles && !to.meta.roles.includes(userRole)) {
-      console.warn(
-        `Bloqueo de seguridad: El rol '${userRole}' intentó acceder a '${to.path}'`,
+    const roleNormalized = userRole.toLowerCase();
+
+    const tienePermiso = to.matched.every((record) => {
+      if (!record.meta || !record.meta.roles) return true;
+      return record.meta.roles.some(
+        (r) => String(r).toLowerCase() === roleNormalized
       );
-      return next("/login"); // Rechazado. Lo devolvemos al login.
+    });
+
+    if (!tienePermiso) {
+      console.warn(
+        `Bloqueo de seguridad: El rol '${userRole}' intentó acceder a '${to.path}'`
+      );
+      return next("/login");
     }
   }
 
-  // Si pasa todas las validaciones, permitimos la navegación
   next();
 });
 

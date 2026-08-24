@@ -120,6 +120,8 @@ watch(() => apprentices.value, (newVals) => {
   });
 }, { deep: true });
 
+
+
 const meters = ref([
   { id: 1, label: "Iluminación Aula", value: 120 },
   { id: 2, label: "Bancos de Cómputo", value: 850 },

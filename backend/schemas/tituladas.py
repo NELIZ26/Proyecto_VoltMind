@@ -69,9 +69,8 @@ class CompetenciaDiagnostico(BaseModel):
             raise ValueError(f"'{v}' no es un tipo de competencia válido ({', '.join(TIPOS_COMPETENCIA)}).")
         return v
 
-
 class DiagnosticoUpdate(BaseModel):
-    """Reemplaza la matriz de competencias de una ficha (mínimo una competencia)."""
+    """Payload para actualizar la matriz de competencias (diagnóstico) de la ficha."""
     competencias: list[CompetenciaDiagnostico] = Field(min_length=1)
 
 

@@ -98,7 +98,8 @@ _ZONA_BOGOTA = ZoneInfo("America/Bogota")
 
 def dataverse_configurado() -> bool:
     """True si el .env tiene todas las credenciales necesarias de Dataverse."""
-    return all([TENANT_ID, CLIENT_ID, CLIENT_SECRET, DATAVERSE_URL])
+    # Forzamos temporalmente a False porque la tabla cr6a3_fichacomplementarias aún NO existe en Dataverse
+    return False
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -691,6 +692,38 @@ async def actualizar_solicitud(solicitud_id: str, datos: dict) -> dict:
     res = await client.patch(f"{TABLA_COMPLEMENTARIAS}({solicitud_id})", json=cuerpo)
     if res.status_code != 204:
         raise HTTPException(status_code=400, detail="No se pudo actualizar la solicitud en Dataverse.")
+        
+    # Si la solicitud pasa a "En Ejecución" y tiene código de ficha oficial, la instanciamos en el módulo IoT (Tituladas)
+    if datos.get("estado") == "En Ejecución" and datos.get("codigo_ficha"):
+        from services.dataverse import crear_registro_dataverse, actualizar_registro_dataverse
+        try:
+            # 1. Crear ficha en módulo general
+            payload_ficha = {
+                "cr6a3_numero_ficha": datos["codigo_ficha"],
+                "cr6a3_nombre_programa": previa.get("nombre_programa", "Curso Complementario") if previa else "Curso Complementario",
+                "cr6a3_jornada": previa.get("jornada", "Mañana") if previa else "Mañana",
+                "cr6a3_fecha_inicio": previa.get("fecha_inicio_formacion", ""),
+                "cr6a3_fecha_fin": previa.get("fecha_fin_formacion", "")
+            }
+            ficha_creada = await crear_registro_dataverse("cr6a3_fichas", payload_ficha)
+            ficha_id = ficha_creada["cr6a3_fichaid"]
+            
+            # 2. Asignar competencia única para la matriz
+            payload_comp = {
+                "cr6a3_nombre": previa.get("nombre_programa", "Curso Complementario") if previa else "Curso Complementario",
+                "cr6a3_tipo": "Técnica",
+                "cr6a3_horas": previa.get("duracion_horas", 40) if previa else 40,
+                "cr6a3_FichaId@odata.bind": f"/cr6a3_fichas({ficha_id})"
+            }
+            await crear_registro_dataverse("cr6a3_competenciafichas", payload_comp)
+            
+            # 3. Vincularla (opcional) a la solicitud original
+            await actualizar_registro_dataverse("cr6a3_solicitudcomplementarias", solicitud_id, {
+                "cr6a3_FichaOficialId@odata.bind": f"/cr6a3_fichas({ficha_id})"
+            })
+        except Exception as e:
+            print("Error al instanciar ficha puente:", e)
+            
     if previa is not None and previa.get("estado") != "Publicada":
         await _avisar_publicacion_sin_fallar({**previa, **datos, "id": solicitud_id})
     return {"id": solicitud_id, **datos}

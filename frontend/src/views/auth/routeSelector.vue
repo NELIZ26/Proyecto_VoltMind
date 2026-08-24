@@ -9,6 +9,15 @@ const toast = useToast();
 // Mapeo de entornos de desarrollo con sus roles asociados (Limpio y fusionado)
 const devLogins = [
   {
+    role: "admin_dashboard",
+    path: "/admin/dashboard",
+    name: "Admin Dashboard",
+    desc: "Nueva ruta de administración y dashboard.",
+    icon: "chart-line",
+    color: "var(--sena-azul-oscuro, #003040)",
+    glow: "rgba(0, 48, 64, 0.25)",
+  },
+  {
     role: "dinamizador",
     path: "/dashboard-admin",
     name: "Dinamizador Energético",
@@ -71,15 +80,29 @@ const devLogins = [
     icon: "file-circle-plus",
     color: "var(--sena-verde, #39a900)",
     glow: "rgba(57, 169, 0, 0.25)"
-  }
+  },
+  {
+    role: "YOLIMA",
+    path: "/admin/instructores",
+    name: "Yolima (Instructores)",
+    desc: "Acceso directo al panel de control de instructores.",
+    icon: "user-tie",
+    color: "#6f42c1",
+    glow: "rgba(111, 66, 193, 0.25)",
+  },
 ];
 
 const simulateLogin = (devAccount) => {
   // 1. Quemamos el rol temporalmente en el entorno local
   localStorage.setItem("user_role", devAccount.role);
+  localStorage.setItem("token", "token_prueba_desarrollo");
+  localStorage.setItem("user", JSON.stringify({ name: devAccount.name, role: devAccount.role }));
 
   // 2. Notificación de éxito
-  toast.success(`Sesión de desarrollo: ${devAccount.name}`);
+  if (typeof authStore !== 'undefined') {
+    authStore.user = { name: devAccount.name, role: devAccount.role };
+    authStore.token = "token_prueba_desarrollo";
+  }
 
   // 3. Redirección al flujo correspondiente
   router.push(devAccount.path);

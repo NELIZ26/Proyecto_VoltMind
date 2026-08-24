@@ -1,0 +1,51 @@
+# Estado de Implementación: Migración a Dataverse (VoltMind)
+
+Este documento sirve como bitácora de lo que hemos avanzado y la hoja de ruta para tu próxima sesión de desarrollo.
+
+## ✅ Lo que ya hicimos (Completado)
+
+1. **Arquitectura de Base de Datos Definida:**
+   * Diseñamos el modelo relacional de **5 tablas** para integrar tanto las formaciones Tituladas (Top-Down) como los Cursos Complementarios (Bottom-Up) bajo el prefijo `cr6a3_`.
+   * Logramos que ambas converjan en la misma tabla `cr6a3_fichas` para no romper el módulo IoT de VoltMind.
+
+2. **Core de Conexión a Dataverse (`services/dataverse.py`):**
+   * Agregamos los métodos `crear_registro_dataverse` y `actualizar_registro_dataverse`.
+   * Ahora FastAPI inyecta automáticamente el token y maneja las peticiones POST y PATCH con Dataverse de forma segura.
+
+3. **Endpoints de Creación de Catálogo y Tituladas (`tituladas_service.py`):**
+   * **`crear_programa`:** Inyectamos la lógica para guardar el programa y todas sus competencias en `cr6a3_programas` y `cr6a3_competenciaprogramas`.
+   * **`crear_ficha`:** Se implementó la instanciación. Ahora consulta el catálogo en la nube, crea la ficha y clona (copia) automáticamente las competencias a `cr6a3_competenciafichas`.
+
+4. **El Puente de Complementarias (`complementarias_service.py`):**
+   * Modificamos el método `actualizar_solicitud`.
+   * Cuando un coordinador aprueba un curso (pasa a `"En Ejecución"`) y le da código SOFIA Plus, el backend automáticamente crea el registro puente en `cr6a3_fichas` y le asigna su competencia genérica en `cr6a3_competenciafichas`.
+
+---
+
+## 🚧 Lo que falta para la próxima sesión (Pendientes)
+
+### 1. Trabajo Manual en Power Apps (Tu lado)
+Antes de poder encender el modo Dataverse (`TITULADAS_MODO=dataverse`), debes asegurarte de haber creado las tablas en el entorno de Microsoft:
+* `cr6a3_programas` (con campo de opción: Nivel)
+* `cr6a3_competenciaprogramas`
+* `cr6a3_competenciafichas`
+* `cr6a3_solicitudcomplementarias`
+*(Ver instrucciones del chat anterior para el tipo de datos exacto de cada columna).*
+
+### 2. Endpoints de Lectura (GET) en Tituladas
+Actualmente, los métodos que leen la información todavía consumen el archivo de demostración (JSON). Faltaría migrar a Dataverse:
+* **`listar_programas()`**: Traer los programas de la nube.
+* **`listar_fichas()`**: Traer la lista general.
+* **`obtener_ficha()`**: Construir el objeto complejo con su diagnóstico cruzando `cr6a3_fichas` y `cr6a3_competenciafichas`.
+
+### 3. El Motor de Asignaciones y Horarios (Crucial)
+Esta es la lógica más compleja que falta migrar de JSON a Dataverse:
+* **`consultar_disponibilidad()`**: El semáforo de colores que evalúa si un instructor o ambiente está ocupado.
+* **`crear_asignacion() / actualizar / eliminar`**: Guardar los horarios (calendario) en la base de datos de la nube. 
+*(Para esto, probablemente necesitemos definir una sexta tabla de "Asignaciones / Calendario").*
+
+### 4. Completar CRUD de Complementarias
+Aunque ya hicimos la parte más difícil (el puente a Tituladas), nos falta adaptar los endpoints básicos de Complementarias (Crear la solicitud, listar solicitudes pendientes, etc.) para que graben directo en `cr6a3_solicitudcomplementarias` en lugar del JSON.
+
+---
+**💡 Nota para reiniciar:** En tu próxima sesión, solo pide *"continuar con la migración de los endpoints de lectura (GET) de Tituladas hacia Dataverse"*, y retomaremos exactamente desde aquí.

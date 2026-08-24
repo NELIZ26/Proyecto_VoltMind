@@ -42,6 +42,7 @@ import {
   faIdCard,
   faIdBadge,
   faAddressCard,
+  faAddressBook,
   faChalkboardUser,
   // Energía e IoT
   faPowerOff,
@@ -169,6 +170,7 @@ library.add(
   faIdBadge,
   faListCheck,
   faAddressCard,
+  faAddressBook,
   faChalkboardUser,
   faPowerOff,
   faMicrochip,
