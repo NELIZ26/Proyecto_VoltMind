@@ -18,7 +18,9 @@ export const useKioskStore = defineStore('kiosk', () => {
     if (ws.value) return; // Ya conectado
     
     // Conectarse al backend FastAPI
-    ws.value = new WebSocket(`ws://127.0.0.1:8000/api/ws/ambiente/${ambiente_id}`);
+    const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+    const wsBaseUrl = apiBaseUrl.replace('http://', 'ws://').replace('https://', 'wss://');
+    ws.value = new WebSocket(`${wsBaseUrl}/api/ws/ambiente/${ambiente_id}`);
     
     ws.value.onopen = () => {
       console.log(`[KioskStore] Conectado a tiempo real para el ambiente ${ambiente_id}`);

@@ -69,7 +69,8 @@ const handlePinSubmit = async (pinValue) => {
   
   try {
     const sesionId = localStorage.getItem('sesionActivaId') || "";
-    const response = await fetch(`http://127.0.0.1:8000/api/asistencia/validar-pin`, {
+    const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+    const response = await fetch(`${BASE_URL}/api/asistencia/validar-pin`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ 
@@ -110,7 +111,8 @@ const procesarRegistroFirmaAsistencia = async (base64Signature) => {
   const sesionId = localStorage.getItem('sesionActivaId') || "";
   
   try {
-    const response = await fetch(`http://127.0.0.1:8000/api/asistencia/guardar-firma`, {
+    const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+    const response = await fetch(`${BASE_URL}/api/asistencia/guardar-firma`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
