@@ -1,7 +1,7 @@
 # main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import fichas, aprendices, sesiones, asistencia, usuarios, complementarias, tituladas, iot, ws_kiosko, kiosko
+from routers import fichas, aprendices, sesiones, asistencia, usuarios, complementarias, tituladas, iot, ws_kiosko, kiosko, instructores
 
 #  IMPORTACIÓN DEL PLANIFICADOR
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -10,10 +10,16 @@ from services.reportes_service import obtener_rango_semana_actual
 
 app = FastAPI(title="VoltMind API")
 
-# Configurar CORS para el frontend (Vue 3 en localhost:5173)
+# Configurar CORS para el frontend (Vue 3 en localhost:5173 y 5174)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+        "https://voltmind2-fmh3b5esa0htdxf8.centralus-01.azurewebsites.net"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -30,6 +36,7 @@ app.include_router(usuarios.router)
 app.include_router(iot.router)
 app.include_router(ws_kiosko.router)
 app.include_router(kiosko.router)
+app.include_router(instructores.router)
 
 # =================================================================
 #  SUBSISTEMA DE TAREAS PROGRAMADAS (CRON JOBS - APSCHEDULER)
