@@ -31,19 +31,6 @@
       
       <!-- Botón Flotante Global de Modo Oscuro -->
       <DarkModeToggle />
-
-      <!-- Modales Globales del Programador Académico -->
-      <ModalNuevaFicha
-        :show="store.showModalNuevaFicha"
-        @update:show="store.showModalNuevaFicha = $event"
-        @close="store.cerrarModalNuevaFicha()"
-        @creada="abrirFicha"
-      />
-      <ModalCatalogoProgramas
-        :show="store.showModalCatalogo"
-        @update:show="store.showModalCatalogo = $event"
-        @close="store.cerrarModalCatalogo()"
-      />
     </main>
   </div>
 </template>
@@ -53,8 +40,6 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import SidebarAcademico from '@/components/SidebarAcademico.vue';
 import DarkModeToggle from '@/components/DarkModeToggle.vue';
-import ModalNuevaFicha from '@/components/admin/modals/ModalNuevaFicha.vue';
-import ModalCatalogoProgramas from '@/components/admin/modals/ModalCatalogoProgramas.vue';
 import { useTituladasStore } from '@/stores/tituladas';
 
 const isSidebarOpen = ref(false);

@@ -80,6 +80,15 @@ const devLogins = [
     icon: "file-circle-plus",
     color: "var(--sena-verde, #39a900)",
     glow: "rgba(57, 169, 0, 0.25)"
+  },
+  {
+    role: "gestor_fichas",
+    path: "/gestor-fichas",
+    name: "Creador de Fichas",
+    desc: "Rol para crear nuevas fichas y gestionar el catálogo de programas.",
+    icon: "folder-plus",
+    color: "var(--sena-naranja, #FF6B00)",
+    glow: "rgba(255, 107, 0, 0.25)"
   }
 ];
 

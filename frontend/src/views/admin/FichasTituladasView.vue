@@ -202,6 +202,7 @@
               <th>INSTRUCTOR TITULAR</th>
               <th class="text-center">JORNADA</th>
               <th>SEDE</th>
+              <th class="text-center">HORAS</th>
               <th class="col-progreso">PROGRAMACIÓN</th>
               <th class="text-center">ACCIONES</th>
             </tr>
@@ -241,6 +242,7 @@
                 </span>
               </td>
               <td><span class="celda-sede">{{ f.sede }}</span></td>
+              <td class="text-center">{{ f.horas_programa_formacion || 'N/A' }}</td>
               <td class="col-progreso">
                 <span
                   v-if="!f.tiene_diagnostico"
@@ -250,24 +252,26 @@
                   <font-awesome-icon icon="fa-solid fa-triangle-exclamation" /> Sin diagnóstico
                 </span>
                 <div v-else class="progreso-celda">
-                  <div class="barra">
-                    <div
-                      class="barra-relleno"
-                      :class="f.porcentaje_programacion >= META_PROGRAMACION ? 'barra-ok' : 'barra-alerta'"
-                      :style="{ width: Math.min(f.porcentaje_programacion, 100) + '%' }"
-                    ></div>
-                    <span class="barra-meta" :style="{ left: META_PROGRAMACION + '%' }"></span>
+                  <div class="progreso-barra-fila">
+                    <div class="barra">
+                      <div
+                        class="barra-relleno"
+                        :class="f.porcentaje_programacion >= META_PROGRAMACION ? 'barra-ok' : 'barra-alerta'"
+                        :style="{ width: Math.min(f.porcentaje_programacion, 100) + '%' }"
+                      ></div>
+                      <span class="barra-meta" :style="{ left: META_PROGRAMACION + '%' }"></span>
+                    </div>
+                    <span class="progreso-porcentaje">{{ f.porcentaje_programacion }}%</span>
                   </div>
-                  <span class="progreso-texto">
-                    {{ f.porcentaje_programacion }}%
+                  <div class="progreso-detalles">
                     <small>({{ f.horas_programadas }}/{{ f.total_horas_programa }} h)</small>
-                  </span>
-                  <font-awesome-icon
-                    v-if="f.alerta_tecnica"
-                    icon="fa-solid fa-triangle-exclamation"
-                    class="icono-alerta"
-                    :title="`La parte técnica es solo el ${f.porcentaje_tecnica}% de lo programado (mínimo ${META_TECNICA}%)`"
-                  />
+                    <font-awesome-icon
+                      v-if="f.alerta_tecnica"
+                      icon="fa-solid fa-triangle-exclamation"
+                      class="icono-alerta"
+                      :title="`La parte técnica es solo el ${f.porcentaje_tecnica}% de lo programado (mínimo ${META_TECNICA}%)`"
+                    />
+                  </div>
                 </div>
               </td>
               <td class="text-center">
@@ -285,10 +289,8 @@
       </div>
     </main>
 
-    <ModalNuevaFicha v-model:show="showModalNueva" />
-    <ModalCatalogoProgramas v-model:show="showModalCatalogo" />
     <ModalAsignarTitular v-model:show="showModalTitular" :ficha="fichaSeleccionada" />
-    <!-- Los modales ahora están centralizados en ProgramadorAcademicoLayout.vue -->
+    <!-- Los modales ahora están centralizados -->
   </div>
 </template>
 
@@ -298,8 +300,6 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useTituladasStore, COLORES_TIPO_COMPETENCIA } from '@/stores/tituladas';
-import ModalNuevaFicha from '@/components/admin/modals/ModalNuevaFicha.vue';
-import ModalCatalogoProgramas from '@/components/admin/modals/ModalCatalogoProgramas.vue';
 import ModalAsignarTitular from '@/components/admin/modals/ModalAsignarTitular.vue';
 import { useToast } from 'vue-toastification';
 import { tituladasService } from '@/services/tituladasService';
@@ -317,8 +317,6 @@ const toast = useToast();
 const viewCargando = ref(true);
 
 // Estado de modales
-const showModalNueva = ref(false);
-const showModalCatalogo = ref(false);
 const showModalTitular = ref(false);
 const fichaSeleccionada = ref(null);
 
@@ -993,24 +991,36 @@ onMounted(() => store.initStore());
 
 .celda-sede { font-size: 0.78rem; color: var(--texto-secundario); white-space: nowrap; }
 
-.col-progreso { min-width: 190px; }
+.col-progreso { min-width: 130px; width: 130px; }
 
 .progreso-celda {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.progreso-barra-fila {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.progreso-texto {
+.progreso-porcentaje {
   font-size: 0.75rem;
   font-weight: 800;
   color: var(--texto-principal);
-  white-space: nowrap;
 }
 
-.progreso-texto small { font-weight: 600; color: var(--texto-secundario); }
+.progreso-detalles {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
 
-.icono-alerta { color: #e67e22; font-size: 0.9rem; }
+.progreso-detalles small { font-weight: 600; color: var(--texto-secundario); font-size: 0.7rem; }
+
+.icono-alerta { color: #e67e22; font-size: 0.85rem; }
 
 .chip-sin-diagnostico {
   display: inline-flex;

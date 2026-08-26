@@ -60,7 +60,7 @@ class CompetenciaDiagnostico(BaseModel):
     id: str | None = None
     nombre: str = Field(min_length=3)
     tipo: str
-    horas: int = Field(gt=0, le=2000)
+    horas: int = Field(ge=0, le=2000)
 
     @field_validator("tipo")
     @classmethod
@@ -95,12 +95,15 @@ class FichaTituladaCreate(BaseModel):
     codigo: str = Field(min_length=4, max_length=12)
     programa_id: str = Field(min_length=1)
     jornada: str
-    sede: str = Field(min_length=3)
-    municipio: str = ""
+    municipio: str = Field(min_length=3)
+    vocero: str = ""
     instructor_titular_id: str | None = None
     fecha_inicio: str
     fecha_fin: str
+    fecha_inicio_practicas: str
+    fecha_fin_practicas: str
     numero_aprendices: int = Field(ge=1, le=60)
+    horas_programa_formacion: int = Field(gt=0)
 
     @field_validator("jornada")
     @classmethod
@@ -109,7 +112,7 @@ class FichaTituladaCreate(BaseModel):
             raise ValueError(f"'{v}' no es una jornada válida ({', '.join(JORNADAS_TITULADAS)}).")
         return v
 
-    @field_validator("fecha_inicio", "fecha_fin")
+    @field_validator("fecha_inicio", "fecha_fin", "fecha_inicio_practicas", "fecha_fin_practicas")
     @classmethod
     def validar_fechas(cls, v: str, info) -> str:
         return _validar_fecha_obligatoria(v, info.field_name)

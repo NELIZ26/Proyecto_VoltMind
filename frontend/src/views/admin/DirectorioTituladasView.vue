@@ -130,9 +130,9 @@
             {{ j.valor }} ({{ j.horario }})
           </option>
         </select>
-        <select v-model="filtroSede" class="form-input select-filter">
-          <option value="">Todas las sedes</option>
-          <option v-for="s in store.sedes" :key="s" :value="s">{{ s }}</option>
+        <select v-model="filtroMunicipio" class="form-input select-filter">
+          <option value="">Todos los municipios</option>
+          <option v-for="m in store.municipios" :key="m" :value="m">{{ m }}</option>
         </select>
         <button v-if="hayFiltros" class="btn-limpiar" @click="limpiarFiltros">
           <font-awesome-icon icon="fa-solid fa-xmark" /> Limpiar
@@ -190,14 +190,15 @@
               <th>PROGRAMA DE FORMACIÓN</th>
               <th>INSTRUCTOR TITULAR</th>
               <th class="text-center">JORNADA</th>
-              <th>SEDE</th>
+              <th class="text-center">MUNICIPIO</th>
+              <th class="text-center">HORAS</th>
               <th class="col-progreso">PROGRAMACIÓN</th>
               <th class="text-center">ACCIONES</th>
             </tr>
           </thead>
           <tbody>
             <tr
-              v-for="f in fichasFiltradas"
+              v-for="f in fichasPaginadas"
               :key="f.id"
               class="fila-ficha"
               :title="`Abrir el diagnóstico y el calendario de la ficha ${f.codigo}`"
@@ -229,7 +230,8 @@
                   <small>{{ horarioJornada(f.jornada) }}</small>
                 </span>
               </td>
-              <td><span class="celda-sede">{{ f.sede }}</span></td>
+              <td class="text-center">{{ f.municipio }}</td>
+              <td class="text-center">{{ f.horas_programa_formacion || 'N/A' }}</td>
               <td class="col-progreso">
                 <span
                   v-if="!f.tiene_diagnostico"
@@ -239,24 +241,26 @@
                   <font-awesome-icon icon="fa-solid fa-triangle-exclamation" /> Sin diagnóstico
                 </span>
                 <div v-else class="progreso-celda">
-                  <div class="barra">
-                    <div
-                      class="barra-relleno"
-                      :class="f.porcentaje_programacion >= META_PROGRAMACION ? 'barra-ok' : 'barra-alerta'"
-                      :style="{ width: Math.min(f.porcentaje_programacion, 100) + '%' }"
-                    ></div>
-                    <span class="barra-meta" :style="{ left: META_PROGRAMACION + '%' }"></span>
+                  <div class="progreso-barra-fila">
+                    <div class="barra">
+                      <div
+                        class="barra-relleno"
+                        :class="f.porcentaje_programacion >= META_PROGRAMACION ? 'barra-ok' : 'barra-alerta'"
+                        :style="{ width: Math.min(f.porcentaje_programacion, 100) + '%' }"
+                      ></div>
+                      <span class="barra-meta" :style="{ left: META_PROGRAMACION + '%' }"></span>
+                    </div>
+                    <span class="progreso-porcentaje">{{ f.porcentaje_programacion }}%</span>
                   </div>
-                  <span class="progreso-texto">
-                    {{ f.porcentaje_programacion }}%
+                  <div class="progreso-detalles">
                     <small>({{ f.horas_programadas }}/{{ f.total_horas_programa }} h)</small>
-                  </span>
-                  <font-awesome-icon
-                    v-if="f.alerta_tecnica"
-                    icon="fa-solid fa-triangle-exclamation"
-                    class="icono-alerta"
-                    :title="`La parte técnica es solo el ${f.porcentaje_tecnica}% de lo programado (mínimo ${META_TECNICA}%)`"
-                  />
+                    <font-awesome-icon
+                      v-if="f.alerta_tecnica"
+                      icon="fa-solid fa-triangle-exclamation"
+                      class="icono-alerta"
+                      :title="`La parte técnica es solo el ${f.porcentaje_tecnica}% de lo programado (mínimo ${META_TECNICA}%)`"
+                    />
+                  </div>
                 </div>
               </td>
               <td class="text-center">
@@ -271,6 +275,27 @@
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- Paginación -->
+      <div v-if="totalPaginas > 1" class="paginacion-container">
+        <button 
+          class="btn-paginacion" 
+          :disabled="paginaActual === 1" 
+          @click="paginaActual--"
+        >
+          <font-awesome-icon icon="fa-solid fa-chevron-left" />
+        </button>
+        <span class="paginacion-info">
+          Página {{ paginaActual }} de {{ totalPaginas }}
+        </span>
+        <button 
+          class="btn-paginacion" 
+          :disabled="paginaActual === totalPaginas" 
+          @click="paginaActual++"
+        >
+          <font-awesome-icon icon="fa-solid fa-chevron-right" />
+        </button>
       </div>
     </main>
 
@@ -305,20 +330,26 @@ const NOMBRES_MESES = [
 // ── Filtros (en memoria: el listado ya está cargado en el store) ──
 const busqueda = ref('');
 const filtroJornada = ref('');
-const filtroSede = ref('');
-
-const hayFiltros = computed(() => busqueda.value || filtroJornada.value || filtroSede.value);
+const filtroMunicipio = ref('');
+const hayFiltros = computed(() => busqueda.value || filtroJornada.value || filtroMunicipio.value);
 
 const limpiarFiltros = () => {
   busqueda.value = '';
   filtroJornada.value = '';
-  filtroSede.value = '';
+  filtroMunicipio.value = '';
 };
 
 const fichasFiltradas = computed(() => {
-  let fichas = store.fichas;
+  // Invertir para que las últimas creadas salgan primero
+  let fichas = [...(store.fichas || [])].reverse();
   if (filtroJornada.value) fichas = fichas.filter((f) => f.jornada === filtroJornada.value);
-  if (filtroSede.value) fichas = fichas.filter((f) => f.sede === filtroSede.value);
+  
+  if (filtroMunicipio.value) {
+    const norm = (s) => (s || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, ' ').toLowerCase().trim();
+    const filtroNorm = norm(filtroMunicipio.value);
+    fichas = fichas.filter((f) => norm(f.municipio) === filtroNorm);
+  }
+
   if (busqueda.value) {
     const q = busqueda.value.toLowerCase();
     fichas = fichas.filter(
@@ -329,6 +360,22 @@ const fichasFiltradas = computed(() => {
     );
   }
   return fichas;
+});
+
+const paginaActual = ref(1);
+const elementosPorPagina = 10;
+
+const totalPaginas = computed(() => Math.ceil(fichasFiltradas.value.length / elementosPorPagina));
+
+const fichasPaginadas = computed(() => {
+  const inicio = (paginaActual.value - 1) * elementosPorPagina;
+  const fin = inicio + elementosPorPagina;
+  return fichasFiltradas.value.slice(inicio, fin);
+});
+
+// Reiniciar a la primera página si cambian los filtros
+watch([busqueda, filtroJornada, filtroMunicipio], () => {
+  paginaActual.value = 1;
 });
 
 // ── Carga de instructores con navegación de mes (consulta directa a la API) ──
@@ -632,6 +679,46 @@ onMounted(() => store.initStore());
   border: 1px solid rgba(0, 0, 0, 0.15);
 }
 
+.paginacion-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--borde, #2D333B);
+}
+
+.btn-paginacion {
+  background: var(--fondo-app, #161B22);
+  border: 1px solid var(--borde, #2D333B);
+  color: var(--texto-secundario, #8a8d93);
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.btn-paginacion:hover:not(:disabled) {
+  border-color: var(--sena-verde);
+  color: var(--sena-verde);
+}
+
+.btn-paginacion:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.paginacion-info {
+  font-size: 0.85rem;
+  color: var(--texto-secundario, #8a8d93);
+  font-weight: 600;
+}
+
 .carga-nombre {
   font-size: 0.75rem;
   font-weight: 700;
@@ -908,24 +995,36 @@ onMounted(() => store.initStore());
 
 .celda-sede { font-size: 0.78rem; color: var(--texto-secundario); white-space: nowrap; }
 
-.col-progreso { min-width: 190px; }
+.col-progreso { min-width: 130px; width: 130px; }
 
 .progreso-celda {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.progreso-barra-fila {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.progreso-texto {
+.progreso-porcentaje {
   font-size: 0.75rem;
   font-weight: 800;
   color: var(--texto-principal);
-  white-space: nowrap;
 }
 
-.progreso-texto small { font-weight: 600; color: var(--texto-secundario); }
+.progreso-detalles {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
 
-.icono-alerta { color: #e67e22; font-size: 0.9rem; }
+.progreso-detalles small { font-weight: 600; color: var(--texto-secundario); font-size: 0.7rem; }
+
+.icono-alerta { color: #e67e22; font-size: 0.85rem; }
 
 .chip-sin-diagnostico {
   display: inline-flex;

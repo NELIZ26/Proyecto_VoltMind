@@ -29,35 +29,15 @@
           <span class="menu-text">Directorio de Fichas</span>
         </router-link>
       </li>
-      <li class="menu-category">CONFIGURACIÓN</li>
       <li>
-        <button class="menu-link button-link" @click="isConfigOpen = !isConfigOpen">
+        <router-link to="/programador-academico/instructores" class="menu-link" @click="handleMenuClick">
           <div class="icon-box">
-            <font-awesome-icon icon="fa-solid fa-gear" fixed-width />
+            <font-awesome-icon icon="fa-solid fa-chalkboard-user" fixed-width />
           </div>
-          <span class="menu-text">Ajustes del Programa</span>
-          <font-awesome-icon :icon="isConfigOpen ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down'" class="chevron" />
-        </button>
-        
-        <ul v-show="isConfigOpen" class="submenu">
-          <li>
-            <button class="menu-link button-link submenu-btn" @click="abrirCatalogo">
-              <div class="icon-box">
-                <font-awesome-icon icon="fa-solid fa-folder-open" fixed-width />
-              </div>
-              <span class="menu-text">Catálogo de Programas</span>
-            </button>
-          </li>
-          <li>
-            <button class="menu-link button-link submenu-btn" @click="abrirNuevaFicha">
-              <div class="icon-box action-icon">
-                <font-awesome-icon icon="fa-solid fa-plus" fixed-width />
-              </div>
-              <span class="menu-text">Nueva Ficha</span>
-            </button>
-          </li>
-        </ul>
+          <span class="menu-text">Instructores</span>
+        </router-link>
       </li>
+
       <li class="logout-item">
         <router-link to="/login" class="menu-link logout-link" @click="handleMenuClick">
           <div class="icon-box logout-icon-box">

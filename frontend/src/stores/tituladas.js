@@ -40,10 +40,11 @@ export const TIPOS_COMPETENCIA = ['Técnica', 'Básica', 'Transversal', 'Inducci
 export const horarioJornada = (jornada) =>
   JORNADAS_TITULADAS.find((j) => j.valor === jornada)?.horario || '';
 
-/** Fecha ISO → DD/MM/YYYY para mostrar en pantalla. */
 export const formatearFecha = (iso) => {
   if (!iso) return '—';
-  const [anio, mes, dia] = iso.split('-');
+  // Remove time part if it exists (e.g. 2026-08-25T00:00:00Z)
+  const fechaPura = iso.split('T')[0];
+  const [anio, mes, dia] = fechaPura.split('-');
   return `${dia}/${mes}/${anio}`;
 };
 
@@ -54,6 +55,7 @@ export const useTituladasStore = defineStore('tituladas', {
     instructores: [],
     ambientes: [],
     programas: [],
+    municipiosCatalogo: [],
     // Detalle abierto (diagnóstico + asignaciones del calendario)
     fichaActual: null,
     // Estado de UI
@@ -68,9 +70,22 @@ export const useTituladasStore = defineStore('tituladas', {
   }),
 
   getters: {
-    /** Valores únicos para poblar el filtro de sedes de la vista. */
-    sedes(state) {
-      return [...new Set(state.fichas.map((f) => f.sede).filter(Boolean))].sort();
+    /** Valores únicos para poblar el filtro de municipios de la vista. */
+    municipios(state) {
+      const mapa = new Map();
+      const norm = (s) => (s || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, ' ').toLowerCase().trim();
+      
+      state.fichas.forEach((f) => {
+        if (!f.municipio) return;
+        const clave = norm(f.municipio);
+        // Si no existe, o si la nueva versión tiene tilde y la vieja no, la reemplazamos
+        if (!mapa.has(clave) || (f.municipio.match(/[áéíóúÁÉÍÓÚ]/) && !mapa.get(clave).match(/[áéíóúÁÉÍÓÚ]/))) {
+          // Capitalizar bonito (Title Case)
+          const formateadoOriginal = f.municipio.trim().replace(/\s+/g, ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+          mapa.set(clave, formateadoOriginal);
+        }
+      });
+      return Array.from(mapa.values()).sort();
     },
   },
 
@@ -87,18 +102,20 @@ export const useTituladasStore = defineStore('tituladas', {
       this.cargando = true;
       this.errorConexion = null;
       try {
-        const [fichas, indicadores, instructores, ambientes, programas] = await Promise.all([
+        const [fichas, indicadores, instructores, ambientes, programas, municipios] = await Promise.all([
           tituladasService.getFichas(),
           tituladasService.getIndicadores(),
           tituladasService.getInstructores(),
           tituladasService.getAmbientes(),
           tituladasService.getProgramas(),
+          tituladasService.getMunicipios(),
         ]);
         this.fichas = fichas;
         this.indicadores = indicadores;
         this.instructores = instructores;
         this.ambientes = ambientes;
         this.programas = programas;
+        this.municipiosCatalogo = municipios;
         this.modoDemo = !!indicadores?.modo_demo;
       } catch (e) {
         this.errorConexion = e.message;
@@ -234,6 +251,21 @@ export const useTituladasStore = defineStore('tituladas', {
         return { success: true, programa };
       } catch (e) {
         return { success: false, error: e.message, esConflicto: !!e.esConflicto };
+      }
+    },
+
+    /** Carga las competencias de un programa específico bajo demanda */
+    async cargarCompetenciasPrograma(programaId) {
+      try {
+        const competencias = await tituladasService.getCompetenciasPrograma(programaId);
+        const programa = this.programas.find((p) => p.id === programaId);
+        if (programa) {
+          programa.competencias = competencias;
+          programa.total_horas = competencias.reduce((acc, c) => acc + (c.horas || 0), 0);
+        }
+        return { success: true, competencias };
+      } catch (e) {
+        return { success: false, error: e.message };
       }
     },
 
