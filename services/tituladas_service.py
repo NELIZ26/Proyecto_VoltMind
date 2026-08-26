@@ -529,7 +529,7 @@ async def listar_fichas(buscar: str | None = None, jornada: str | None = None, s
     if not _es_demo():
         from services.dataverse import consultar_dataverse
         # Traer todas las fichas
-        res = await consultar_dataverse("cr6a3_fichas")
+        res = await consultar_dataverse("cr6a3_fichas?$expand=cr6a3_ProgramaId")
         fichas_db = res.get("value", [])
         
         # Traer todas las competencias y asignaciones para calcular el progreso de las fichas
@@ -584,30 +584,55 @@ async def listar_fichas(buscar: str | None = None, jornada: str | None = None, s
             asig_ficha = asig_por_ficha[fid_lower]
             horas_prog = sum(a.get("cr6a3_horas", 0) for a in asig_ficha)
             
+            # De las asignaciones, ¿cuáles son técnicas?
+            # En Dataverse el id de competencia está en _cr6a3_competenciafichaid_value o _cr6a3_competenciaid_value
+            horas_tecnicas_prog = 0
+            for a in asig_ficha:
+                cid = a.get("_cr6a3_competenciafichaid_value") or a.get("_cr6a3_competenciaid_value", "")
+                # Buscar si esta competencia es "Técnica"
+                comp = next((c for c in comps_ficha if c.get("cr6a3_competenciafichaid") == cid), None)
+                if comp and comp.get("cr6a3_tipo") == "Técnica":
+                    horas_tecnicas_prog += a.get("cr6a3_horas", 0)
+            
             pct_prog = round((horas_prog / total_horas * 100)) if total_horas > 0 else 0
+            pct_tec = round((horas_tecnicas_prog / horas_tecnicas * 100)) if horas_tecnicas > 0 else 0
             
             titular_id = f.get("_cr6a3_instructorasignado_value")
+            
+            tiene_diagnostico = len(comps_ficha) > 0
+            map_nivel_inv = {
+                430120000: "Tecnólogo",
+                430120001: "Técnico",
+                430120002: "Operario",
+                430120003: "Auxiliar",
+                430120004: "Complementario"
+            }
+            
+            prog_obj = f.get("cr6a3_ProgramaId") or {}
             
             fichas_mapeadas.append({
                 "id": fid,
                 "codigo": codigo,
                 "programa": programa,
-                "nivel": "Técnico",
+                "nivel": map_nivel_inv.get(prog_obj.get("cr6a3_nivel"), "Técnico"),
                 "jornada": {430120000: "Mañana", 430120001: "Tarde", 430120002: "Noche"}.get(f.get("cr6a3_jornada"), "Mañana"),
-                "sede": f.get("cr6a3_sede", ""),
                 "municipio": f.get("cr6a3_municipio", ""),
+                "vocero": f.get("cr6a3_vocero", ""),
                 "fecha_inicio": f.get("cr6a3_fecha_inicio", "")[:10] if f.get("cr6a3_fecha_inicio") else "",
                 "fecha_fin": f.get("cr6a3_fecha_fin", "")[:10] if f.get("cr6a3_fecha_fin") else "",
+                "fecha_inicio_practicas": f.get("cr6a3_fecha_inicio_practicas", "")[:10] if f.get("cr6a3_fecha_inicio_practicas") else "",
+                "fecha_fin_practicas": f.get("cr6a3_fecha_fin_practicas", "")[:10] if f.get("cr6a3_fecha_fin_practicas") else "",
                 "numero_aprendices": 0,
+                "horas_programa_formacion": f.get("cr6a3_horas_programa_formacion", 0),
                 "instructor_titular": instructores_dict.get(titular_id),
                 "instructor_titular_id": titular_id,
-                "tiene_diagnostico": len(comps_ficha) > 0,
+                "tiene_diagnostico": tiene_diagnostico,
                 "total_horas_programa": total_horas,
                 "horas_programadas": horas_prog,
                 "porcentaje_programacion": min(pct_prog, 100),
-                "porcentaje_tecnica": 0,
-                "alerta_tecnica": False,
-                "bajo_meta": False,
+                "porcentaje_tecnica": min(pct_tec, 100),
+                "alerta_tecnica": tiene_diagnostico and (pct_tec < META_TECNICA),
+                "bajo_meta": tiene_diagnostico and (pct_prog < META_PROGRAMACION),
             })
         return fichas_mapeadas
 
@@ -622,7 +647,10 @@ async def listar_fichas(buscar: str | None = None, jornada: str | None = None, s
             "id": f["id"], "codigo": f["codigo"], "programa": f["programa"], "nivel": f["nivel"],
             "jornada": f["jornada"], "sede": f["sede"], "municipio": f.get("municipio", ""),
             "fecha_inicio": f.get("fecha_inicio", ""), "fecha_fin": f.get("fecha_fin", ""),
+            "fecha_inicio_practicas": f.get("fecha_inicio_practicas", ""),
+            "fecha_fin_practicas": f.get("fecha_fin_practicas", ""),
             "numero_aprendices": f.get("numero_aprendices", 0),
+            "horas_programa_formacion": f.get("horas_programa_formacion", 0),
             "instructor_titular": _resumen_instructor(titular) if titular else None,
             "tiene_diagnostico": bool(f.get("competencias")),
             **_resumen_programacion(f, db["asignaciones"]),
@@ -648,7 +676,7 @@ async def obtener_ficha(ficha_id: str) -> dict:
         from services.dataverse import consultar_dataverse
         # 1. Traer la ficha principal
         try:
-            ficha_db = await consultar_dataverse(f"cr6a3_fichas({ficha_id})")
+            ficha_db = await consultar_dataverse(f"cr6a3_fichas({ficha_id})?$expand=cr6a3_ProgramaId")
         except Exception:
             raise HTTPException(status_code=404, detail="La ficha no existe.")
             
@@ -730,29 +758,49 @@ async def obtener_ficha(ficha_id: str) -> dict:
         total_prog = sum(c["horas"] for c in diagnostico)
         horas_prog_total = sum(a["horas"] for a in asignaciones)
         
+        # Calcular técnica
+        horas_tecnicas_programa = sum(c["horas"] for c in diagnostico if c["tipo"] == "Técnica")
+        horas_tecnicas_prog = sum(a["horas"] for a in asignaciones if a.get("competencia") and a["competencia"].get("tipo") == "Técnica")
+        pct_tecnica = round((horas_tecnicas_prog / horas_tecnicas_programa * 100)) if horas_tecnicas_programa > 0 else 0
+        pct_prog_total = round((horas_prog_total / total_prog * 100)) if total_prog > 0 else 0
+        tiene_diagnostico = len(diagnostico) > 0
+        
+        map_nivel_inv = {
+            430120000: "Tecnólogo",
+            430120001: "Técnico",
+            430120002: "Operario",
+            430120003: "Auxiliar",
+            430120004: "Complementario"
+        }
+        
+        prog_obj = ficha_db.get("cr6a3_ProgramaId") or {}
+        
         return {
             "id": ficha_db.get(ficha_id_key),
             "codigo": ficha_db.get("cr6a3_numero_ficha", ""),
             "programa": ficha_db.get("cr6a3_nombre_programa", ""),
-            "nivel": "Técnico",
+            "nivel": map_nivel_inv.get(prog_obj.get("cr6a3_nivel"), "Técnico"),
             "jornada": map_j.get(ficha_db.get("cr6a3_jornada"), "Mañana"),
-            "sede": ficha_db.get("cr6a3_sede", ""),
             "municipio": ficha_db.get("cr6a3_municipio", ""),
+            "vocero": ficha_db.get("cr6a3_vocero", ""),
             "fecha_inicio": ficha_db.get("cr6a3_fecha_inicio", "")[:10] if ficha_db.get("cr6a3_fecha_inicio") else "",
             "fecha_fin": ficha_db.get("cr6a3_fecha_fin", "")[:10] if ficha_db.get("cr6a3_fecha_fin") else "",
+            "fecha_inicio_practicas": ficha_db.get("cr6a3_fecha_inicio_practicas", "")[:10] if ficha_db.get("cr6a3_fecha_inicio_practicas") else "",
+            "fecha_fin_practicas": ficha_db.get("cr6a3_fecha_fin_practicas", "")[:10] if ficha_db.get("cr6a3_fecha_fin_practicas") else "",
             "numero_aprendices": 0,
+            "horas_programa_formacion": ficha_db.get("cr6a3_horas_programa_formacion", 0),
             "instructor_titular": instructores_full_dict.get(ficha_db.get("_cr6a3_instructorasignado_value")),
             "instructor_titular_id": ficha_db.get("_cr6a3_instructorasignado_value"),
-            "tiene_diagnostico": len(diagnostico) > 0,
+            "tiene_diagnostico": tiene_diagnostico,
             "diagnostico": diagnostico,
             "archivos": [],
             "asignaciones": asignaciones,
             "total_horas_programa": total_prog,
             "horas_programadas": horas_prog_total,
-            "porcentaje_programacion": round((horas_prog_total / total_prog * 100)) if total_prog > 0 else 0,
-            "porcentaje_tecnica": 0,
-            "alerta_tecnica": False,
-            "bajo_meta": False,
+            "porcentaje_programacion": min(pct_prog_total, 100),
+            "porcentaje_tecnica": min(pct_tecnica, 100),
+            "alerta_tecnica": tiene_diagnostico and (pct_tecnica < META_TECNICA),
+            "bajo_meta": tiene_diagnostico and (pct_prog_total < META_PROGRAMACION),
         }
 
 
@@ -788,7 +836,10 @@ async def obtener_ficha(ficha_id: str) -> dict:
         "nivel": ficha["nivel"], "jornada": ficha["jornada"], "sede": ficha["sede"],
         "municipio": ficha.get("municipio", ""),
         "fecha_inicio": ficha.get("fecha_inicio", ""), "fecha_fin": ficha.get("fecha_fin", ""),
+        "fecha_inicio_practicas": ficha.get("fecha_inicio_practicas", ""),
+        "fecha_fin_practicas": ficha.get("fecha_fin_practicas", ""),
         "numero_aprendices": ficha.get("numero_aprendices", 0),
+        "horas_programa_formacion": ficha.get("horas_programa_formacion", 0),
         "instructor_titular": _resumen_instructor(titular) if titular else None,
         "tiene_diagnostico": bool(ficha.get("competencias")),
         "diagnostico": diagnostico,
@@ -1281,16 +1332,68 @@ async def eliminar_asignacion(asignacion_id: str) -> dict:
 async def obtener_indicadores(mes: str | None = None) -> dict:
     """`mes` en formato YYYY-MM; por defecto el mes actual de Bogotá."""
     if not _es_demo():
+        from services.dataverse import consultar_dataverse
+        
+        hoy = datetime.now(_ZONA_BOGOTA).date()
+        try:
+            anio, num_mes = (int(p) for p in (mes or hoy.strftime("%Y-%m")).split("-"))
+            date(anio, num_mes, 1)
+        except (ValueError, TypeError):
+            raise HTTPException(status_code=422, detail=f"'{mes}' no es un mes válido (formato esperado YYYY-MM).")
+            
+        fichas_list = await listar_fichas()
+        
+        res_asig = await consultar_dataverse("cr6a3_asignacioneses")
+        asignaciones_db = res_asig.get("value", [])
+        
+        instructores_list = await listar_instructores()
+        
+        porcentajes = []
+        fichas_bajo_meta = []
+        alertas_tecnica = []
+        
+        for f in fichas_list:
+            pct = f.get("porcentaje_programacion", 0)
+            pct_tec = f.get("porcentaje_tecnica", 0)
+            porcentajes.append(pct)
+            
+            if pct < META_PROGRAMACION:
+                fichas_bajo_meta.append({"id": f["id"], "codigo": f["codigo"], "programa": f["programa"], "porcentaje": pct})
+                
+            if pct_tec < META_TECNICA and f.get("tiene_diagnostico"):
+                alertas_tecnica.append({"id": f["id"], "codigo": f["codigo"], "programa": f["programa"], "porcentaje_tecnica": pct_tec})
+
+        carga_instructores = []
+        for i in instructores_list:
+            horas_mes = sum(
+                a.get("cr6a3_horas", 0)
+                for a in asignaciones_db 
+                if a.get("_cr6a3_instructorid_value") == i["id"] 
+                and a.get("cr6a3_fecha_inicio", "").startswith(f"{anio:04d}-{num_mes:02d}")
+            )
+            limite = LIMITES_MENSUALES.get(i.get("tipo_vinculacion", "Contratista"), 160)
+            carga_instructores.append({
+                "id": i["id"],
+                "nombre": i["nombre"],
+                "iniciales": "".join([p[0].upper() for p in i["nombre"].split() if p]),
+                "color": "#39A900",
+                "tipo_vinculacion": i.get("tipo_vinculacion", "Contratista"),
+                "horas_mes": horas_mes,
+                "limite": limite,
+                "porcentaje": round(horas_mes / limite * 100) if limite else 0,
+            })
+        carga_instructores.sort(key=lambda c: c["horas_mes"], reverse=True)
+
         return {
             "modo_demo": False,
-            "mes": mes or datetime.now(_ZONA_BOGOTA).date().strftime("%Y-%m"),
-            "total_fichas": 0,
-            "promedio_programacion": 0,
-            "meta_programacion": 70,
-            "meta_tecnica": 60,
-            "fichas_bajo_meta": [],
-            "alertas_tecnica": [],
-            "carga_instructores": [],
+            "mes": f"{anio:04d}-{num_mes:02d}",
+            "total_fichas": len(fichas_list),
+            "promedio_programacion": round(sum(porcentajes) / len(porcentajes)) if porcentajes else 0,
+            "meta_programacion": META_PROGRAMACION,
+            "meta_tecnica": META_TECNICA,
+            "fichas_bajo_meta": fichas_bajo_meta,
+            "alertas_tecnica": alertas_tecnica,
+            "carga_instructores": carga_instructores,
         }
     _exigir_demo()
     db = _cargar_db()
@@ -1355,6 +1458,24 @@ def _resumen_programa(p: dict) -> dict:
     }
 
 
+async def listar_municipios() -> list[str]:
+    """Lista los municipios disponibles (obtenidos de la tabla de sedes)."""
+    if not _es_demo():
+        from services.dataverse import consultar_dataverse
+        try:
+            res = await consultar_dataverse("cr6a3_sedes?$select=cr6a3_municipio")
+            return sorted(list(set(
+                item.get("cr6a3_municipio") 
+                for item in res.get("value", []) 
+                if item.get("cr6a3_municipio")
+            )))
+        except Exception:
+            return []
+            
+    db = _cargar_db()
+    return sorted(list(set(f.get("municipio") for f in db["fichas"] if f.get("municipio"))))
+
+
 async def listar_programas() -> list:
     if not _es_demo():
         from services.dataverse import consultar_dataverse
@@ -1363,13 +1484,24 @@ async def listar_programas() -> list:
         programas_db = res_prog.get("value", [])
         
         # 2. Mapearlos al formato esperado
+        map_nivel_inverso = {
+            430120000: "Tecnólogo",
+            430120001: "Técnico",
+            430120002: "Operario",
+            430120003: "Auxiliar",
+            430120004: "Complementario"
+        }
+        
         programas_mapeados = []
         for p in programas_db:
+            nivel_raw = p.get("cr6a3_nivel")
+            nivel_str = map_nivel_inverso.get(nivel_raw, "Técnico") if nivel_raw else "Técnico"
+            
             programas_mapeados.append({
                 "id": p.get("cr6a3_programasid"),
                 "nombre": p.get("cr6a3_nombre", ""),
                 "version": p.get("cr6a3_version", ""),
-                "nivel": p.get("cr6a3_nivel", "Técnico"),
+                "nivel": nivel_str,
                 "total_horas": 0, # Podríamos traer las competencias para sumar, pero en el listado básico puede omitirse o calcularse luego
                 "competencias": []
             })
@@ -1377,6 +1509,33 @@ async def listar_programas() -> list:
 
     _exigir_demo()
     return [_resumen_programa(p) for p in _cargar_db()["programas"]]
+
+
+async def listar_competencias_programa(programa_id: str) -> list:
+    """Devuelve las competencias de un programa específico."""
+    if not _es_demo():
+        from services.dataverse import consultar_dataverse
+        # Consultar las competencias asociadas al programa
+        # Ajustamos el filtro para usar el campo relacional
+        query = f"cr6a3_competenciasprogramas?$filter=_cr6a3_programaid_value eq '{programa_id}'"
+        res_comp = await consultar_dataverse(query)
+        competencias_db = res_comp.get("value", [])
+        
+        competencias_mapeadas = []
+        for c in competencias_db:
+            competencias_mapeadas.append({
+                "nombre": c.get("cr6a3_nombre", ""),
+                "tipo": c.get("cr6a3_tipo", ""),
+                "horas": c.get("cr6a3_horas", 0)
+            })
+        return competencias_mapeadas
+
+    _exigir_demo()
+    db = _cargar_db()
+    for p in db["programas"]:
+        if p["id"] == programa_id:
+            return p.get("competencias", [])
+    return []
 
 
 async def crear_programa(datos: dict) -> dict:
@@ -1482,8 +1641,11 @@ async def crear_ficha(datos: dict) -> dict:
             "cr6a3_jornada": map_jornada.get(datos["jornada"], 430120000),
             "cr6a3_fecha_inicio": datos["fecha_inicio"],
             "cr6a3_fecha_fin": datos["fecha_fin"],
-            "cr6a3_sede": datos["sede"].strip(),
-            "cr6a3_municipio": (datos.get("municipio") or "").strip(),
+            "cr6a3_fecha_inicio_practicas": datos.get("fecha_inicio_practicas"),
+            "cr6a3_fecha_fin_practicas": datos.get("fecha_fin_practicas"),
+            "cr6a3_municipio": datos["municipio"].strip(),
+            "cr6a3_vocero": (datos.get("vocero") or "").strip(),
+            "cr6a3_horas_programa_formacion": datos.get("horas_programa_formacion", 0),
             "cr6a3_ProgramaId@odata.bind": f"/cr6a3_programases({programa_id})"
         }
         
@@ -1535,6 +1697,12 @@ async def crear_ficha(datos: dict) -> dict:
                 status_code=409,
                 detail="La fecha de fin de la etapa lectiva no puede ser anterior a la de inicio.",
             )
+        if datos.get("fecha_inicio_practicas") and datos.get("fecha_fin_practicas"):
+            if _fecha(datos["fecha_fin_practicas"]) < _fecha(datos["fecha_inicio_practicas"]):
+                raise HTTPException(
+                    status_code=409,
+                    detail="La fecha de fin de la etapa de prácticas no puede ser anterior a la de inicio.",
+                )
 
         ficha_id = f"fic-{uuid.uuid4().hex[:8]}"
         ficha = {
@@ -1543,12 +1711,15 @@ async def crear_ficha(datos: dict) -> dict:
             "programa": programa["nombre"],
             "nivel": programa["nivel"],
             "jornada": datos["jornada"],
-            "sede": datos["sede"].strip(),
-            "municipio": (datos.get("municipio") or "").strip(),
+            "municipio": datos["municipio"].strip(),
+            "vocero": (datos.get("vocero") or "").strip(),
             "instructor_titular_id": datos.get("instructor_titular_id") or "",
             "fecha_inicio": datos["fecha_inicio"],
             "fecha_fin": datos["fecha_fin"],
+            "fecha_inicio_practicas": datos.get("fecha_inicio_practicas", ""),
+            "fecha_fin_practicas": datos.get("fecha_fin_practicas", ""),
             "numero_aprendices": datos["numero_aprendices"],
+            "horas_programa_formacion": datos.get("horas_programa_formacion", 0),
             # El diagnóstico nace copiado del catálogo (con ids propios de la ficha)
             "competencias": [
                 {"id": f"c-{uuid.uuid4().hex[:8]}", "nombre": c["nombre"], "tipo": c["tipo"], "horas": c["horas"]}
@@ -1593,39 +1764,122 @@ async def actualizar_titular_ficha(ficha_id: str, instructor_id: str | None) -> 
 async def calendario_instructor(instructor_id: str | None = None, correo: str | None = None) -> dict:
     """Programación completa de un instructor (por id o por correo institucional):
     lo que cada instructor consulta en su propia matriz."""
-    _exigir_demo()
-    if not instructor_id and not correo:
-        raise HTTPException(status_code=422, detail="Indique el instructor (instructor_id o correo).")
-    db = _cargar_db()
+    if _es_demo():
+        if not instructor_id and not correo:
+            raise HTTPException(status_code=422, detail="Indique el instructor (instructor_id o correo).")
+        db = _cargar_db()
 
-    instructor = None
-    if instructor_id:
-        instructor = next((i for i in db["instructores"] if i["id"] == instructor_id), None)
-    elif correo:
-        instructor = next(
-            (i for i in db["instructores"] if i.get("correo", "").lower() == correo.strip().lower()), None)
-    if not instructor:
-        raise HTTPException(
-            status_code=404,
-            detail="No se encontró un instructor con esos datos en la programación de tituladas.",
+        instructor = None
+        if instructor_id:
+            instructor = next((i for i in db["instructores"] if i["id"] == instructor_id), None)
+        elif correo:
+            instructor = next(
+                (i for i in db["instructores"] if i.get("correo", "").lower() == correo.strip().lower()), None)
+        if not instructor:
+            raise HTTPException(
+                status_code=404,
+                detail="No se encontró un instructor con esos datos en la programación de tituladas.",
+            )
+
+        propias = sorted(
+            (a for a in db["asignaciones"] if a["instructor_id"] == instructor["id"]),
+            key=lambda a: a["fecha_inicio"],
         )
+        return {
+            "modo_demo": True,
+            "instructor": {
+                **_resumen_instructor(instructor),
+                "correo": instructor.get("correo", ""),
+                "tipo_vinculacion": instructor.get("tipo_vinculacion", ""),
+                "fin_contrato": instructor.get("fin_contrato", ""),
+                "perfil": instructor.get("perfil", []),
+                "limite_mensual": LIMITES_MENSUALES.get(instructor.get("tipo_vinculacion"), 160),
+            },
+            "asignaciones": [_enriquecer_asignacion(a, db) for a in propias],
+        }
+    else:
+        from services.dataverse import consultar_dataverse
+        
+        if not instructor_id and not correo:
+            raise HTTPException(status_code=422, detail="Indique el instructor (instructor_id o correo).")
+            
+        res_inst = None
+        if instructor_id:
+            res_raw = await consultar_dataverse(f"cr6a3_instructors({instructor_id})")
+            if res_raw:
+                res_inst = res_raw
+        elif correo:
+            q = f"cr6a3_instructors?$filter=cr6a3_correo eq '{correo.strip()}'"
+            res_list = await consultar_dataverse(q)
+            if res_list and res_list.get("value"):
+                res_inst = res_list["value"][0]
 
-    propias = sorted(
-        (a for a in db["asignaciones"] if a["instructor_id"] == instructor["id"]),
-        key=lambda a: a["fecha_inicio"],
-    )
-    return {
-        "modo_demo": _es_demo(),
-        "instructor": {
-            **_resumen_instructor(instructor),
-            "correo": instructor.get("correo", ""),
-            "tipo_vinculacion": instructor.get("tipo_vinculacion", ""),
-            "fin_contrato": instructor.get("fin_contrato", ""),
-            "perfil": instructor.get("perfil", []),
-            "limite_mensual": LIMITES_MENSUALES.get(instructor.get("tipo_vinculacion"), 160),
-        },
-        "asignaciones": [_enriquecer_asignacion(a, db) for a in propias],
-    }
+        if not res_inst:
+            raise HTTPException(status_code=404, detail="No se encontró el instructor en Dataverse.")
+            
+        real_instructor_id = res_inst.get("cr6a3_instructorid")
+        tipo_vinculacion = "Planta" if res_inst.get("cr6a3_tipo_vinculacion") == 430120000 else "Contratista"
+        
+        instructor_dict = {
+            "id": real_instructor_id,
+            "nombre": res_inst.get("cr6a3_nombre_completo", "Instructor Asignado"),
+            "iniciales": res_inst.get("cr6a3_iniciales", ""),
+            "color": res_inst.get("cr6a3_color_hex", "#cccccc"),
+            "correo": res_inst.get("cr6a3_correo", ""),
+            "tipo_vinculacion": tipo_vinculacion,
+            "fin_contrato": res_inst.get("cr6a3_fin_contrato", ""),
+            "perfil": res_inst.get("cr6a3_perfil", "").split(",") if res_inst.get("cr6a3_perfil") else [],
+            "limite_mensual": LIMITES_MENSUALES.get(tipo_vinculacion, 160),
+        }
+        
+        query_asig = (
+            f"cr6a3_asignacioneses?$filter=_cr6a3_instructorid_value eq '{real_instructor_id}'"
+            f"&$expand=cr6a3_FichaId($select=cr6a3_numero_ficha,cr6a3_nombre_programa,cr6a3_jornada),cr6a3_AmbienteId($select=cr6a3_nombre_ambiente,_cr6a3_sede_value),cr6a3_CompetenciaFichaId($select=cr6a3_nombre,cr6a3_tipo)"
+        )
+        res_asig = await consultar_dataverse(query_asig)
+        asignaciones_db = res_asig.get("value", [])
+        
+        map_jornada_inv = {430120000: "Mañana", 430120001: "Tarde", 430120002: "Noche"}
+
+        asignaciones_mapped = []
+        for a in asignaciones_db:
+            ficha = a.get("cr6a3_FichaId", {}) or {}
+            ambiente = a.get("cr6a3_AmbienteId", {}) or {}
+            competencia = a.get("cr6a3_CompetenciaFichaId", {}) or {}
+            
+            sede_formatted = ambiente.get("_cr6a3_sede_value@OData.Community.Display.V1.FormattedValue", "CAAA")
+            
+            asignaciones_mapped.append({
+                "id": a.get("cr6a3_asignacionid"),
+                "fecha_inicio": a.get("cr6a3_fecha_inicio"),
+                "fecha_fin": a.get("cr6a3_fecha_fin"),
+                "horas": a.get("cr6a3_horas", 0),
+                "jornada": map_jornada_inv.get(ficha.get("cr6a3_jornada"), "Mañana"),
+                "ficha_codigo": ficha.get("cr6a3_numero_ficha", ""),
+                "ficha_programa": ficha.get("cr6a3_nombre_programa", ""),
+                "instructor": {
+                    "id": instructor_dict["id"], "nombre": instructor_dict["nombre"],
+                    "iniciales": instructor_dict["iniciales"], "color": instructor_dict["color"]
+                },
+                "competencia": {
+                    "id": competencia.get("cr6a3_competenciafichaid"),
+                    "nombre": competencia.get("cr6a3_nombre", "Competencia"),
+                    "tipo": "Técnica" if competencia.get("cr6a3_tipo") == 430120000 else "Transversal"
+                } if competencia and competencia.get("cr6a3_competenciafichaid") else None,
+                "ambiente": {
+                    "id": ambiente.get("cr6a3_ambiente_formacionid"),
+                    "nombre": ambiente.get("cr6a3_nombre_ambiente", "Ambiente"),
+                    "sede": sede_formatted
+                } if ambiente and ambiente.get("cr6a3_ambiente_formacionid") else None
+            })
+            
+        asignaciones_mapped.sort(key=lambda x: x["fecha_inicio"] or "")
+        
+        return {
+            "modo_demo": False,
+            "instructor": instructor_dict,
+            "asignaciones": asignaciones_mapped
+        }
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1785,42 +2039,7 @@ async def actualizar_diagnostico(ficha_id: str, competencias: list) -> dict:
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-async def calendario_instructor(instructor_id: str | None = None, correo: str | None = None) -> dict:
-    """Programación completa de un instructor (por id o por correo institucional):
-    lo que cada instructor consulta en su propia matriz."""
-    _exigir_demo()
-    if not instructor_id and not correo:
-        raise HTTPException(status_code=422, detail="Indique el instructor (instructor_id o correo).")
-    db = _cargar_db()
 
-    instructor = None
-    if instructor_id:
-        instructor = next((i for i in db["instructores"] if i["id"] == instructor_id), None)
-    elif correo:
-        instructor = next(
-            (i for i in db["instructores"] if i.get("correo", "").lower() == correo.strip().lower()), None)
-    if not instructor:
-        raise HTTPException(
-            status_code=404,
-            detail="No se encontró un instructor con esos datos en la programación de tituladas.",
-        )
-
-    propias = sorted(
-        (a for a in db["asignaciones"] if a["instructor_id"] == instructor["id"]),
-        key=lambda a: a["fecha_inicio"],
-    )
-    return {
-        "modo_demo": _es_demo(),
-        "instructor": {
-            **_resumen_instructor(instructor),
-            "correo": instructor.get("correo", ""),
-            "tipo_vinculacion": instructor.get("tipo_vinculacion", ""),
-            "fin_contrato": instructor.get("fin_contrato", ""),
-            "perfil": instructor.get("perfil", []),
-            "limite_mensual": LIMITES_MENSUALES.get(instructor.get("tipo_vinculacion"), 160),
-        },
-        "asignaciones": [_enriquecer_asignacion(a, db) for a in propias],
-    }
 
 
 # ─────────────────────────────────────────────────────────────────────────────
