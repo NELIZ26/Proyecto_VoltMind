@@ -74,32 +74,47 @@ async def crear_instructor(instructor: InstructorSchema):
             "Prefer": "return=representation"
         }
 
-        # Mapeo del payload incorporando las nuevas columnas para Dataverse
         payload = {
             "cr6a3_nombre_completo": instructor.nombre,
             "cr6a3_correo_institucional": instructor.correo,
-            "cr6a3_fecha_inicio_contrato": instructor.fecha_inicio_contrato,
-            "cr6a3_fecha_fin_contrato": instructor.fecha_fin_contrato,
+            "cra5c_fecha_inicio_contrato": instructor.fecha_inicio_contrato,
+            "cra5c_fecha_fin_contrato": instructor.fecha_fin_contrato,
         }
 
         async with httpx.AsyncClient() as client:
-            response = await client.post(endpoint, headers=headers, json=payload)
+            response = await client.post(
+                endpoint,
+                headers=headers,
+                json=payload
+            )
 
-        if response.status_code in [201, 200]:
-            data = response.json()
+            print("STATUS DATAVERSE:", response.status_code)
+            print("HEADERS DATAVERSE:", dict(response.headers))
+            print("BODY DATAVERSE:", repr(response.text))
+
+        if response.status_code in [200, 201]:
+            try:
+                data = response.json()
+            except ValueError:
+                data = {}
+
             return data
-        
-            raise HTTPException(
+
+        raise HTTPException(
             status_code=response.status_code,
             detail=f"Error de Dataverse al crear instructor: {response.text}"
-            )
+        )
+
+    except HTTPException:
+        raise
+
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al crear instructor en Dataverse: {str(e)}"
         )
-
-# -------------------------------------------------------------
+        
+# ----------------------------------------- --------------------
 # Endpoint DELETE (Eliminar)
 # -------------------------------------------------------------
 @router.delete("/{instructor_id}", status_code=status.HTTP_200_OK)

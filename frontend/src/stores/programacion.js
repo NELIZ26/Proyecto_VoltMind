@@ -27,20 +27,97 @@ export const useProgramacionStore = defineStore('programacion', {
     schedule: []
   }),
   actions: {
-    initStore() {
-      const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (storedData) {
-        const parsed = JSON.parse(storedData);
-        this.instructores = parsed.instructores || [];
-        this.ambientes = parsed.ambientes || [];
-        this.schedule = parsed.schedule || [];
-      } else {
-        this.instructores = [...defaultInstructores];
-        this.ambientes = [...defaultAmbientes];
-        this.schedule = [];
-        this.saveToLocalStorage();
+    async initStore() {
+  // 1. Obtener instructores reales desde Dataverse mediante la API
+  try {
+    const response = await fetch('http://127.0.0.1:8000/api/instructores');
+
+    if (response.ok) {
+      const dataverseInstructores = await response.json();
+
+      if (Array.isArray(dataverseInstructores) && dataverseInstructores.length > 0) {
+        this.instructores = dataverseInstructores.map(inst => ({
+          cr6a3_instructorid: inst.cr6a3_instructorid || inst.id,
+          id: inst.cr6a3_instructorid || inst.id,
+          nombre: inst.cr6a3_nombre_completo || inst.nombre || 'Sin nombre',
+          name: inst.cr6a3_nombre_completo || inst.nombre || 'Sin nombre',
+          correo: inst.cr6a3_correo_institucional || inst.correo || '',
+          documento: inst.cr6a3_nro_documento || inst.documento || '',
+          specialty: inst.cr6a3_especialidad || inst.area_especialidad || 'General',
+          fechaInicioContrato: (inst.cra5c_fecha_inicio_contrato || inst.fecha_inicio_contrato || '').split('T')[0],
+          fechaFinContrato: (inst.cra5c_fecha_fin_contrato || inst.fecha_fin_contrato || '').split('T')[0],
+          type: inst.cr6a3_tipo_vinculacion || 'Planta',
+          maxHours: inst.cr6a3_max_horas_mensuales || 160,
+          hours: 0,
+          fichas: 0,
+          available: `${inst.cr6a3_max_horas_mensuales || 160} horas`,
+          statusLabel: 'Normal',
+          progressColor: '#10B981',
+          discipline: 'software'
+        }));
       }
-    },
+    }
+  } catch (error) {
+    console.warn(
+      'No se pudo conectar a la API de instructores, usando respaldo local:',
+      error
+    );
+  }
+
+  // 2. Cargar ambientes y programación desde localStorage
+  const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
+
+  if (storedData) {
+    const parsed = JSON.parse(storedData);
+
+    // Solo usar instructores locales si la API no devolvió instructores
+    if (!this.instructores || this.instructores.length === 0) {
+      this.instructores = parsed.instructores || [];
+    }
+
+    this.ambientes =
+      parsed &&
+      Array.isArray(parsed.ambientes) &&
+      parsed.ambientes.length > 0
+        ? parsed.ambientes
+        : [...defaultAmbientes];
+
+    this.schedule = parsed.schedule || [];
+    // Recalcular horas y fichas según las asignaciones existentes
+this.instructores.forEach(instructor => {
+  const asignacionesInstructor = this.schedule.filter(
+    s => s.instructorId === instructor.id
+  );
+
+  instructor.hours = asignacionesInstructor.length * 3;
+  instructor.fichas = asignacionesInstructor.length;
+
+  const remaining = instructor.maxHours - instructor.hours;
+  instructor.available = `${remaining} horas`;
+
+  const percent = (instructor.hours / instructor.maxHours) * 100;
+
+  if (percent >= 100) {
+    instructor.statusLabel = 'Límite';
+    instructor.progressColor = '#EF4444';
+  } else if (percent >= 90) {
+    instructor.statusLabel = 'Alta';
+    instructor.progressColor = '#F59E0B';
+  } else if (percent >= 70) {
+    instructor.statusLabel = 'Medio';
+    instructor.progressColor = '#10B981';
+  } else {
+    instructor.statusLabel = 'Normal';
+    instructor.progressColor = '#10B981';
+  }
+});
+  } else {
+    this.ambientes = [...defaultAmbientes];
+    this.schedule = [];
+  }
+
+  this.saveToLocalStorage();
+},
     
     saveToLocalStorage() {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({
