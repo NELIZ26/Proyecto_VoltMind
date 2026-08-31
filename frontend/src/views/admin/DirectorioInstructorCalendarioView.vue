@@ -164,7 +164,7 @@
 
 <script setup>
 // Calendario personal del instructor en vista de programador académico
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import { tituladasService } from '@/services/tituladasService';
 import { horarioJornada, formatearFecha } from '@/stores/tituladas';
@@ -172,7 +172,20 @@ import { horarioJornada, formatearFecha } from '@/stores/tituladas';
 const router = useRouter();
 const route = useRoute();
 
-const datos = ref(null);          // { instructor, asignaciones }
+const props = defineProps({
+  instructorId: {
+    type: String,
+    default: null
+  },
+  embedded: {
+    type: Boolean,
+    default: false
+  }
+});
+
+const emit = defineEmits(['volver']);
+
+const datos = ref(null);
 const cargando = ref(true);
 const error = ref('');
 
@@ -207,13 +220,18 @@ const cargarPorId = async (id) => {
 };
 
 onMounted(() => {
-  const instructorId = route.params.id;
-  if (instructorId) {
-    cargarPorId(instructorId);
+  const id = props.instructorId || route.params.id;
+  if (id) {
+    cargarPorId(id);
   } else {
     error.value = 'No se especificó un instructor válido';
     cargando.value = false;
   }
+});
+
+// Watch para cuando cambia el prop si está embedido
+watch(() => props.instructorId, (newId) => {
+  if (newId) cargarPorId(newId);
 });
 
 // ── Calendario mensual ──
@@ -326,7 +344,13 @@ function hexARgba(hex, alfa) {
   return `rgba(${r}, ${g}, ${b}, ${alfa})`;
 }
 
-const volver = () => router.push('/programador-academico/instructores');
+const volver = () => {
+  if (props.embedded) {
+    emit('volver');
+  } else {
+    router.push('/programador-academico/instructores');
+  }
+};
 </script>
 
 <style scoped>

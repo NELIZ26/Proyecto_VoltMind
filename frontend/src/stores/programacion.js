@@ -27,18 +27,82 @@ export const useProgramacionStore = defineStore('programacion', {
     schedule: []
   }),
   actions: {
-    initStore() {
+    async initStore() {
+      // 1. Cargar Ambientes y Horarios desde localStorage
       const storedData = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (storedData) {
         const parsed = JSON.parse(storedData);
-        this.instructores = parsed.instructores || [];
         this.ambientes = parsed.ambientes || [];
         this.schedule = parsed.schedule || [];
       } else {
-        this.instructores = [...defaultInstructores];
         this.ambientes = [...defaultAmbientes];
         this.schedule = [];
         this.saveToLocalStorage();
+      }
+
+      // 2. Cargar Instructores reales desde Dataverse vía Backend y obtener su carga mensual
+      try {
+        const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+        const token = localStorage.getItem('token') || localStorage.getItem('access_token');
+        const reqHeaders = { ...(token && { 'Authorization': `Bearer ${token}` }) };
+        
+        // Peticiones paralelas para optimizar la carga
+        const [resInstructores, resIndicadores] = await Promise.all([
+          fetch(`${BASE_URL}/api/instructores`, { headers: reqHeaders }),
+          fetch(`${BASE_URL}/api/tituladas/indicadores`, { headers: reqHeaders })
+        ]);
+        
+        if (resInstructores.ok) {
+          const dbInstructors = await resInstructores.json();
+          let cargas = {};
+          
+          if (resIndicadores.ok) {
+            const indData = await resIndicadores.json();
+            if (indData.carga_instructores) {
+              indData.carga_instructores.forEach(c => { cargas[c.id] = c; });
+            }
+          }
+
+          this.instructores = dbInstructors.map(dbInst => {
+            const id = dbInst.cr6a3_instructorid;
+            const carga = cargas[id] || {};
+            const maxH = carga.limite || 160;
+            const hr = carga.horas_mes || 0;
+            const percent = hr / maxH * 100;
+
+            let status = 'Normal';
+            let pColor = '#10B981';
+            if (percent >= 100) { status = 'Límite'; pColor = '#EF4444'; }
+            else if (percent >= 90) { status = 'Alta'; pColor = '#F59E0B'; }
+            else if (percent >= 70) { status = 'Medio'; pColor = '#10B981'; }
+
+            return {
+              id: id,
+              name: dbInst.cr6a3_nombre_completo || 'Sin nombre',
+              document: dbInst.cr6a3_nro_documento || 'No registrado',
+              email: dbInst.cr6a3_correo_institucional || 'No registrado',
+              phone: dbInst.cr6a3_nro_telefono || 'No registrado',
+              specialty: dbInst.cr6a3_perfil_profesional || 'General',
+              type: dbInst.cr6a3_tipo_vinculacion === 'CONTRATISTA' ? 'Contratista' : 'Planta',
+              fechaInicioContrato: dbInst.cra5c_fecha_inicio_contrato || 'Sin fecha',
+              fechaFinContrato: dbInst.cra5c_fecha_fin_contrato || 'Sin fecha',
+              hours: hr,
+              maxHours: maxH,
+              statusLabel: status,
+              progressColor: pColor,
+              fichas: 0,
+              available: `${maxH - hr} horas`,
+              discipline: 'software'
+            };
+          });
+        } else {
+          console.error("Error al obtener instructores del backend");
+          // Fallback a instructores por defecto si falla la red
+          this.instructores = [...defaultInstructores];
+        }
+      } catch(e) {
+        console.error("Error de conexión cargando instructores reales:", e);
+        this.instructores = [...defaultInstructores];
       }
     },
     

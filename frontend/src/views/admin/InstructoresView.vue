@@ -1,5 +1,5 @@
 <template>
-  <div class="admin-view-shell">
+  <div v-if="!calendarInstructorId" class="admin-view-shell">
     <!-- Header principal -->
     <header class="dash-header">
       <div class="header-left">
@@ -32,6 +32,14 @@
 </button>
 
       <div class="filters-right">
+        <div class="view-toggles">
+          <button class="btn-view-toggle" :class="{ active: viewMode === 'grid' }" @click="viewMode = 'grid'" title="Vista de tarjetas">
+            <font-awesome-icon icon="fa-solid fa-grip" />
+          </button>
+          <button class="btn-view-toggle" :class="{ active: viewMode === 'table' }" @click="viewMode = 'table'" title="Vista de tabla">
+            <font-awesome-icon icon="fa-solid fa-list" />
+          </button>
+        </div>
         <div class="search-box">
           <font-awesome-icon icon="fa-solid fa-magnifying-glass" class="search-icon" />
           <input type="text" class="form-input search-input" placeholder="Buscar por Competencias" />
@@ -47,8 +55,8 @@
     </div>
 
     <!-- Grid de Instructores -->
-    <main class="dash-grid instructors-grid">
-      <div v-for="(instructor, i) in store.instructores" :key="instructor.id" class="module-card instructor-card" :style="{ animationDelay: `${i * 50}ms` }">
+    <main v-if="viewMode === 'grid'" class="dash-grid instructors-grid">
+      <div v-for="(instructor, i) in paginatedInstructores" :key="instructor.id" class="module-card instructor-card" :style="{ animationDelay: `${i * 50}ms` }">
         <div class="card-header">
           <div class="instructor-header-left">
             <UserAvatar class="instructor-avatar-ring" :alt="instructor.name" />
@@ -112,26 +120,103 @@
       </div>
     </main>
 
+    <!-- Tabla de Instructores -->
+    <main v-else-if="viewMode === 'table'" class="instructors-table-container">
+      <div class="module-card">
+        <table class="sena-table">
+          <thead>
+            <tr>
+              <th>INSTRUCTOR</th>
+              <th>PERFIL PROFESIONAL</th>
+              <th>VINCULACIÓN</th>
+              <th>CARGA MENSUAL</th>
+              <th>DISPONIBLE</th>
+              <th>ACCIONES</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="instructor in paginatedInstructores" :key="instructor.id">
+              <td>
+                <div class="table-instructor-info">
+                  <UserAvatar class="instructor-avatar-ring small" :alt="instructor.name" />
+                  <div class="texts">
+                    <span class="instructor-name-table">{{ instructor.name }}</span>
+                    <span class="instructor-doc-table">Doc: {{ instructor.document || 'No registrado' }}</span>
+                  </div>
+                </div>
+              </td>
+              <td>
+                <span class="instructor-specialty-table">{{ instructor.specialty }}</span>
+              </td>
+              <td>
+                <span :class="['status-badge', instructor.type === 'Planta' ? 'badge-planta' : 'badge-contratista']" style="display: inline-block; width: fit-content;">
+                  {{ instructor.type.toUpperCase() }}
+                </span>
+              </td>
+              <td>
+                <div class="hours-header" style="justify-content: flex-start; gap: 10px;">
+                  <span class="time-cell">{{ instructor.hours }}h / {{ instructor.maxHours }}h</span>
+                  <span class="hours-status" :style="{ color: instructor.progressColor }">({{ instructor.statusLabel }})</span>
+                </div>
+                <div class="progress-track" style="margin-top: 5px; max-width: 200px;">
+                  <div class="progress-fill" :style="{ width: Math.min((instructor.hours / instructor.maxHours) * 100, 100) + '%', backgroundColor: instructor.progressColor }"></div>
+                </div>
+              </td>
+              <td>
+                <span class="hours-badge">
+                  <font-awesome-icon icon="fa-solid fa-clock" />
+                  {{ instructor.available }}
+                </span>
+              </td>
+              <td>
+                <div class="table-actions-group">
+                  <button class="btn-icon" title="Ver Horario" @click="openViewModal(instructor)">
+                    <font-awesome-icon icon="fa-solid fa-calendar-days" />
+                  </button>
+                  <button class="btn-icon" title="Asignar Horas" @click="openAssignModal(instructor)">
+                    <font-awesome-icon icon="fa-solid fa-user-plus" />
+                  </button>
+                  <button class="btn-icon" title="Mostrar más" @click="openDetailModal(instructor)">
+                    <font-awesome-icon icon="fa-solid fa-eye" />
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </main>
+
     <!-- Paginación -->
     <div class="pagination-bar">
       <div class="pagination-info">
-        Mostrando 1 a 6 de 150 Aprendices
+        Mostrando {{ store.instructores.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1 }} a {{ Math.min(currentPage * itemsPerPage, store.instructores.length) }} de {{ store.instructores.length }} Instructores
       </div>
       <div class="pagination-controls">
-        <button class="page-btn"><font-awesome-icon icon="fa-solid fa-chevron-left" /></button>
-        <button class="page-btn active">1</button>
-        <button class="page-btn">2</button>
-        <button class="page-btn">3</button>
-        <span class="page-dots">...</span>
-        <button class="page-btn">27</button>
-        <button class="page-btn"><font-awesome-icon icon="fa-solid fa-chevron-right" /></button>
+        <button class="page-btn" @click="currentPage > 1 && currentPage--" :disabled="currentPage === 1">
+          <font-awesome-icon icon="fa-solid fa-chevron-left" />
+        </button>
+        
+        <button 
+          v-for="page in totalPages" 
+          :key="page" 
+          :class="['page-btn', { active: currentPage === page }]"
+          @click="currentPage = page"
+        >
+          {{ page }}
+        </button>
+
+        <button class="page-btn" @click="currentPage < totalPages && currentPage++" :disabled="currentPage === totalPages">
+          <font-awesome-icon icon="fa-solid fa-chevron-right" />
+        </button>
       </div>
       <div class="pagination-select">
         <span>Mostrar</span>
-        <select class="form-select-sm">
-          <option>15</option>
-          <option>30</option>
-          <option>50</option>
+        <select class="form-select-sm" v-model.number="itemsPerPage" @change="currentPage = 1">
+          <option value="10">10</option>
+          <option value="15">15</option>
+          <option value="30">30</option>
+          <option value="50">50</option>
         </select>
       </div>
     </div>
@@ -169,15 +254,23 @@
       
     />
   </div>
+
+  <DirectorioInstructorCalendarioView 
+    v-else 
+    :instructorId="calendarInstructorId" 
+    :embedded="true"
+    @volver="calendarInstructorId = null" 
+  />
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import ModalFormInstructor from '@/components/admin/modals/ModalFormInstructor.vue';
 import Modalcrearinstructor from '@/components/admin/modals/Modalcrearinstructor.vue';
 import ModalViewInstructorSchedule from '@/components/admin/modals/ModalViewInstructorSchedule.vue';
 import ModalInstructorDetail from '@/components/admin/modals/ModalInstructorDetail.vue';
+import DirectorioInstructorCalendarioView from '@/views/admin/DirectorioInstructorCalendarioView.vue';
 import UserAvatar from '@/components/UserAvatar.vue';
 import { useProgramacionStore } from '@/stores/programacion';
 import { apiService } from '@/services/apiService' 
@@ -186,6 +279,21 @@ import Swal from 'sweetalert2';
 
 const router = useRouter();
 const store = useProgramacionStore();
+const calendarInstructorId = ref(null);
+const viewMode = ref('grid');
+
+// Paginación
+const currentPage = ref(1);
+const itemsPerPage = ref(10);
+
+const totalPages = computed(() => {
+  return Math.ceil(store.instructores.length / itemsPerPage.value) || 1;
+});
+
+const paginatedInstructores = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage.value;
+  return store.instructores.slice(start, start + itemsPerPage.value);
+});
 
 onMounted(() => {
   store.initStore();
@@ -210,8 +318,7 @@ const openAssignModal = (instructor) => {
 };
 
 const openViewModal = (instructor) => {
-  selectedInstructor.value = instructor;
-  showViewModal.value = true;
+  calendarInstructorId.value = instructor.id;
 };
 
 const openDetailModal = (instructor) => {
@@ -1118,6 +1225,132 @@ html[data-theme="dark"] :deep(.modal-content .btn-cancelar) {
 :deep([class*="nav"] button),
 :deep([class*="nav"] a) {
   color: var(--texto-principal) !important;
+}
+
+/* Estilos de Toggle de Vista */
+.view-toggles {
+  display: flex;
+  background-color: var(--fondo-app, #f8fafc);
+  border: 1px solid var(--borde, #e2e8f0);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-right: 1rem;
+}
+
+.btn-view-toggle {
+  background: none;
+  border: none;
+  padding: 0.6rem 0.8rem;
+  color: var(--texto-secundario, #64748b);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 1.1rem;
+}
+
+.btn-view-toggle:hover {
+  background-color: #e2e8f0;
+  color: var(--texto-principal, #0f172a);
+}
+
+.btn-view-toggle.active {
+  background-color: var(--sena-verde, #39A900);
+  color: white;
+}
+
+/* Estilos de Tabla */
+.instructors-table-container {
+  margin-top: 1rem;
+}
+
+.sena-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+  font-size: 0.9rem;
+}
+
+.sena-table th {
+  background-color: var(--fondo-app, #f8fafc);
+  color: var(--texto-secundario, #64748b);
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 2px solid var(--borde, #e2e8f0);
+  font-size: 0.8rem;
+}
+
+.sena-table td {
+  padding: 0.6rem 1rem;
+  border-bottom: 1px solid var(--borde, #e2e8f0);
+  vertical-align: middle;
+}
+
+.hours-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background-color: #ecfdf5;
+  color: #10b981;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.table-instructor-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.instructor-avatar-ring.small {
+  width: 40px;
+  height: 40px;
+}
+
+.table-instructor-info .texts {
+  display: flex;
+  flex-direction: column;
+}
+
+.instructor-name-table {
+  font-weight: 800;
+  color: var(--texto-principal, #0f172a);
+}
+
+.instructor-doc-table {
+  font-size: 0.75rem;
+  color: var(--texto-secundario, #64748b);
+}
+
+.instructor-specialty-table {
+  font-weight: 600;
+  color: var(--texto-principal, #0f172a);
+}
+
+.table-actions-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.table-actions-group .btn-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid var(--borde, #e2e8f0);
+  background: white;
+  color: var(--texto-secundario, #64748b);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.table-actions-group .btn-icon:hover {
+  border-color: var(--sena-verde, #39A900);
+  color: var(--sena-verde, #39A900);
 }
 
 </style>

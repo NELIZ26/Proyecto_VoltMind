@@ -51,12 +51,12 @@
           <!-- Fechas de Contrato -->
           <div class="stat-card">
             <span class="stat-label">Inicio Contrato</span>
-            <span class="stat-value">{{ instructorData?.fecha_inicio_contrato || instructorData?.fechaInicioContrato || 'Sin fecha' }}</span>
+            <span class="stat-value">{{ formatDate(instructorData?.fecha_inicio_contrato || instructorData?.fechaInicioContrato) }}</span>
           </div>
 
           <div class="stat-card">
             <span class="stat-label">Fin Contrato</span>
-            <span class="stat-value">{{ instructorData?.fecha_fin_contrato || instructorData?.fechaFinContrato || 'Sin fecha' }}</span>
+            <span class="stat-value">{{ formatDate(instructorData?.fecha_fin_contrato || instructorData?.fechaFinContrato) }}</span>
           </div>
         </div>
 
@@ -81,23 +81,19 @@
               <h4>INFORMACIÓN GENERAL</h4>
               <div class="info-row">
                 <span class="info-label">Documento</span>
-                <span class="info-value">{{ getInstructorDoc }}</span>
+                <span class="info-value">{{ instructorData?.document || 'No registrado' }}</span>
               </div>
               <div class="info-row">
                 <span class="info-label">Correo</span>
-                <span class="info-value">{{ getInstructorEmail }}</span>
+                <span class="info-value">{{ instructorData?.email || 'No registrado' }}</span>
               </div>
               <div class="info-row">
                 <span class="info-label">Teléfono</span>
-                <span class="info-value">{{ getInstructorPhone }}</span>
+                <span class="info-value">{{ instructorData?.phone || 'No registrado' }}</span>
               </div>
               <div class="info-row">
-                <span class="info-label">Jornada</span>
-                <span class="info-value">Mañana</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Competencia</span>
-                <span class="info-value">Técnica</span>
+                <span class="info-label">Perfil Profesional</span>
+                <span class="info-value">{{ instructorData?.specialty || 'General' }}</span>
               </div>
             </div>
 
@@ -126,53 +122,43 @@
             </div>
           </div>
 
-          <!-- HORARIOS TAB -->
-          <div v-if="activeTab === 'horarios'" class="tab-pane">
-            <div class="schedule-grid" v-if="instructorSchedule.length > 0">
-              <div class="schedule-card" v-for="item in instructorSchedule" :key="item.id">
-                <div class="card-top-banner">
-                  <span class="env-name">AMBIENTE {{ getAmbienteName(item.ambienteId).toUpperCase() }}</span>
-                  <span class="time-range">{{ formatTimeRange(item.bloque) }}</span>
-                </div>
-                <div class="card-main-content">
-                  <h5>{{ getProgramName(item.ficha) }} ({{ item.ficha }})</h5>
-                  <p>{{ instructorData?.specialty }} | Transversal</p>
-                </div>
-              </div>
-            </div>
-            <div v-else class="empty-state">
-              <font-awesome-icon icon="fa-regular fa-calendar" class="empty-icon" />
-              <p>No hay bloques horarios asignados para este instructor.</p>
-            </div>
-          </div>
-
           <!-- ASIGNACIONES TAB -->
           <div v-if="activeTab === 'asignaciones'" class="tab-pane">
-            <div class="assignments-grid" v-if="instructorSchedule.length > 0">
-              <div class="assignment-card" v-for="item in instructorSchedule" :key="item.id">
-                <h5>{{ getProgramName(item.ficha) }} | Mañana</h5>
-                <p class="subtitle">{{ instructorData?.specialty }} | Transversal</p>
+            <div v-if="cargandoAsignaciones" class="empty-state">
+              <font-awesome-icon :icon="['fas', 'circle-notch']" spin class="empty-icon" />
+              <p>Cargando asignaciones...</p>
+            </div>
+            <div v-else-if="realAsignaciones.length > 0" class="assignments-grid">
+              <div class="assignment-card" v-for="item in realAsignaciones" :key="item.id">
+                <h5>Ficha: {{ item.ficha_codigo || 'N/A' }} | {{ item.jornada || 'N/A' }}</h5>
+                <p class="subtitle">{{ item.programa?.nombre || 'General' }}</p>
                 <div class="detail-line">
                   <span class="label">Competencia:</span>
-                  <span class="val">240201530</span>
+                  <span class="val" :title="item.competencia?.nombre || 'N/A'">
+                    {{ (item.competencia?.nombre || 'N/A').substring(0, 30) }}...
+                  </span>
                 </div>
                 <div class="detail-line font-bold">
                   <span class="label">Horas:</span>
-                  <span class="val text-green">40h</span>
+                  <span class="val text-green">{{ item.horas }}h</span>
                 </div>
                 <div class="detail-line">
-                  <span class="label">Fecha Inicio:</span>
-                  <span class="val">08/05/2026</span>
+                  <span class="label">Inicio:</span>
+                  <span class="val">{{ formatDate(item.fecha_inicio) }}</span>
                 </div>
                 <div class="detail-line">
-                  <span class="label">Fecha Fin:</span>
-                  <span class="val">08/08/2026</span>
+                  <span class="label">Fin:</span>
+                  <span class="val">{{ formatDate(item.fecha_fin) }}</span>
+                </div>
+                <div class="detail-line">
+                  <span class="label">Ambiente:</span>
+                  <span class="val">{{ item.ambiente?.nombre || 'N/A' }}</span>
                 </div>
               </div>
             </div>
             <div v-else class="empty-state">
               <font-awesome-icon icon="fa-solid fa-list-check" class="empty-icon" />
-              <p>No hay asignaciones registradas para este instructor.</p>
+              <p>No hay asignaciones ni horarios registrados para este instructor.</p>
             </div>
           </div>
 
@@ -234,6 +220,7 @@
 import { ref, computed, watch, defineProps, defineEmits } from 'vue';
 import { useProgramacionStore } from '@/stores/programacion';
 import UserAvatar from '@/components/UserAvatar.vue';
+import { tituladasService } from '@/services/tituladasService';
 
 const props = defineProps({
   show: Boolean,
@@ -245,20 +232,40 @@ const props = defineProps({
 
 const emit = defineEmits(['update:show', 'close', 'delete']);
 
+const formatDate = (dateStr) => {
+  if (!dateStr || dateStr === 'Sin fecha') return 'Sin fecha';
+  return dateStr.split('T')[0];
+};
+
 const store = useProgramacionStore();
+const realAsignaciones = ref([]);
+const cargandoAsignaciones = ref(false);
 
 const activeTab = ref('resumen');
 
 const tabs = [
   { id: 'resumen', label: 'Resumen' },
-  { id: 'horarios', label: 'Horarios' },
-  { id: 'asignaciones', label: 'Asignaciones' },
+  { id: 'asignaciones', label: 'Asignaciones / Horarios' },
   { id: 'novedades', label: 'Novedades' }
 ];
 
-watch(() => props.show, (newVal) => {
+watch(() => props.show, async (newVal) => {
   if (newVal) {
     activeTab.value = 'resumen';
+    realAsignaciones.value = [];
+    if (props.instructorData && props.instructorData.id) {
+      cargandoAsignaciones.value = true;
+      try {
+        const data = await tituladasService.getCalendarioInstructor({ instructorId: props.instructorData.id });
+        if (data && data.asignaciones) {
+          realAsignaciones.value = data.asignaciones;
+        }
+      } catch (e) {
+        console.error("Error cargando asignaciones:", e);
+      } finally {
+        cargandoAsignaciones.value = false;
+      }
+    }
   }
 });
 
@@ -276,52 +283,6 @@ const getAvailableHours = computed(() => {
   if (!props.instructorData) return 0;
   return props.instructorData.maxHours - props.instructorData.hours;
 });
-
-// Dynamic values helper to look realistic
-const getInstructorDoc = computed(() => {
-  if (!props.instructorData) return '';
-  // Deterministic mock document based on ID
-  return (1002345000 + props.instructorData.id * 8329).toString();
-});
-
-const getInstructorEmail = computed(() => {
-  if (!props.instructorData) return '';
-  const first = props.instructorData.name.split(' ')[0].toLowerCase();
-  return `${first}@sena.edu.co`;
-});
-
-const getInstructorPhone = computed(() => {
-  if (!props.instructorData) return '';
-  return `312 345 67 ${80 + props.instructorData.id}`;
-});
-
-const instructorSchedule = computed(() => {
-  if (!props.instructorData) return [];
-  return store.schedule.filter(s => s.instructorId === props.instructorData.id);
-});
-
-const getAmbienteName = (ambienteId) => {
-  const amb = store.ambientes.find(a => a.id === ambienteId);
-  return amb ? amb.name : 'Ambiente 102';
-};
-
-const getProgramName = (ficha) => {
-  if (ficha === '2693821') return 'Técnico Sistemas';
-  if (ficha === '2693822') return 'Multimedia';
-  if (ficha === '2710100') return 'Cocina';
-  return 'Análisis y Desarrollo';
-};
-
-const formatTimeRange = (bloque) => {
-  if (!bloque) return '9:00AM / 11:00AM';
-  // Bloque: "06:00 am - 09:00 am" -> convert to "6:00AM / 9:00AM" style
-  const clean = bloque.toUpperCase().replace(/\s+/g, '');
-  const parts = clean.split('-');
-  if (parts.length === 2) {
-    return `${parts[0]} / ${parts[1]}`;
-  }
-  return bloque;
-};
 
 const closeModal = () => {
   emit('close');
@@ -434,7 +395,7 @@ const closeModal = () => {
 /* STAT CARDS */
 .stats-cards-container {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
   gap: 1rem;
   padding: 1.5rem 2rem;
   background: var(--fondo-app, #f8fafc);
@@ -444,11 +405,12 @@ const closeModal = () => {
 .stat-card {
   background: white;
   border-radius: 8px;
-  padding: 1rem;
+  padding: 1rem 0.5rem;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  text-align: center;
   gap: 0.25rem;
   border: 1px solid var(--borde, #cbd5e1);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
@@ -458,11 +420,12 @@ const closeModal = () => {
   font-size: 0.75rem;
   font-weight: 700;
   color: var(--texto-secundario, #64748b);
-  text-align: center;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .stat-value {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   font-weight: 800;
   color: var(--texto-principal, #0f172a);
 }
@@ -672,7 +635,7 @@ const closeModal = () => {
 /* ASIGNACIONES TAB */
 .assignments-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 1rem;
 }
 
@@ -689,12 +652,18 @@ const closeModal = () => {
   font-size: 0.9rem;
   font-weight: 800;
   color: var(--texto-principal, #0f172a);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .assignment-card .subtitle {
   margin: 4px 0 10px 0;
   font-size: 0.75rem;
   color: var(--texto-secundario, #64748b);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .detail-line {
