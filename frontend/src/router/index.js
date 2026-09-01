@@ -156,6 +156,24 @@ const routes = [
         name: "AdminIoT",
         component: () => import("@/views/admin/ConfiguracionIoTView.vue"),
         meta: { title: "VoltMind Admin - Configuración IoT" }
+      },
+      {
+        path: "monitor-aulas",
+        name: "AdminMonitorAulas",
+        component: () => import("@/views/admin/monitor/MonitorAulasList.vue"),
+        meta: { title: "VoltMind Admin - Monitor de Aulas" }
+      },
+      {
+        path: "monitor-aulas/:id",
+        name: "AdminMonitorAulaDetail",
+        component: () => import("@/views/admin/monitor/MonitorAulaDetail.vue"),
+        meta: { title: "VoltMind Admin - Control de Aula" }
+      },
+      {
+        path: "monitor-aulas/:id/edit",
+        name: "AdminMonitorAulaEditor",
+        component: () => import("@/views/admin/monitor/MonitorAulaEditor.vue"),
+        meta: { title: "VoltMind Admin - Editor de Aula" }
       }
     ]
   },

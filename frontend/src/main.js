@@ -159,10 +159,15 @@ import {
   faSpinner,
   faFlagCheckered,
   // Fichas Tituladas
+  faFire,
+  faCircleExclamation,
   faLayerGroup,
+
 } from "@fortawesome/free-solid-svg-icons";
 
 library.add(
+  faFire,
+  faCircleExclamation,
   faUser,
   faUserCheck,
   faUsers,

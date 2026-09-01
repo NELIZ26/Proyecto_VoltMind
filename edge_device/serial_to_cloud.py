@@ -210,35 +210,23 @@ def main():
                             if ser: ser.write(b"BUZZER:0\n")
                         continue # Salta el resto de lógica
                     
-                    # --- AQUÍ ESTÁ LA MAGIA ---
-                    # Transformamos el "3" del Arduino en "Sensor 3" para que coincida con Dataverse
+                    # Para telemetría en vivo (Frontend) usamos el número crudo "3"
+                    # Para Dataverse (SQLite) usamos "Sensor 3"
                     pin_formateado = f"Sensor {pin_arduino}"
 
-                    if pin_formateado in VALID_SENSORS:
+                    if pin_arduino in ["3", "4", "5", "6", "7", "8"]:
                         try:
                             watts = float(val)
-                            telemetry_data[pin_formateado] = watts
+                            # Frontend espera "3", "4", etc.
+                            telemetry_data[pin_arduino] = watts
+                            
+                            # Base de datos espera "Sensor 3", etc.
                             if pin_formateado not in power_accumulators:
                                 power_accumulators[pin_formateado] = {'sum': 0.0, 'count': 0}
                             power_accumulators[pin_formateado]['sum'] += watts
                             power_accumulators[pin_formateado]['count'] += 1
                         except ValueError:
                             pass
-                    else:
-                        pass # Ignorar ruido
-                        
-                    if pin_formateado in VALID_SENSORS:
-                        try:
-                            watts = float(val)
-                            telemetry_data[pin_formateado] = watts
-                            if pin_formateado not in power_accumulators:
-                                power_accumulators[pin_formateado] = {'sum': 0.0, 'count': 0}
-                            power_accumulators[pin_formateado]['sum'] += watts
-                            power_accumulators[pin_formateado]['count'] += 1
-                        except ValueError:
-                            pass
-                    else:
-                        pass # Ignorar ruido
 
             current_time = time.time()
             
