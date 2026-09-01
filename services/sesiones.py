@@ -149,9 +149,9 @@ async def registrar_fin_sesion(sesion_id: str) -> dict:
     }
 
     # NUEVO: Enviar comando a la Raspberry Pi con la hora límite en UTC para SQLite
-    from routers.iot import send_serial_command
+    from routers.iot import send_command_async
     comando_cierre = f"CLOSE_SESSION:{sesion_id}:{hora_limite_utc.strftime('%Y-%m-%d %H:%M:%S')}"
-    send_serial_command(comando_cierre)
+    await send_command_async(comando_cierre)
 
     resp_cierre = await client.patch(f"cr6a3_sesiones_de_clases({sesion_segura})", json=datos_cierre)
     if resp_cierre.status_code == 204: 
