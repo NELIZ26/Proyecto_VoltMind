@@ -7,7 +7,7 @@
       @update:show="$emit('update:show', $event)"
       @close="$emit('close')"
     >
-      <div class="cuerpo">
+      <div class="cuerpo" :class="{ 'cuerpo-bloqueado': guardando }">
         <p class="contexto">
           La ficha nace con su <strong>diagnóstico de competencias</strong> copiado del programa
           elegido en el catálogo (el flujo real: primero la matriz, después la programación).
@@ -56,33 +56,23 @@
               </select>
             </label>
             <label class="campo">
-              <span>Sede *</span>
-              <input
-                v-model.trim="form.sede"
-                type="text"
-                class="form-input"
-                list="sedes-conocidas"
-                placeholder="Ej: Principal Puerto Asís"
-              />
-              <datalist id="sedes-conocidas">
-                <option v-for="s in sedesConocidas" :key="s" :value="s" />
-              </datalist>
+              <span>Municipio *</span>
+              <select v-model="form.municipio" class="form-input">
+                <option value="" disabled>Seleccione...</option>
+                <option v-for="m in store.municipiosCatalogo" :key="m" :value="m">{{ m }}</option>
+              </select>
             </label>
-            <label class="campo">
-              <span>Municipio</span>
-              <input v-model.trim="form.municipio" type="text" class="form-input" placeholder="Ej: Puerto Asís" />
+            <label class="campo" v-show="false">
+              <span>Vocero</span>
+              <input v-model.trim="form.vocero" type="text" class="form-input" placeholder="Nombre del vocero" />
             </label>
-            <label class="campo">
-              <span>Inicio etapa lectiva *</span>
-              <input v-model="form.fecha_inicio" type="date" class="form-input" />
-            </label>
-            <label class="campo">
-              <span>Fin etapa lectiva *</span>
-              <input v-model="form.fecha_fin" type="date" class="form-input" :min="form.fecha_inicio || undefined" />
-            </label>
-            <label class="campo">
-              <span>Número de aprendices *</span>
+            <label class="campo" v-show="false">
+              <span>Número de aprendices</span>
               <input v-model.number="form.numero_aprendices" type="number" min="1" max="60" class="form-input" />
+            </label>
+            <label class="campo">
+              <span>Horas del programa *</span>
+              <input v-model.number="form.horas_programa_formacion" type="number" min="1" class="form-input" />
             </label>
             <label class="campo">
               <span>Instructor titular (opcional)</span>
@@ -92,6 +82,28 @@
                   {{ i.nombre }} ({{ i.tipo_vinculacion }})
                 </option>
               </select>
+            </label>
+          </div>
+          
+          <div class="rejilla" style="margin-top: 12px; grid-template-columns: 1fr 1fr;">
+            <label class="campo">
+              <span>Inicio etapa lectiva *</span>
+              <input v-model="form.fecha_inicio" type="date" class="form-input" />
+            </label>
+            <label class="campo">
+              <span>Fin etapa lectiva *</span>
+              <input v-model="form.fecha_fin" type="date" class="form-input" :min="form.fecha_inicio || undefined" />
+            </label>
+          </div>
+          
+          <div class="rejilla" style="margin-top: 12px; grid-template-columns: 1fr 1fr;">
+            <label class="campo">
+              <span>Inicio etapa productiva *</span>
+              <input v-model="form.fecha_inicio_practicas" type="date" class="form-input" :min="form.fecha_fin || undefined" />
+            </label>
+            <label class="campo">
+              <span>Fin etapa productiva *</span>
+              <input v-model="form.fecha_fin_practicas" type="date" class="form-input" :min="form.fecha_inicio_practicas || undefined" />
             </label>
           </div>
         </section>
@@ -137,12 +149,15 @@ const formVacio = () => ({
   codigo: '',
   programa_id: '',
   jornada: '',
-  sede: '',
   municipio: '',
+  vocero: '',
   instructor_titular_id: '',
   fecha_inicio: '',
   fecha_fin: '',
+  fecha_inicio_practicas: '',
+  fecha_fin_practicas: '',
   numero_aprendices: 25,
+  horas_programa_formacion: 0,
 });
 
 const form = reactive(formVacio());
@@ -162,26 +177,23 @@ const programaElegido = computed(() =>
   store.programas.find((p) => p.id === form.programa_id) || null
 );
 
-/** Sedes ya usadas por fichas o ambientes, para autocompletar sin obligar. */
-const sedesConocidas = computed(() => {
-  const sedes = new Set([
-    ...store.fichas.map((f) => f.sede),
-    ...store.ambientes.map((a) => a.sede),
-  ]);
-  return [...sedes].filter(Boolean).sort();
-});
-
 const colorTipo = (tipo) => COLORES_TIPO_COMPETENCIA[tipo] || 'var(--borde)';
 
 async function guardar() {
   if (guardando.value) return; // Previene doble clic
   error.value = '';
   if (!form.programa_id) return (error.value = 'Seleccione el programa del catálogo.');
-  if (!form.codigo || form.codigo.length < 4) return (error.value = 'Escriba el código de la ficha (mínimo 4 dígitos).');
-  if (!form.jornada) return (error.value = 'Seleccione la jornada de la ficha.');
-  if (!form.sede || form.sede.length < 3) return (error.value = 'Escriba la sede de la ficha.');
+  if (!form.codigo || form.codigo.length < 4) return (error.value = 'El código de la ficha debe tener al menos 4 caracteres.');
+  
+  const fichaExistente = store.fichas.some(f => String(f.codigo).trim() === String(form.codigo).trim());
+  if (fichaExistente) return (error.value = 'Ya existe una ficha registrada con este código (Sofía Plus).');
+
+  if (!form.jornada) return (error.value = 'Seleccione la jornada.');
+  if (!form.municipio || form.municipio.length < 3) return (error.value = 'Escriba el municipio de la ficha.');
   if (!form.fecha_inicio || !form.fecha_fin) return (error.value = 'Defina las fechas de la etapa lectiva.');
-  if (!form.numero_aprendices || form.numero_aprendices < 1) return (error.value = 'Indique el número de aprendices.');
+  if (!form.fecha_inicio_practicas || !form.fecha_fin_practicas) return (error.value = 'Defina las fechas de la etapa de prácticas.');
+
+  if (!form.horas_programa_formacion || form.horas_programa_formacion < 1) return (error.value = 'Indique las horas de duración del programa.');
 
   guardando.value = true;
   const start = Date.now();
@@ -198,6 +210,7 @@ async function guardar() {
   if (resultado.success) {
     toast.success(`Ficha ${resultado.ficha.codigo} creada con su diagnóstico del catálogo.`);
     emit('creada', resultado.ficha);
+    emit('update:show', false);
     emit('close');
   } else {
     error.value = resultado.error;
@@ -377,5 +390,10 @@ select.form-input { cursor: pointer; }
 .btn-cancelar:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.cuerpo-bloqueado {
+  pointer-events: none;
+  opacity: 0.6;
 }
 </style>

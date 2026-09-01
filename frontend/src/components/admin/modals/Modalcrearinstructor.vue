@@ -8,28 +8,28 @@
     <form @submit.prevent="handleSubmit" class="form-grid" id="create-instructor-form">
       <div class="form-group">
         <label>Nombre Completo</label>
-        <input v-model="form.nombre" type="text" required placeholder="Ej: Carlos Díaz" class="form-input" />
+        <input v-model="form.nombre_completo" type="text" required placeholder="Ej: Carlos Díaz" class="form-input" />
       </div>
 
       <div class="form-row">
         <div class="form-group">
           <label>Documento</label>
-          <input v-model="form.documento" type="text" required placeholder="1098765432" class="form-input" />
+          <input v-model="form.nro_documento" type="text" required placeholder="1098765432" class="form-input" />
         </div>
         <div class="form-group">
-          <label>Correo</label>
-          <input v-model="form.correo" type="email" required placeholder="correo@ejemplo.com" class="form-input" />
+          <label>Correo Institucional</label>
+          <input v-model="form.correo_institucional" type="email" required placeholder="correo@ejemplo.com" class="form-input" />
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group">
-          <label>Teléfono</label>
-          <input v-model="form.telefono" type="tel" placeholder="+57 300..." class="form-input" />
+          <label>Contacto (Teléfono)</label>
+          <input v-model="form.nro_telefono" type="text" placeholder="3000000000" class="form-input" />
         </div>
         <div class="form-group">
-          <label>Área / Especialidad</label>
-          <input v-model="form.area_especialidad" type="text" required placeholder="Ej: Desarrollo de Software" class="form-input" />
+          <label>Perfil Profesional</label>
+          <input v-model="form.perfil_profesional" type="text" required placeholder="Ej: Desarrollo de Software" class="form-input" />
         </div>
       </div>
 
@@ -42,19 +42,9 @@
           </select>
         </div>
         <div class="form-group">
-          <label>Jornada</label>
-          <select v-model="form.jornada" class="form-select">
-            <option value="MAÑANA">Mañana</option>
-            <option value="TARDE">Tarde</option>
-            <option value="NOCHE">Noche</option>
-            <option value="MIXTA">Mixta</option>
-          </select>
+          <label>Municipio Contratación</label>
+          <input v-model="form.municipio_contratacion" type="text" placeholder="Ej: Bogotá" class="form-input" />
         </div>
-      </div>
-
-      <div class="form-group">
-        <label>Horas Máximas Mensuales</label>
-        <input v-model.number="form.max_horas_mensuales" type="number" required placeholder="160" class="form-input" />
       </div>
       
       <div class="form-row">
@@ -64,7 +54,6 @@
             v-model="form.fecha_inicio_contrato" 
             type="date" 
             class="form-input"
-            required 
           />
         </div>
 
@@ -74,7 +63,6 @@
             v-model="form.fecha_fin_contrato" 
             type="date" 
             class="form-input"
-            required 
           />
         </div>
       </div>
@@ -99,28 +87,26 @@ const props = defineProps({
 const emit = defineEmits(['close', 'created']);
 
 const form = reactive({
-  nombre: '',
-  documento: '',
-  correo: '',
-  telefono: '',
-  area_especialidad: '',
+  nombre_completo: '',
+  nro_documento: '',
+  correo_institucional: '',
+  nro_telefono: '',
+  perfil_profesional: '',
   tipo_vinculacion: 'PLANTA',
-  jornada: 'MAÑANA',
-  max_horas_mensuales: 160,
+  municipio_contratacion: '',
   fecha_inicio_contrato: '',
   fecha_fin_contrato: ''
 });
 
 // Limpia todos los campos del formulario
 const resetForm = () => {
-  form.nombre = '';
-  form.documento = '';
-  form.correo = '';
-  form.telefono = '';
-  form.area_especialidad = '';
+  form.nombre_completo = '';
+  form.nro_documento = '';
+  form.correo_institucional = '';
+  form.nro_telefono = '';
+  form.perfil_profesional = '';
   form.tipo_vinculacion = 'PLANTA';
-  form.jornada = 'MAÑANA';
-  form.max_horas_mensuales = 160;
+  form.municipio_contratacion = '';
   form.fecha_inicio_contrato = '';
   form.fecha_fin_contrato = '';
 };

@@ -32,7 +32,12 @@
               <span>· Jornada {{ ficha.jornada }} ({{ horarioJornada(ficha.jornada) }})</span>
               <span>· {{ ficha.sede }}</span>
               <span>· {{ ficha.numero_aprendices }} aprendices</span>
-              <span>· Lectiva: {{ formatearFecha(ficha.fecha_inicio) }} → {{ formatearFecha(ficha.fecha_fin) }}</span>
+              <span :class="{'etapa-activa': etapaActiva === 'lectiva', 'etapa-inactiva': etapaActiva && etapaActiva !== 'lectiva'}">
+                · Lectiva: {{ formatearFecha(ficha.fecha_inicio) }} → {{ formatearFecha(ficha.fecha_fin) }}
+              </span>
+              <span :class="{'etapa-activa': etapaActiva === 'productiva', 'etapa-inactiva': etapaActiva && etapaActiva !== 'productiva'}">
+                · Productiva: {{ formatearFecha(ficha.fecha_inicio_practicas) }} → {{ formatearFecha(ficha.fecha_fin_practicas) }}
+              </span>
               <button class="chip-titular btn-asignar-titular" @click="showModalTitular = true" :disabled="store.actualizandoTitularId === ficha.id" title="Cambiar Instructor Titular">
                 <template v-if="store.actualizandoTitularId === ficha.id">
                   <font-awesome-icon :icon="['fas', 'circle-notch']" spin />
@@ -478,6 +483,19 @@ function hexARgba(hex, alfa) {
 // ── Calendario mensual ──
 const hoy = new Date();
 const hoyIso = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+
+const etapaActiva = computed(() => {
+  if (!ficha.value) return '';
+  if (ficha.value.fecha_inicio && ficha.value.fecha_fin && 
+      ficha.value.fecha_inicio <= hoyIso && hoyIso <= ficha.value.fecha_fin) {
+    return 'lectiva';
+  }
+  if (ficha.value.fecha_inicio_practicas && ficha.value.fecha_fin_practicas && 
+      ficha.value.fecha_inicio_practicas <= hoyIso && hoyIso <= ficha.value.fecha_fin_practicas) {
+    return 'productiva';
+  }
+  return '';
+});
 const periodo = ref({ anio: hoy.getFullYear(), mes: hoy.getMonth() }); // mes: 0-11
 
 const etiquetaMes = computed(() => `${NOMBRES_MESES[periodo.value.mes]} ${periodo.value.anio}`);
@@ -721,6 +739,24 @@ watch(() => route.params.id, (nuevo, anterior) => {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+}
+
+.header-meta span {
+  display: inline-flex;
+  align-items: center;
+}
+
+.etapa-activa {
+  background-color: rgba(57, 169, 0, 0.15);
+  color: var(--sena-verde) !important;
+  font-weight: bold;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(57, 169, 0, 0.3);
+}
+
+.etapa-inactiva {
+  opacity: 0.7;
 }
 
 .chip-titular {

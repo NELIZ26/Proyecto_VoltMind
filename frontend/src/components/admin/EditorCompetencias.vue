@@ -22,7 +22,7 @@
       <input
         v-model.number="c.horas"
         type="number"
-        min="1"
+        min="0"
         max="2000"
         class="form-input col-horas"
         @input="emitir"
@@ -66,7 +66,7 @@ const nuevaFila = (base = {}) => ({
   id: base.id || null,
   nombre: base.nombre || '',
   tipo: base.tipo || 'Técnica',
-  horas: base.horas || null,
+  horas: base.horas !== undefined && base.horas !== null ? base.horas : 0,
 });
 
 const filas = ref(props.modelValue.map(nuevaFila));

@@ -58,6 +58,10 @@ export const tituladasService = {
     return solicitar(`/fichas/${fichaId}`);
   },
 
+  getMunicipios() {
+    return solicitar('/municipios');
+  },
+
   actualizarTitular(fichaId, instructorId) {
     return solicitar(`/fichas/${fichaId}/titular`, {
       method: 'PUT',
@@ -103,6 +107,10 @@ export const tituladasService = {
 
   getProgramas() {
     return solicitar('/programas');
+  },
+
+  getCompetenciasPrograma(programaId) {
+    return solicitar(`/programas/${programaId}/competencias`);
   },
 
   createPrograma(datos) {

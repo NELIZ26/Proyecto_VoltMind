@@ -82,6 +82,15 @@ const devLogins = [
     glow: "rgba(57, 169, 0, 0.25)"
   },
   {
+    role: "gestor_fichas",
+    path: "/gestor-fichas",
+    name: "Creador de Fichas",
+    desc: "Rol para crear nuevas fichas y gestionar el catálogo de programas.",
+    icon: "folder-plus",
+    color: "var(--sena-naranja, #FF6B00)",
+    glow: "rgba(255, 107, 0, 0.25)"
+  },
+  {
     role: "YOLIMA",
     path: "/admin/instructores",
     name: "Yolima (Instructores)",
@@ -89,7 +98,7 @@ const devLogins = [
     icon: "user-tie",
     color: "#6f42c1",
     glow: "rgba(111, 66, 193, 0.25)",
-  },
+  }
 ];
 
 const simulateLogin = (devAccount) => {

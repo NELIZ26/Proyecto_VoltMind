@@ -133,11 +133,24 @@ async def obtener_instructores():
     return await servicio.listar_instructores()
 
 
+@router.get("/municipios")
+@_con_manejo_de_errores
+async def get_municipios():
+    """Consulta los municipios disponibles desde la tabla cr6a3_sedes (Dataverse) o la BD local."""
+    return await servicio.listar_municipios()
+
+
 @router.get("/programas")
 @_con_manejo_de_errores
 async def obtener_programas():
     """Catálogo de programas de formación (nombre, versión, nivel y competencias)."""
     return await servicio.listar_programas()
+
+@router.get("/programas/{programa_id}/competencias")
+@_con_manejo_de_errores
+async def obtener_competencias_programa(programa_id: str):
+    """Obtiene las competencias de un programa específico."""
+    return await servicio.listar_competencias_programa(programa_id)
 
 
 @router.post("/programas", status_code=201)

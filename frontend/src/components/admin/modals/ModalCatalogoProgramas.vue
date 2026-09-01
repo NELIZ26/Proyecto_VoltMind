@@ -7,7 +7,7 @@
       @update:show="$emit('update:show', $event)"
       @close="$emit('close')"
     >
-      <div class="cuerpo">
+      <div class="cuerpo" :class="{ 'cuerpo-bloqueado': guardando }">
         <p class="contexto">
           Cada programa registra su versión, nivel y matriz de competencias. Al crear una ficha,
           su <strong>diagnóstico se genera desde este catálogo</strong> (lo alimenta quien sube
@@ -25,17 +25,24 @@
               <div class="programa-info">
                 <span class="programa-nombre">{{ p.nombre }}</span>
                 <span class="programa-datos">
-                  Versión {{ p.version }} · {{ p.nivel }} · {{ p.total_horas }} h ·
-                  {{ p.competencias.length }} competencias
+                  Versión {{ p.version }} · {{ p.nivel }} · 
+                  <span v-if="p.competencias && p.competencias.length > 0">
+                    {{ p.total_horas || p.competencias.reduce((acc, c) => acc + (c.horas || 0), 0) }} h · {{ p.competencias.length }} competencias
+                  </span>
+                  <span v-else>
+                    {{ p.total_horas ? p.total_horas + ' h · ' : '' }}Ver detalles
+                  </span>
                 </span>
               </div>
               <button
                 class="btn-mini"
                 type="button"
                 :title="verId === p.id ? 'Ocultar competencias' : 'Ver competencias'"
-                @click="verId = verId === p.id ? '' : p.id"
+                @click="toggleCompetencias(p)"
+                :disabled="cargandoCompetenciasId === p.id"
               >
-                <font-awesome-icon :icon="verId === p.id ? 'fa-solid fa-chevron-down' : 'fa-solid fa-eye'" />
+                <font-awesome-icon v-if="cargandoCompetenciasId === p.id" :icon="['fas', 'circle-notch']" spin />
+                <font-awesome-icon v-else :icon="verId === p.id ? 'fa-solid fa-chevron-down' : 'fa-solid fa-eye'" />
               </button>
               <ul v-if="verId === p.id" class="vista-previa">
                 <li v-for="(c, i) in p.competencias" :key="i">
@@ -117,7 +124,7 @@ const formVacio = () => ({
   nombre: '',
   version: '',
   nivel: '',
-  competencias: [{ id: null, nombre: 'Inducción', tipo: 'Inducción', horas: 30 }],
+  competencias: [{ id: null, nombre: 'Inducción', tipo: 'Inducción', horas: 48 }],
 });
 
 const form = reactive(formVacio());
@@ -137,6 +144,23 @@ watch(
 
 const colorTipo = (tipo) => COLORES_TIPO_COMPETENCIA[tipo] || 'var(--borde)';
 
+const cargandoCompetenciasId = ref('');
+
+async function toggleCompetencias(p) {
+  if (verId.value === p.id) {
+    verId.value = '';
+    return;
+  }
+  
+  if (!p.competencias || p.competencias.length === 0) {
+    cargandoCompetenciasId.value = p.id;
+    await store.cargarCompetenciasPrograma(p.id);
+    cargandoCompetenciasId.value = '';
+  }
+  
+  verId.value = p.id;
+}
+
 async function guardar() {
   if (guardando.value) return; // Previene doble clic
   error.value = '';
@@ -145,10 +169,10 @@ async function guardar() {
   if (!form.nivel) return (error.value = 'Seleccione el nivel de formación.');
   if (!form.competencias.length) return (error.value = 'Agregue las competencias del programa.');
   const invalida = form.competencias.find(
-    (c) => !c.nombre || c.nombre.length < 3 || !c.horas || c.horas < 1
+    (c) => !c.nombre || c.nombre.length < 3 || typeof c.horas !== 'number' || isNaN(c.horas) || c.horas < 0
   );
   if (invalida) {
-    error.value = 'Cada competencia necesita un nombre (mínimo 3 letras) y horas mayores a cero.';
+    error.value = 'Cada competencia necesita un nombre (mínimo 3 letras) y sus horas no pueden ser negativas.';
     return;
   }
 
@@ -169,6 +193,7 @@ async function guardar() {
   if (resultado.success) {
     toast.success(`Programa "${resultado.programa.nombre}" agregado al catálogo.`);
     Object.assign(form, formVacio());
+    emit('update:show', false);
     emit('close');
   } else {
     error.value = resultado.error;
@@ -406,6 +431,11 @@ select.form-input { cursor: pointer; }
 .btn-cancelar:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.cuerpo-bloqueado {
+  pointer-events: none;
+  opacity: 0.6;
 }
 
 @media (max-width: 640px) {

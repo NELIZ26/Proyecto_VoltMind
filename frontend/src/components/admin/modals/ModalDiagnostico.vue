@@ -9,23 +9,10 @@
     >
       <div v-if="ficha" class="cuerpo">
         <p class="contexto">
-          Ficha <strong>{{ ficha.codigo }}</strong> · {{ ficha.programa }} — registre aquí la
-          matriz que envía el instructor titular: competencia, clasificación y horas del programa.
-          <strong>Sin este diagnóstico la ficha no se puede programar.</strong>
+          Ficha <strong>{{ ficha.codigo }}</strong> · {{ ficha.programa }}.
         </p>
 
-        <!-- Cargar la matriz desde el catálogo de programas -->
-        <div class="fila-catalogo">
-          <label class="campo-catalogo">
-            <span>Cargar competencias desde el catálogo (opcional)</span>
-            <select v-model="programaElegido" class="form-input">
-              <option value="">Mantener la matriz actual...</option>
-              <option v-for="p in store.programas" :key="p.id" :value="p.id">
-                {{ p.nombre }} — versión {{ p.version }} ({{ p.nivel }} · {{ p.total_horas }} h)
-              </option>
-            </select>
-          </label>
-        </div>
+
 
         <EditorCompetencias v-model="competencias" />
 
@@ -69,7 +56,6 @@ const store = useTituladasStore();
 const toast = useToast();
 
 const competencias = ref([]);
-const programaElegido = ref('');
 const error = ref('');
 const guardando = ref(false);
 
@@ -79,22 +65,11 @@ watch(
   (abierto) => {
     if (!abierto) return;
     error.value = '';
-    programaElegido.value = '';
     competencias.value = (props.ficha?.diagnostico || []).map(({ id, nombre, tipo, horas }) => ({
       id, nombre, tipo, horas,
     }));
   }
 );
-
-// Elegir un programa del catálogo reemplaza las filas por su matriz
-watch(programaElegido, (id) => {
-  if (!id) return;
-  const programa = store.programas.find((p) => p.id === id);
-  if (!programa) return;
-  competencias.value = programa.competencias.map(({ nombre, tipo, horas }) => ({
-    id: null, nombre, tipo, horas,
-  }));
-});
 
 async function guardar() {
   if (guardando.value) return; // Previene doble clic
@@ -148,18 +123,6 @@ async function guardar() {
   border-left: 4px solid var(--sena-verde);
   border-radius: 10px;
   padding: 0.7rem 1rem;
-}
-
-.fila-catalogo { display: flex; }
-
-.campo-catalogo {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--texto-secundario);
-  flex: 1;
 }
 
 .form-input {

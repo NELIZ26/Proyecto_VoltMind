@@ -15,15 +15,13 @@ router = APIRouter(
 
 # Modelo Pydantic para recibir los datos del formulario Vue
 class InstructorSchema(BaseModel):
-    nombre: str
-    correo: str
-    documento: Optional[str] = None
-    telefono: Optional[str] = None
-    area_especialidad: Optional[str] = None
+    nombre_completo: str
+    correo_institucional: str
+    nro_documento: Optional[str] = None
     tipo_vinculacion: Optional[str] = "PLANTA"
-    max_horas_mensuales: Optional[int] = 160
-    jornada: Optional[str] = "Mañana"
-    # Se agregan los campos de fecha de contrato
+    perfil_profesional: Optional[str] = None
+    nro_telefono: Optional[str] = None
+    municipio_contratacion: Optional[str] = None
     fecha_inicio_contrato: Optional[str] = None
     fecha_fin_contrato: Optional[str] = None
 
@@ -74,25 +72,51 @@ async def crear_instructor(instructor: InstructorSchema):
             "Prefer": "return=representation"
         }
 
-        # Mapeo del payload incorporando las nuevas columnas para Dataverse
+        # Mapeo del payload incorporando solo las columnas existentes en Dataverse
         payload = {
-            "cr6a3_nombre_completo": instructor.nombre,
-            "cr6a3_correo_institucional": instructor.correo,
-            "cr6a3_fecha_inicio_contrato": instructor.fecha_inicio_contrato,
-            "cr6a3_fecha_fin_contrato": instructor.fecha_fin_contrato,
+            "cr6a3_nombre_completo": instructor.nombre_completo,
+            "cr6a3_correo_institucional": instructor.correo_institucional,
+            "cr6a3_nro_documento": instructor.nro_documento,
+            "cr6a3_tipo_vinculacion": instructor.tipo_vinculacion,
+            "cr6a3_perfil_profesional": instructor.perfil_profesional,
+            "cr6a3_nro_telefono": instructor.nro_telefono,
+            "cr6a3_municipio_contratacion": instructor.municipio_contratacion,
+            "cra5c_fecha_inicio_contrato": instructor.fecha_inicio_contrato,
+            "cra5c_fecha_fin_contrato": instructor.fecha_fin_contrato,
         }
+        
+        # Eliminar nulos antes de enviar a Dataverse (para evitar enviar campos vacíos innecesarios)
+        payload = {k: v for k, v in payload.items() if v is not None and v != ""}
 
         async with httpx.AsyncClient() as client:
+            # Verificar si ya existe el instructor
+            filter_query = []
+            if instructor.nro_documento:
+                filter_query.append(f"cr6a3_nro_documento eq '{instructor.nro_documento}'")
+            if instructor.correo_institucional:
+                filter_query.append(f"cr6a3_correo_institucional eq '{instructor.correo_institucional}'")
+            
+            if filter_query:
+                check_endpoint = f"{DATAVERSE_API_URL}/cr6a3_instructors?$filter={' or '.join(filter_query)}"
+                check_response = await client.get(check_endpoint, headers={"Authorization": f"Bearer {token}"})
+                if check_response.status_code == 200:
+                    check_data = check_response.json()
+                    if check_data.get("value") and len(check_data["value"]) > 0:
+                        raise HTTPException(
+                            status_code=400,
+                            detail="Ya existe un instructor registrado con este número de documento o correo institucional."
+                        )
+
             response = await client.post(endpoint, headers=headers, json=payload)
 
         if response.status_code in [201, 200]:
             data = response.json()
             return data
         
-            raise HTTPException(
+        raise HTTPException(
             status_code=response.status_code,
             detail=f"Error de Dataverse al crear instructor: {response.text}"
-            )
+        )
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

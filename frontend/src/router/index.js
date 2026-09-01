@@ -195,10 +195,41 @@ const routes = [
         meta: { title: "VoltMind - Directorio de Fichas" }
       },
       {
+        path: "instructores",
+        name: "AcademicoInstructoresDirectorio",
+        component: () => import("@/views/admin/DirectorioInstructoresAcademicoView.vue"),
+        meta: { title: "VoltMind - Directorio de Instructores" }
+      },
+      {
+        path: "instructores/:id",
+        name: "AcademicoInstructorCalendario",
+        component: () => import("@/views/admin/DirectorioInstructorCalendarioView.vue"),
+        meta: { title: "VoltMind - Calendario del Instructor" }
+      },
+      {
         path: "tituladas/:id",
         name: "AcademicoTituladaDetalle",
         component: () => import("@/views/admin/FichaTituladaDetalleView.vue"),
         meta: { title: "VoltMind - Detalle de Ficha Titulada" }
+      }
+    ]
+  },
+  {
+    path: "/gestor-fichas",
+    component: () => import("@/layouts/GestorFichasLayout.vue"),
+    meta: { requiresAuth: true, roles: ["gestor_fichas"] },
+    children: [
+      {
+        path: "",
+        name: "GestorFichasHome",
+        component: () => import("@/views/admin/CreadorFichasView.vue"),
+        meta: { title: "VoltMind - Creador de Fichas" }
+      },
+      {
+        path: "listado",
+        name: "GestorFichasListado",
+        component: () => import("@/views/admin/ListadoFichasGestorView.vue"),
+        meta: { title: "VoltMind - Listado de Fichas" }
       }
     ]
   },

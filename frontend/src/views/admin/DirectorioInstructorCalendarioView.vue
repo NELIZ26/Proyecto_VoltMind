@@ -1,5 +1,5 @@
 <template>
-  <div class="mi-programacion">
+  <div class="admin-view-shell">
     <!-- Encabezado -->
     <header class="dash-header">
       <div class="header-left">
@@ -7,9 +7,9 @@
           <font-awesome-icon icon="fa-solid fa-arrow-left" />
         </button>
         <div class="environment-badge">
-          <h1>MI PROGRAMACIÓN</h1>
+          <h1>CALENDARIO DEL INSTRUCTOR</h1>
           <p class="header-meta">
-            Calendario personal del instructor (matriz por instructor)
+            Calendario de programación (matriz por instructor)
           </p>
         </div>
       </div>
@@ -28,27 +28,13 @@
       <p>Cargando su programación...</p>
     </div>
 
-    <!-- Estado: sin instructor identificado (selector para demo/pruebas) -->
-    <div v-else-if="!datos" class="module-card estado-panel">
-      <font-awesome-icon icon="fa-solid fa-chalkboard-user" class="estado-icono" />
+    <!-- Estado: sin datos (error) -->
+    <div v-else-if="!datos" class="module-card estado-panel estado-error">
+      <font-awesome-icon icon="fa-solid fa-triangle-exclamation" class="estado-icono" />
       <div class="seleccion">
-        <strong>¿De quién es la programación que desea consultar?</strong>
+        <strong>Error cargando la programación</strong>
         <p v-if="error" class="texto-error">{{ error }}</p>
-        <p v-else>
-          No se pudo identificar su correo institucional en la programación,
-          seleccione su nombre para abrir su calendario.
-        </p>
-        <div class="fila-seleccion">
-          <select v-model="instructorElegido" class="form-input">
-            <option value="" disabled>Seleccione el instructor...</option>
-            <option v-for="i in instructores" :key="i.id" :value="i.id">
-              {{ i.nombre }} ({{ i.tipo_vinculacion }})
-            </option>
-          </select>
-          <button class="btn-action" :disabled="!instructorElegido" @click="cargarPorId">
-            <font-awesome-icon icon="fa-solid fa-eye" /> VER CALENDARIO
-          </button>
-        </div>
+        <p v-else>El instructor no fue encontrado o no tiene datos válidos.</p>
       </div>
     </div>
 
@@ -177,21 +163,29 @@
 </template>
 
 <script setup>
-// Calendario personal del instructor: la "matriz por instructor" del Excel de la
-// coordinadora, en solo lectura. Cada ficha se pinta con su propio color y la
-// leyenda de convenciones se arma automáticamente con las fichas del mes.
-import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { useAuthStore } from '@/stores/auth';
+// Calendario personal del instructor en vista de programador académico
+import { ref, computed, onMounted, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { tituladasService } from '@/services/tituladasService';
 import { horarioJornada, formatearFecha } from '@/stores/tituladas';
 
 const router = useRouter();
-const auth = useAuthStore();
+const route = useRoute();
 
-const datos = ref(null);          // { instructor, asignaciones }
-const instructores = ref([]);     // selector de respaldo (demo/pruebas)
-const instructorElegido = ref('');
+const props = defineProps({
+  instructorId: {
+    type: String,
+    default: null
+  },
+  embedded: {
+    type: Boolean,
+    default: false
+  }
+});
+
+const emit = defineEmits(['volver']);
+
+const datos = ref(null);
 const cargando = ref(true);
 const error = ref('');
 
@@ -205,30 +199,11 @@ const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 const PALETA_FICHAS = ['#39A900', '#2980B9', '#E67E22', '#8E44AD', '#C0392B', '#16A085', '#B7950B', '#1F618D'];
 
 // ── Carga de datos ──
-const cargarPorCorreo = async (correo) => {
-  try {
-    const data = await tituladasService.getCalendarioInstructor({ correo });
-    if (data && data.asignaciones) {
-      data.asignaciones = data.asignaciones.map(a => ({
-        ...a,
-        fecha_inicio: a.fecha_inicio ? a.fecha_inicio.split('T')[0] : a.fecha_inicio,
-        fecha_fin: a.fecha_fin ? a.fecha_fin.split('T')[0] : a.fecha_fin
-      }));
-    }
-    datos.value = data;
-    return true;
-  } catch (e) {
-    if (e.esConexion) error.value = e.message;
-    return false;
-  }
-};
-
-const cargarPorId = async () => {
-  if (!instructorElegido.value) return;
+const cargarPorId = async (id) => {
   cargando.value = true;
   error.value = '';
   try {
-    const data = await tituladasService.getCalendarioInstructor({ instructorId: instructorElegido.value });
+    const data = await tituladasService.getCalendarioInstructor({ instructorId: id });
     if (data && data.asignaciones) {
       data.asignaciones = data.asignaciones.map(a => ({
         ...a,
@@ -244,17 +219,19 @@ const cargarPorId = async () => {
   }
 };
 
-onMounted(async () => {
-  // 1º intento: el correo de la sesión del instructor; si no coincide, selector
-  if (auth.instructorEmail) await cargarPorCorreo(auth.instructorEmail);
-  if (!datos.value) {
-    try {
-      instructores.value = await tituladasService.getInstructores();
-    } catch (e) {
-      error.value = e.message;
-    }
+onMounted(() => {
+  const id = props.instructorId || route.params.id;
+  if (id) {
+    cargarPorId(id);
+  } else {
+    error.value = 'No se especificó un instructor válido';
+    cargando.value = false;
   }
-  cargando.value = false;
+});
+
+// Watch para cuando cambia el prop si está embedido
+watch(() => props.instructorId, (newId) => {
+  if (newId) cargarPorId(newId);
 });
 
 // ── Calendario mensual ──
@@ -367,17 +344,21 @@ function hexARgba(hex, alfa) {
   return `rgba(${r}, ${g}, ${b}, ${alfa})`;
 }
 
-const volver = () => router.push('/dashboard');
+const volver = () => {
+  if (props.embedded) {
+    emit('volver');
+  } else {
+    router.push('/programador-academico/instructores');
+  }
+};
 </script>
 
 <style scoped>
-.mi-programacion {
+.admin-view-shell {
   font-family: var(--fuente-principal);
   min-height: 100vh;
   color: var(--texto-principal);
-  background: var(--fondo-app);
   box-sizing: border-box;
-  padding: 1.5rem;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
