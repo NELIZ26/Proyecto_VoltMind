@@ -168,6 +168,13 @@ async def obtener_calendario_instructor(instructor_id: str | None = None, correo
     return await servicio.calendario_instructor(instructor_id, correo)
 
 
+@router.get("/calendario-ambiente")
+@_con_manejo_de_errores
+async def obtener_calendario_ambiente(ambiente_id: str):
+    """Programación completa de un ambiente."""
+    return await servicio.calendario_ambiente(ambiente_id)
+
+
 @router.get("/ambientes")
 @_con_manejo_de_errores
 async def obtener_ambientes():

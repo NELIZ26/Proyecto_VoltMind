@@ -29,26 +29,12 @@
     </div>
 
     <!-- Estado: sin instructor identificado (selector para demo/pruebas) -->
+    <!-- Estado: sin instructor identificado -->
     <div v-else-if="!datos" class="module-card estado-panel">
-      <font-awesome-icon icon="fa-solid fa-chalkboard-user" class="estado-icono" />
-      <div class="seleccion">
-        <strong>¿De quién es la programación que desea consultar?</strong>
-        <p v-if="error" class="texto-error">{{ error }}</p>
-        <p v-else>
-          No se pudo identificar su correo institucional en la programación,
-          seleccione su nombre para abrir su calendario.
-        </p>
-        <div class="fila-seleccion">
-          <select v-model="instructorElegido" class="form-input">
-            <option value="" disabled>Seleccione el instructor...</option>
-            <option v-for="i in instructores" :key="i.id" :value="i.id">
-              {{ i.nombre }} ({{ i.tipo_vinculacion }})
-            </option>
-          </select>
-          <button class="btn-action" :disabled="!instructorElegido" @click="cargarPorId">
-            <font-awesome-icon icon="fa-solid fa-eye" /> VER CALENDARIO
-          </button>
-        </div>
+      <font-awesome-icon icon="fa-solid fa-calendar-xmark" class="estado-icono" style="color: #6c757d;" />
+      <div>
+        <strong>No se encontró programación personal</strong>
+        <p>No tienes asignaciones registradas o no se pudo cargar tu calendario. Si crees que es un error, comunícate con la coordinación académica.</p>
       </div>
     </div>
 
@@ -245,15 +231,8 @@ const cargarPorId = async () => {
 };
 
 onMounted(async () => {
-  // 1º intento: el correo de la sesión del instructor; si no coincide, selector
+  // 1º intento: el correo de la sesión del instructor;
   if (auth.instructorEmail) await cargarPorCorreo(auth.instructorEmail);
-  if (!datos.value) {
-    try {
-      instructores.value = await tituladasService.getInstructores();
-    } catch (e) {
-      error.value = e.message;
-    }
-  }
   cargando.value = false;
 });
 
@@ -367,7 +346,7 @@ function hexARgba(hex, alfa) {
   return `rgba(${r}, ${g}, ${b}, ${alfa})`;
 }
 
-const volver = () => router.push('/dashboard');
+const volver = () => router.push('/instructor/fichas');
 </script>
 
 <style scoped>

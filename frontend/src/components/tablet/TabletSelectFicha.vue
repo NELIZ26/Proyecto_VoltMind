@@ -19,8 +19,8 @@ onMounted(async () => {
 
   try {
     const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
-    const response = await fetch(`${BASE_URL}/api/fichas/${correoInstructor}`);
-    if (!response.ok) throw new Error("Error fetching fichas");
+    const response = await fetch(`${BASE_URL}/api/fichas/instructor/${correoInstructor}`);
+    if (!response.ok) throw new Error("No se encontraron fichas para este instructor.");
     
     const data = await response.json();
     

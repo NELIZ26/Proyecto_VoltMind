@@ -98,6 +98,31 @@ const routes = [
     },
   },
   {
+    path: "/instructor",
+    component: () => import("@/layouts/InstructorLayout.vue"),
+    meta: { requiresAuth: true, roles: ["instructor", "instructor_directo"] },
+    children: [
+      {
+        path: "fichas",
+        name: "InstructorFichas",
+        component: () => import("@/views/display/SelectFicha.vue"),
+        meta: { title: "VoltMind - Mis Fichas" }
+      },
+      {
+        path: "fichas/:id",
+        name: "InstructorFichaDetalle",
+        component: () => import("@/views/instructor/InstructorFichaDetalleView.vue"),
+        meta: { title: "VoltMind - Detalle de Ficha" }
+      },
+      {
+        path: "calendario",
+        name: "InstructorCalendario",
+        component: () => import("@/views/display/MiProgramacionView.vue"),
+        meta: { title: "VoltMind - Mi Calendario" }
+      }
+    ]
+  },
+  {
     path: "/admin",
     component: () => import("@/layouts/AdminLayout.vue"),
     // Sección administrativa: solo el dinamizador (el instructor NO accede)
@@ -149,7 +174,7 @@ const routes = [
         path: "ambientes",
         name: "AdminAmbientes",
         component: () => import("@/views/admin/AmbientesHorariosView.vue"),
-        meta: { title: "VoltMind Admin - Ambientes y Horarios" }
+        meta: { title: "VoltMind Admin - Ambientes" }
       },
       {
         path: "iot",
@@ -205,6 +230,12 @@ const routes = [
         name: "AcademicoInstructorCalendario",
         component: () => import("@/views/admin/DirectorioInstructorCalendarioView.vue"),
         meta: { title: "VoltMind - Calendario del Instructor" }
+      },
+      {
+        path: "ambientes",
+        name: "AcademicoAmbientes",
+        component: () => import("@/views/admin/AmbientesHorariosView.vue"),
+        meta: { title: "VoltMind - Ambientes de Formación" }
       },
       {
         path: "tituladas/:id",

@@ -177,6 +177,7 @@
       <!-- FOOTER NORMAL -->
 <footer v-if="!showConfirmDelete" class="modal-footer" style="flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; width: 100%; padding-top: 1rem; margin-top: auto; border-top: 1px solid #333; background-color: #181818;">
   <button 
+    v-if="!readonly"
     type="button" 
     class="btn-delete" 
     style="background-color: #dc3545; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-weight: bold;"
@@ -224,6 +225,7 @@ import { tituladasService } from '@/services/tituladasService';
 
 const props = defineProps({
   show: Boolean,
+  readonly: Boolean,
   instructorData: {
     type: Object,
     default: null
@@ -234,7 +236,46 @@ const emit = defineEmits(['update:show', 'close', 'delete']);
 
 const formatDate = (dateStr) => {
   if (!dateStr || dateStr === 'Sin fecha') return 'Sin fecha';
-  return dateStr.split('T')[0];
+  
+  if (dateStr.includes('T')) {
+    const parts = dateStr.split('T')[0].split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+    return dateStr.split('T')[0];
+  }
+  
+  const meses = {
+    enero: '01', febrero: '02', marzo: '03', abril: '04',
+    mayo: '05', junio: '06', julio: '07', agosto: '08',
+    septiembre: '09', octubre: '10', noviembre: '11', diciembre: '12'
+  };
+  
+  const partes = dateStr.toLowerCase().split(/[/-]/);
+  if (partes.length === 3) {
+    // Determine if first or last part is the year (usually YYYY is 4 chars)
+    let dia, mes, anio;
+    if (partes[0].length === 4) {
+      anio = partes[0];
+      mes = partes[1];
+      dia = partes[2];
+    } else {
+      dia = partes[0];
+      mes = partes[1];
+      anio = partes[2];
+    }
+    
+    dia = dia.padStart(2, '0');
+    
+    if (meses[mes]) {
+      mes = meses[mes];
+    } else {
+      mes = mes.padStart(2, '0');
+    }
+    return `${dia}/${mes}/${anio}`;
+  }
+  
+  return dateStr;
 };
 
 const store = useProgramacionStore();

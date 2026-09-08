@@ -79,7 +79,7 @@
             </label>
           </div>
 
-          <EditorCompetencias v-model="form.competencias" />
+          <EditorCompetencias v-model="form.competencias" :bloquearHoras="true" />
 
           <p v-if="error" class="banner banner-error">
             <font-awesome-icon icon="fa-solid fa-triangle-exclamation" /> {{ error }}
@@ -124,7 +124,7 @@ const formVacio = () => ({
   nombre: '',
   version: '',
   nivel: '',
-  competencias: [{ id: null, nombre: 'Inducción', tipo: 'Inducción', horas: 48 }],
+  competencias: [{ id: null, nombre: 'Inducción', tipo: 'Inducción', horas: 0 }],
 });
 
 const form = reactive(formVacio());

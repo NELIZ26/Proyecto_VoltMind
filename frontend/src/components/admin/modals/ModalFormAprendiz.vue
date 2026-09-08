@@ -40,13 +40,14 @@
             <input type="text" v-model="formData.documento" class="form-input" placeholder="Ej. 1000222333" required />
           </div>
 
-          <div class="form-group full-width">
-            <label>Ficha</label>
-            <select v-model="formData.ficha" class="form-input" required>
-              <option value="" disabled>Seleccione una ficha</option>
-              <option value="2693821">2693821 - ADSO</option>
-              <option value="2693822">2693822 - ADSO</option>
-            </select>
+          <div class="form-group">
+            <label>Número de Celular</label>
+            <input type="tel" v-model="formData.celular" class="form-input" placeholder="Ej. 3001234567" />
+          </div>
+
+          <div class="form-group">
+            <label>Número de Ficha</label>
+            <input type="text" v-model="formData.ficha" class="form-input" placeholder="Ej. 2693821" required />
           </div>
 
           <div class="form-group full-width">
@@ -81,6 +82,7 @@ const formData = reactive({
   apellidos: '',
   tipoDocumento: 'CC',
   documento: '',
+  celular: '',
   ficha: '',
   correo: ''
 });
@@ -112,6 +114,7 @@ const resetForm = () => {
   formData.apellidos = '';
   formData.tipoDocumento = 'CC';
   formData.documento = '';
+  formData.celular = '';
   formData.ficha = '';
   formData.correo = '';
 };

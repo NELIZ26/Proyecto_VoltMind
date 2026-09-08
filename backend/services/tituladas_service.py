@@ -1809,7 +1809,7 @@ async def calendario_instructor(instructor_id: str | None = None, correo: str | 
             if res_raw:
                 res_inst = res_raw
         elif correo:
-            q = f"cr6a3_instructors?$filter=cr6a3_correo eq '{correo.strip()}'"
+            q = f"cr6a3_instructors?$filter=cr6a3_correo_institucional eq '{correo.strip()}'"
             res_list = await consultar_dataverse(q)
             if res_list and res_list.get("value"):
                 res_inst = res_list["value"][0]
@@ -1878,6 +1878,80 @@ async def calendario_instructor(instructor_id: str | None = None, correo: str | 
         return {
             "modo_demo": False,
             "instructor": instructor_dict,
+            "asignaciones": asignaciones_mapped
+        }
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CALENDARIO DEL AMBIENTE
+# ─────────────────────────────────────────────────────────────────────────────
+async def calendario_ambiente(ambiente_id: str) -> dict:
+    """Programación completa de un ambiente de formación:
+    lo que el gestor consulta al ver el detalle del ambiente."""
+    if _es_demo():
+        raise HTTPException(status_code=501, detail="Calendario de ambiente no implementado en modo demo.")
+    else:
+        from services.dataverse import consultar_dataverse
+        
+        if not ambiente_id:
+            raise HTTPException(status_code=422, detail="Indique el ambiente_id.")
+            
+        res_raw = await consultar_dataverse(f"cr6a3_ambiente_formacions({ambiente_id})?$expand=cr6a3_sede($select=cr6a3_nombre,cr6a3_municipio)")
+        if not res_raw:
+            raise HTTPException(status_code=404, detail="No se encontró el ambiente en Dataverse.")
+            
+        sede_obj = res_raw.get("cr6a3_sede") or {}
+        
+        ambiente_dict = {
+            "id": res_raw.get("cr6a3_ambiente_formacionid"),
+            "nombre": res_raw.get("cr6a3_nombre_ambiente", "Ambiente"),
+            "sede": sede_obj.get("cr6a3_nombre", "CAAA")
+        }
+        
+        query_asig = (
+            f"cr6a3_asignacioneses?$filter=_cr6a3_ambienteid_value eq '{ambiente_id}'"
+            f"&$expand=cr6a3_FichaId($select=cr6a3_numero_ficha,cr6a3_nombre_programa,cr6a3_jornada),cr6a3_InstructorId($select=cr6a3_instructorid,cr6a3_nombre_completo),cr6a3_CompetenciaFichaId($select=cr6a3_nombre,cr6a3_tipo)"
+        )
+        res_asig = await consultar_dataverse(query_asig)
+        asignaciones_db = res_asig.get("value", [])
+        
+        map_jornada_inv = {430120000: "Mañana", 430120001: "Tarde", 430120002: "Noche"}
+
+        asignaciones_mapped = []
+        for a in asignaciones_db:
+            ficha = a.get("cr6a3_FichaId", {}) or {}
+            competencia = a.get("cr6a3_CompetenciaFichaId", {}) or {}
+            
+            inst = a.get("cr6a3_InstructorId", {}) or {}
+            
+            asignaciones_mapped.append({
+                "id": a.get("cr6a3_asignacionid"),
+                "fecha_inicio": a.get("cr6a3_fecha_inicio"),
+                "fecha_fin": a.get("cr6a3_fecha_fin"),
+                "horas": a.get("cr6a3_horas", 0),
+                "jornada": map_jornada_inv.get(ficha.get("cr6a3_jornada"), "Mañana"),
+                "ficha_codigo": ficha.get("cr6a3_numero_ficha", ""),
+                "ficha_programa": ficha.get("cr6a3_nombre_programa", ""),
+                "instructor": {
+                    "id": inst.get("cr6a3_instructorid", ""),
+                    "nombre": inst.get("cr6a3_nombre_completo", "Instructor"),
+                    "iniciales": inst.get("cr6a3_iniciales", ""),
+                    "color": inst.get("cr6a3_color_hex", "#2980B9")
+                } if inst else {
+                    "id": "", "nombre": "Instructor", "iniciales": "", "color": "#2980B9"
+                },
+                "competencia": {
+                    "id": competencia.get("cr6a3_competenciafichaid"),
+                    "nombre": competencia.get("cr6a3_nombre", ""),
+                    "tipo": competencia.get("cr6a3_tipo", "")
+                },
+                "ambiente": ambiente_dict
+            })
+            
+        asignaciones_mapped.sort(key=lambda x: x["fecha_inicio"] or "")
+        
+        return {
+            "modo_demo": False,
+            "ambiente": ambiente_dict,
             "asignaciones": asignaciones_mapped
         }
 

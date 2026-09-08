@@ -15,23 +15,7 @@ const connectingId = ref(null);
 const fichas = ref([]);
 const isLoading = ref(true);
 
-// 🟢 NUEVOS ESTADOS PARA EL AMBIENTE
-const showAmbienteModal = ref(false);
-const ambientesDisponibles = ref([]);
-const ambienteSeleccionado = ref("");
-const fichaPendiente = ref(null);
 
-// --- 2. FUNCIONES DE CONEXIÓN A DATAVERSE ---
-const cargarAmbientes = async () => {
-  try {
-    const res = await fetch(`${BASE_URL}/api/sesiones/ambientes`);
-    if (res.ok) {
-      ambientesDisponibles.value = await res.json();
-    }
-  } catch (error) {
-    console.error("Error cargando ambientes físicos:", error);
-  }
-};
 
 // --- 3. CICLO DE VIDA (Protección + Consultas) ---
 onMounted(async () => {
@@ -51,15 +35,14 @@ onMounted(async () => {
 
   // B) Cargar Fichas y Ambientes en paralelo
   try {
-    await cargarAmbientes(); // 🟢 Descargamos los salones en segundo plano
 
-    const response = await fetch(`${BASE_URL}/api/fichas/${correoInstructor}`);
+    const response = await fetch(`${BASE_URL}/api/fichas/instructor/${correoInstructor}`);
     if (!response.ok) throw new Error("No se encontraron fichas para este instructor.");
     
     const data = await response.json();
     
-    fichas.value = data.map((ficha, index) => ({
-      id: index + 1,
+    fichas.value = data.map((ficha) => ({
+      id: ficha.id,
       numero: ficha.numero_ficha,
       programa: ficha.nombre_programa,
       instructor: ficha.instructor, 
@@ -75,50 +58,8 @@ onMounted(async () => {
 });
 
 // --- 4. FLUJO DE SELECCIÓN ---
-// Paso 1: El instructor le da clic a la ficha
 const seleccionarFicha = (ficha) => {
-  fichaPendiente.value = ficha; // Guardamos la ficha temporalmente
-  showAmbienteModal.value = true; // 🟢 Abrimos el modal del ambiente
-};
-
-// Paso 2: El instructor confirma el salón y entra al Dashboard
-const confirmarAmbienteYContinuar = () => {
-  if (!ambienteSeleccionado.value) {
-    toast.warning("Debes seleccionar un ambiente para continuar.");
-    return;
-  }
-  
-  // A) Mostramos feedback visual de sincronización
-  connectingId.value = fichaPendiente.value.id;
-  showAmbienteModal.value = false; // Cerramos el modal
-  
-  const ambiente = ambientesDisponibles.value.find(a => a.id === ambienteSeleccionado.value);
-  toast.info(`Sincronizando ${ambiente.nombre} con Ficha ${fichaPendiente.value.numero}...`);
-
-  // B) Limpiamos variables (Tu truco Ninja)
-  const numeroAguardar = fichaPendiente.value.numero || "Sin Número";
-  const programaAguardar = fichaPendiente.value.programa || "Programa no definido";
-  let instructorAguardar = fichaPendiente.value.instructor || localStorage.getItem('instructorEmail') || "Instructor SENA";
-
-  if (instructorAguardar.includes('@')) {
-    let soloNombre = instructorAguardar.split('@')[0]; 
-    instructorAguardar = soloNombre.replace(/([a-z])([A-Z])/g, '$1 $2'); 
-  }
-
-  // C) Simulamos la conexión IoT y guardamos en memoria
-  setTimeout(() => {
-    // Variables de la Ficha
-    localStorage.setItem('fichaActiva', numeroAguardar);
-    localStorage.setItem('nombrePrograma', programaAguardar); 
-    localStorage.setItem('nombreInstructor', instructorAguardar); 
-    
-    // 🟢 Variables del Ambiente (Para el Dashboard)
-    localStorage.setItem('ambienteActivoId', ambienteSeleccionado.value);
-    localStorage.setItem('ambienteActivoNombre', ambiente.nombre);
-
-    toast.success("Conexión establecida. Iniciando telemetría.");
-    router.push('/dashboard');
-  }, 1200);
+  router.push(`/instructor/fichas/${ficha.id}`);
 };
 </script>
 
@@ -176,30 +117,6 @@ const confirmarAmbienteYContinuar = () => {
       </div>
     </div>
 
-    <div v-if="showAmbienteModal" class="modal-overlay" style="z-index: 9999; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.85); position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;">
-      <div class="modal-content" style="background: white; padding: 40px; border-radius: 12px; width: 450px; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
-        <img src="@/assets/LogoSena.png" alt="SENA" style="width: 90px; margin-bottom: 20px;" />
-        <h2 style="color: #333; margin-bottom: 10px; font-size: 22px;">Ubicación de Formación</h2>
-        <p style="color: #666; margin-bottom: 25px; line-height: 1.5;">Selecciona el ambiente físico donde dictarás clase a la Ficha <strong>{{ fichaPendiente?.numero }}</strong></p>
-        
-        <select v-model="ambienteSeleccionado" style="width: 100%; padding: 14px; border-radius: 8px; border: 2px solid #e0e0e0; margin-bottom: 25px; font-size: 16px; outline: none; transition: border 0.3s;">
-          <option disabled value="">Selecciona un ambiente de la lista...</option>
-          <option v-for="amb in ambientesDisponibles" :key="amb.id" :value="amb.id">
-            {{ amb.nombre }}
-          </option>
-        </select>
-
-        <div style="display: flex; gap: 10px;">
-          <button @click="showAmbienteModal = false" style="flex: 1; padding: 14px; background: #e74c3c; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: background 0.3s;" onmouseover="this.style.background='#c0392b'" onmouseout="this.style.background='#e74c3c'">
-            CANCELAR
-          </button>
-          <button @click="confirmarAmbienteYContinuar" style="flex: 2; padding: 14px; background: #39a900; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; transition: background 0.3s;" onmouseover="this.style.background='#2d8500'" onmouseout="this.style.background='#39a900'">
-            ENTRAR AL AULA
-          </button>
-        </div>
-      </div>
-    </div>
-    
     <DarkModeToggle />
   </div>
 </template>

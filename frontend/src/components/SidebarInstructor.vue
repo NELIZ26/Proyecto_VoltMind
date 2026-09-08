@@ -12,71 +12,24 @@
     </div>
     
     <ul class="sidebar-menu">
-      <li class="menu-category">MONITOREO GENERAL</li>
+      <li class="menu-category">PORTAL INSTRUCTOR</li>
       <li>
-        <router-link to="/admin/dashboard" class="menu-link" @click="handleMenuClick">
+        <router-link to="/instructor/fichas" class="menu-link" @click="handleMenuClick">
           <div class="icon-box">
-            <font-awesome-icon icon="fa-solid fa-chart-pie" fixed-width />
+            <font-awesome-icon icon="fa-solid fa-layer-group" fixed-width />
           </div>
-          <span class="menu-text">Dashboard Global</span>
+          <span class="menu-text">Mis Fichas</span>
+        </router-link>
+      </li>
+      <li>
+        <router-link to="/instructor/calendario" class="menu-link" @click="handleMenuClick">
+          <div class="icon-box">
+            <font-awesome-icon icon="fa-solid fa-calendar-days" fixed-width />
+          </div>
+          <span class="menu-text">Mi Calendario</span>
         </router-link>
       </li>
 
-      <li class="menu-category">PLANIFICACIÓN ACADÉMICA</li>
-      <li>
-        <router-link to="/admin/calculadora" class="menu-link" @click="handleMenuClick">
-          <div class="icon-box">
-            <font-awesome-icon icon="fa-solid fa-calculator" fixed-width />
-          </div>
-          <span class="menu-text">Calculadora de Horas</span>
-        </router-link>
-      </li>
-      <li>
-        <router-link to="/admin/fichas" class="menu-link" @click="handleMenuClick">
-          <div class="icon-box">
-            <font-awesome-icon icon="fa-solid fa-graduation-cap" fixed-width />
-          </div>
-          <span class="menu-text">Gestión de Fichas</span>
-        </router-link>
-      </li>
-
-
-      <li class="menu-category">CONTROL DE PERSONAL</li>
-      <li>
-        <router-link to="/admin/instructores" class="menu-link" @click="handleMenuClick">
-          <div class="icon-box">
-            <font-awesome-icon icon="fa-solid fa-chalkboard-user" fixed-width />
-          </div>
-          <span class="menu-text">Instructores</span>
-        </router-link>
-      </li>
-      <li>
-        <router-link to="/admin/aprendices" class="menu-link" @click="handleMenuClick">
-          <div class="icon-box">
-            <font-awesome-icon icon="fa-solid fa-users" fixed-width />
-          </div>
-          <span class="menu-text">Aprendices</span>
-        </router-link>
-      </li>
-
-      <li class="menu-category">INFRAESTRUCTURA E IOT</li>
-      <li>
-        <router-link to="/admin/ambientes" class="menu-link" @click="handleMenuClick">
-          <div class="icon-box">
-            <font-awesome-icon icon="fa-solid fa-location-dot" fixed-width />
-          </div>
-          <span class="menu-text">Ambientes</span>
-        </router-link>
-      </li>
-      <li>
-        <router-link to="/admin/iot" class="menu-link" @click="handleMenuClick">
-          <div class="icon-box">
-            <font-awesome-icon icon="fa-solid fa-microchip" fixed-width />
-          </div>
-          <span class="menu-text">Configuración Relés</span>
-        </router-link>
-      </li>
-      
       <li class="logout-item">
         <router-link to="/login" class="menu-link logout-link" @click="handleMenuClick">
           <div class="icon-box logout-icon-box">
@@ -90,7 +43,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref } from 'vue';
 
 const props = defineProps({
   isOpen: {
@@ -303,5 +256,43 @@ const handleMenuClick = () => {
   background-color: #E53E3E;
   color: white;
   box-shadow: 0 4px 12px rgba(229, 62, 62, 0.25);
+}
+
+.button-link {
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.95rem;
+  border: 1px solid transparent; /* Ensure identical styling to router-links */
+}
+
+.submenu {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-left: 1rem;
+  margin-top: 0.5rem;
+  border-left: 2px solid var(--borde);
+  margin-left: 1.5rem;
+}
+
+.submenu-btn {
+  padding: 0.5rem 0.8rem;
+}
+
+.chevron {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--texto-secundario);
+}
+
+.action-icon {
+  color: var(--sena-verde);
+  background: rgba(57, 169, 0, 0.1);
 }
 </style>

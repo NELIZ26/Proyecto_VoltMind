@@ -6,7 +6,7 @@
         <div class="environment-badge">
           <h1>AMBIENTES Y HORARIOS</h1>
           <p class="header-meta">
-            Programación académica por bloques | 03:15:50 PM
+            Gestión de ambientes de formación | 03:15:50 PM
           </p>
         </div>
       </div>
@@ -21,248 +21,611 @@
       </div>
     </header>
 
-    <!-- Barra de herramientas (Filtros y botones) -->
-    <div class="toolbar-section">
-      <div class="toolbar-left">
-        <button class="btn-info-sedes" @click="showModalSedes = true">
-          <font-awesome-icon :icon="['fas', 'circle-info']" /> Información de Sedes
-        </button>
-      </div>
-      <div class="toolbar-right">
-        <div class="date-picker-wrapper">
-          <input type="date" class="form-input date-filter" v-model="currentDate" />
-          <font-awesome-icon :icon="['fas', 'calendar-days']" class="input-icon" />
+    <!-- Barra de herramientas -->
+      <div class="filters-bar">
+        <!-- Botón Crear Ambiente -->
+        <div style="display: flex; gap: 10px;" v-if="currentView === 'table'">
+          <button class="btn-crear-instructor" @click="openModal()">
+            <font-awesome-icon icon="fa-solid fa-plus" />
+            <span>Crear Ambiente</span>
+          </button>
+          <button class="btn-crear-instructor" style="background-color: #2980b9;" @click="showModalSedes = true">
+            <font-awesome-icon icon="fa-solid fa-building" />
+            <span>Gestionar Sedes</span>
+          </button>
         </div>
-        <div class="search-wrapper">
-          <font-awesome-icon :icon="['fas', 'magnifying-glass']" class="search-icon" />
-          <input type="text" class="form-input search-instructor" v-model="searchQuery" placeholder="Buscar por Instructor o Ficha" />
+      <button v-if="currentView === 'calendar'" class="btn-crear-instructor" @click="currentView = 'table'; selectedAmbienteForCalendar = null">
+        <font-awesome-icon icon="fa-solid fa-arrow-left" />
+        <span>Volver a la Lista</span>
+      </button>
+
+      <div class="filters-right">
+        <div class="search-box">
+          <font-awesome-icon icon="fa-solid fa-magnifying-glass" class="search-icon" />
+          <input type="text" class="form-input search-input" v-model="searchQuery" placeholder="Buscar Ambiente" />
         </div>
-        <select class="form-input select-filter" v-model="selectedSede">
-          <option value="caaa">Sede: CAAA</option>
-          <option value="orito">Sede Orito</option>
-          <option value="pto-leguizamo">Sede: Pto Leguizamo</option>
-          <option value="maguere">Sede Magueré</option>
-          <option value="machindinoy">Sede Machindinoy</option>
-        </select>
       </div>
     </div>
 
     <!-- Contenido Principal -->
     <main class="dash-grid">
-      <section class="dash-col">
+      
+      <!-- VISTA DE TABLA (CRUD) -->
+      <section v-if="currentView === 'table'" class="instructors-table-container full-width">
         <div class="module-card">
-          <h2 class="module-title mb-4">
-            <font-awesome-icon :icon="['fas', 'calendar-days']" /> Programación de Ambientes (CAAA)
-          </h2>
-          
-          <div class="matrix-wrapper">
-            <div class="grid-matrix" :style="{ gridTemplateColumns: `220px repeat(${bloques.length}, minmax(200px, 1fr))` }">
-              <!-- Header Row (Jornadas/Bloques) -->
-              <div class="matrix-cell header-cell corner-cell">AMBIENTES</div>
-              <div v-for="bloque in bloques" :key="bloque" class="matrix-cell header-cell time-cell">
-                <font-awesome-icon :icon="['fas', 'clock']" class="time-icon" />
-                {{ bloque }}
-              </div>
-
-              <!-- Matrix Rows -->
-              <template v-for="ambiente in ambientes" :key="ambiente.id">
-                <!-- Room Label -->
-                <div class="matrix-cell room-cell">
-                  <strong class="room-name">{{ ambiente.name }}</strong>
-                  <span class="room-capacity">
-                    <font-awesome-icon :icon="['fas', 'users']" />
-                    Limite: {{ ambiente.capacity }}
-                  </span>
-                </div>
-                
-                <!-- Schedule Cells -->
-                <div v-for="bloque in bloques" :key="`${ambiente.id}-${bloque}`" class="matrix-cell data-cell">
-                  <template v-if="getSessions(ambiente.id, bloque).length > 0">
-                    <div 
-                      v-for="(session, index) in getSessions(ambiente.id, bloque)" 
-                      :key="index"
-                      class="session-card compact-session"
-                      :class="getDisciplineClass(session.discipline)"
-                    >
-                      <div v-if="session.timeSpan" class="session-time">
-                        <font-awesome-icon :icon="['fas', 'clock']" /> {{ session.timeSpan }}
-                      </div>
-                      <div class="session-ficha" :title="session.ficha">
-                        {{ session.ficha }}
-                      </div>
-                      <div class="session-instructor" :title="session.instructor">
-                        <font-awesome-icon :icon="['fas', 'chalkboard-user']" />
-                        Inst. {{ session.instructor }}
-                      </div>
+          <table class="sena-table">
+            <thead>
+              <tr>
+                <th>AMBIENTE</th>
+                <th>SEDE</th>
+                <th>IP MAESTRA</th>
+                <th>CAPACIDAD</th>
+                <th>NODOS</th>
+                <th>DISPONIBILIDAD</th>
+                <th>ESTADO</th>
+                <th>ACCIONES</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="amb in filteredAmbientesList" :key="amb.cr6a3_ambiente_formacionid">
+                <td>
+                  <div class="table-instructor-info">
+                    <div class="texts">
+                      <span class="instructor-name-table">{{ amb.cr6a3_nombre_ambiente }}</span>
                     </div>
-                  </template>
-                  <div v-else class="empty-cell">
-                    Libre
                   </div>
-                </div>
-              </template>
+                </td>
+                <td>
+                  <div style="display: flex; flex-direction: column;">
+                    <span class="instructor-specialty-table">{{ amb.sede_nombre || 'Sin Sede' }}</span>
+                    <span style="font-size: 0.75rem; color: #6c757d; font-weight: 500;" v-if="amb.sede_municipio">
+                      <font-awesome-icon icon="fa-solid fa-location-dot" style="margin-right: 4px;" />{{ amb.sede_municipio }}
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  <span class="instructor-specialty-table">{{ amb.cr6a3_direccion_ip_maestra || 'N/A' }}</span>
+                </td>
+                <td>
+                  <span class="instructor-specialty-table">{{ amb.cr6a3_capacidad_aprendices || 0 }} A.</span>
+                </td>
+                <td>
+                  <span class="instructor-specialty-table">{{ amb.cr6a3_cantidad_nodos_electricos || 0 }} N.</span>
+                </td>
+                <td>
+                  <div class="jornadas-ocupacion" translate="no">
+                    <div class="jornada-badge" :class="amb.ocupacion?.manana ? 'ocupado' : 'libre'" :title="amb.ocupacion?.manana ? 'Ocupado hasta: ' + amb.ocupacion.manana.split('T')[0] : 'Disponible en la mañana'">
+                      M
+                    </div>
+                    <div class="jornada-badge" :class="amb.ocupacion?.tarde ? 'ocupado' : 'libre'" :title="amb.ocupacion?.tarde ? 'Ocupado hasta: ' + amb.ocupacion.tarde.split('T')[0] : 'Disponible en la tarde'">
+                      T
+                    </div>
+                    <div class="jornada-badge" :class="amb.ocupacion?.noche ? 'ocupado' : 'libre'" :title="amb.ocupacion?.noche ? 'Ocupado hasta: ' + amb.ocupacion.noche.split('T')[0] : 'Disponible en la noche'">
+                      N
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <span :class="['status-badge', getStatusClass(amb.cr6a3_Estado_Ambiente)]" style="display: inline-block; width: fit-content;">
+                    {{ getStatusText(amb.cr6a3_Estado_Ambiente).toUpperCase() }}
+                  </span>
+                </td>
+                <td>
+                  <div class="table-actions-group">
+                    <button class="btn-icon action-view" title="Ver Horario" @click="viewCalendar(amb)">
+                      <font-awesome-icon icon="fa-solid fa-calendar-days" />
+                    </button>
+                    <button class="btn-icon" title="Editar" @click="openModal(amb)">
+                      <font-awesome-icon icon="fa-solid fa-pen-to-square" />
+                    </button>
+                    <button class="btn-icon action-delete" title="Eliminar" @click="deleteAmbiente(amb.cr6a3_ambiente_formacionid)">
+                      <font-awesome-icon icon="fa-solid fa-trash" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+              <tr v-if="filteredAmbientesList.length === 0">
+                <td colspan="8" class="text-center empty-cell" style="padding: 20px;">No se encontraron ambientes.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- VISTA DE CALENDARIO ESPECÍFICO -->
+      <section v-else-if="currentView === 'calendar' && selectedAmbienteForCalendar" class="dash-col">
+        
+        <!-- Calendario mensual -->
+        <div class="module-card calendario-card">
+          <div class="calendario-toolbar">
+            <h2 class="module-title">
+              <font-awesome-icon icon="fa-solid fa-calendar-days" /> CALENDARIO: {{ selectedAmbienteForCalendar.cr6a3_nombre_ambiente.toUpperCase() }}
+            </h2>
+            <div class="mes-nav">
+              <button class="mes-flecha" aria-label="Mes anterior" @click="cambiarMes(-1)">
+                <font-awesome-icon icon="fa-solid fa-chevron-left" />
+              </button>
+              <span class="mes-actual">{{ etiquetaMes }}</span>
+              <button class="mes-flecha" aria-label="Mes siguiente" @click="cambiarMes(1)">
+                <font-awesome-icon icon="fa-solid fa-chevron-right" />
+              </button>
+              <button class="btn-hoy" @click="irAHoy">Hoy</button>
             </div>
           </div>
+
+          <div v-if="cargandoCalendario" class="estado-panel">
+            <font-awesome-icon :icon="['fas', 'circle-notch']" spin class="estado-icono" />
+            <p>Cargando programación del ambiente...</p>
+          </div>
+
+          <div v-else class="calendario-scroll">
+            <div class="calendario-grid">
+              <div v-for="dia in DIAS_SEMANA" :key="dia" class="cal-encabezado">{{ dia }}</div>
+              <div
+                v-for="celda in celdasMes"
+                :key="celda.iso"
+                class="cal-dia"
+                :class="{
+                  'fuera-mes': !celda.esDelMes,
+                  'fin-semana': celda.finDeSemana,
+                  hoy: celda.iso === hoyIso,
+                }"
+              >
+                <span class="cal-numero">{{ celda.dia }}</span>
+                <div
+                  v-for="a in celda.asignaciones"
+                  :key="a.id"
+                  class="cal-chip"
+                  :style="estiloChip(a)"
+                  :title="`Ficha ${a.ficha_codigo || 'N/A'} · ${a.ficha_programa || 'N/A'}\n` +
+                    `${a.competencia?.nombre || 'Sin competencia'} (${a.competencia?.tipo || 'N/A'}) · Jornada ${a.jornada}\n` +
+                    `${a.fecha_inicio} → ${a.fecha_fin} · ${a.horas} h · ` +
+                    `Instructor: ${a.instructor?.nombre || '—'}`"
+                >
+                  <strong>{{ a.ficha_codigo || 'Ficha N/A' }}</strong>
+                  <span class="cal-chip-texto">{{ a.competencia?.nombre || 'Sin competencia' }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="!cargandoCalendario && leyendaMes.length" class="leyenda leyenda-calendario" style="margin-top: 15px;">
+            <span class="leyenda-etiqueta">Convenciones del mes:</span>
+            <span v-for="f in leyendaMes" :key="f.codigo" class="leyenda-item">
+              <span class="punto-color" :style="{ background: f.color }"></span>
+              <strong>{{ f.codigo }}</strong> = {{ f.programa }} ({{ f.jornada }})
+            </span>
+          </div>
+          <p v-else-if="!cargandoCalendario" class="calendario-vacio" style="padding: 20px;">
+            No hay asignaciones programadas en este mes.
+          </p>
+        </div>
+        
+        <!-- Detalle del mes (solo lectura) -->
+        <div v-if="!cargandoCalendario && asignacionesMes.length" class="module-card" style="margin-top: 1.5rem;">
+          <h2 class="module-title titulo-lista">
+            <font-awesome-icon icon="fa-solid fa-table-list" /> DETALLE DE {{ etiquetaMes.toUpperCase() }}
+          </h2>
+          <ul class="lista-asignaciones">
+            <li v-for="a in asignacionesMes" :key="a.id" class="asig-fila">
+              <span class="asig-franja" :style="{ background: colorFicha(a.ficha_codigo) }"></span>
+              <div class="asig-info">
+                <span class="asig-principal">
+                  <strong>Ficha {{ a.ficha_codigo || 'N/A' }}</strong> · {{ a.competencia?.nombre || 'Sin competencia' }}
+                  <small>({{ a.competencia?.tipo || 'N/A' }})</small>
+                </span>
+                <span class="asig-secundario">
+                  {{ formatearFecha(a.fecha_inicio) }} → {{ formatearFecha(a.fecha_fin) }}
+                  · Jornada {{ a.jornada }} ({{ horarioJornada(a.jornada) }})
+                  · {{ a.horas }} h · Instructor: {{ a.instructor?.nombre || '—' }}
+                </span>
+              </div>
+            </li>
+          </ul>
         </div>
       </section>
     </main>
 
-    <!-- Modal de Sedes -->
-    <div class="modal-overlay" v-if="showModalSedes" @click.self="showModalSedes = false">
-      <div class="modal-content">
-        <button class="modal-close" @click="showModalSedes = false">
-          <font-awesome-icon :icon="['fas', 'xmark']" />
-        </button>
-        <div class="sedes-grid">
-          <!-- Card 1 -->
-          <div class="sede-card">
-            <div class="sede-img-placeholder">
-              <img src="@/image/SedePrincipal.png" alt="Sede Principal">
-            </div>
-            <div class="sede-info">
-              <span class="sede-type">SEDE PRINCIPAL</span>
-              <h3 class="sede-title">Centro Agroforestal y Acuicola Arapaima</h3>
-              <p class="sede-location">Puerto Asis</p>
-              <span class="sede-branches">3 Sucursales</span>
-            </div>
+    <!-- Modal para CREAR/EDITAR Ambiente -->
+    <BaseModal
+      :show="showModal"
+      :title="formId ? 'Editar Ambiente' : 'Nuevo Ambiente'"
+      @close="closeModal"
+    >
+      <form @submit.prevent="saveAmbiente" class="crud-form" style="display: flex; flex-direction: column; gap: 15px;">
+        <div class="form-group">
+          <label style="display: block; font-weight: bold; margin-bottom: 5px;">Nombre del Ambiente <span class="text-danger" style="color: red;">*</span></label>
+          <input type="text" class="form-input" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" v-model="formData.cr6a3_nombre_ambiente" required />
+        </div>
+        <div class="form-group">
+          <label style="display: block; font-weight: bold; margin-bottom: 5px;">Sede Asignada <span class="text-danger" style="color: red;">*</span></label>
+          <select class="form-input" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" v-model="formData.sede_id" required>
+            <option value="" disabled>Seleccione una sede...</option>
+            <option v-for="s in sedesList" :key="s.cr6a3_sedeid" :value="s.cr6a3_sedeid">
+              {{ s.cr6a3_nombre }} ({{ s.cr6a3_municipio || 'Sin municipio' }})
+            </option>
+          </select>
+        </div>
+        <div class="form-row" style="display: flex; gap: 15px;">
+          <div class="form-group half" style="flex: 1;">
+            <label style="display: block; font-weight: bold; margin-bottom: 5px;">Capacidad</label>
+            <input type="number" class="form-input" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" v-model.number="formData.cr6a3_capacidad_aprendices" />
           </div>
-          <!-- Card 2 -->
-          <div class="sede-card">
-            <div class="sede-img-placeholder">
-              <img src="@/image/SedeOrito.png" alt="Sede Orito">
-            </div>
-            <div class="sede-info">
-              <span class="sede-type">SUBSEDE</span>
-              <h3 class="sede-title">Sede Orito</h3>
-              <p class="sede-location">Orito</p>
-              <span class="sede-branches">1 Sucursales</span>
-            </div>
-          </div>
-          <!-- Card 3 -->
-          <div class="sede-card">
-            <div class="sede-img-placeholder">
-              <img src="@/image/SedeLeguizamo.png" alt="Sede Puerto Leguizamo">
-            </div>
-            <div class="sede-info">
-              <span class="sede-type">SUBSEDE</span>
-              <h3 class="sede-title">Sede Puerto Leguizamo</h3>
-              <p class="sede-location">Pto. Leguizamo</p>
-              <span class="sede-branches">2 Sucursales</span>
-            </div>
-          </div>
-          <!-- Card 4 -->
-          <div class="sede-card">
-            <div class="sede-img-placeholder">
-              <img src="@/image/SedeMocoa.png" alt="Sede Maguaré">
-            </div>
-            <div class="sede-info">
-              <span class="sede-type">SUBSEDE</span>
-              <h3 class="sede-title">Sede Maguaré<br>(Edificio Maguaré)</h3>
-              <p class="sede-location">Mocoa</p>
-              <span class="sede-branches">1 Sucursales</span>
-            </div>
-          </div>
-          <!-- Card 5 (Centered) -->
-          <div class="sede-card centered-card">
-            <div class="sede-img-placeholder">
-              <img src="@/image/SedeSibundoy.png" alt="Sede Machindinoy">
-            </div>
-            <div class="sede-info">
-              <span class="sede-type">SUBSEDE</span>
-              <h3 class="sede-title">Sede Machindinoy</h3>
-              <p class="sede-location">Sibundoy</p>
-              <span class="sede-branches">2 Sucursales</span>
-            </div>
+          <div class="form-group half" style="flex: 1;">
+            <label style="display: block; font-weight: bold; margin-bottom: 5px;">Nodos Eléctricos</label>
+            <input type="number" class="form-input" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" v-model.number="formData.cr6a3_cantidad_nodos_electricos" />
           </div>
         </div>
+        <div class="form-row" style="display: flex; gap: 15px;">
+          <div class="form-group half" style="flex: 1;">
+            <label style="display: block; font-weight: bold; margin-bottom: 5px;">Dirección IP Maestra</label>
+            <input type="text" class="form-input" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" v-model="formData.cr6a3_direccion_ip_maestra" />
+          </div>
+          <div class="form-group half" style="flex: 1;">
+            <label style="display: block; font-weight: bold; margin-bottom: 5px;">Estado</label>
+            <select class="form-input" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" v-model.number="formData.cr6a3_Estado_Ambiente">
+              <option :value="430120000">Activo</option>
+              <option :value="430120001">En Mantenimiento</option>
+              <option :value="430120002">Inactivo</option>
+            </select>
+          </div>
+        </div>
+      </form>
+      <template #footer>
+        <button type="button" class="btn-cancel" style="padding: 8px 16px; border: 1px solid #ccc; background: #fff; border-radius: 4px; cursor: pointer; font-weight: 600;" @click="closeModal">Cancelar</button>
+        <button type="button" class="btn-action-green" style="padding: 8px 16px; border: none; border-radius: 4px; background: var(--sena-verde); color: white; cursor: pointer; font-weight: 600;" @click="saveAmbiente">Guardar</button>
+      </template>
+    </BaseModal>
+
+    <!-- Modal para GESTIONAR Sedes -->
+    <BaseModal
+      :show="showModalSedes"
+      title="Gestionar Sedes"
+      @close="showModalSedes = false"
+    >
+      <div style="margin-bottom: 20px;">
+        <h4 style="margin-bottom: 10px; color: var(--sena-azul-oscuro); margin-top: 0;">Crear Nueva Sede</h4>
+        <form @submit.prevent="saveSede" style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <input type="text" v-model="formSede.cr6a3_nombre" placeholder="Nombre (Ej: Sede Principal)" class="form-input" style="flex:1; min-width: 150px; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" required />
+          <select v-model="formSede.cr6a3_municipio" class="form-input" style="flex:1; min-width: 100px; padding: 8px; border: 1px solid #ccc; border-radius: 4px;" required>
+            <option value="" disabled>Seleccione municipio...</option>
+            <option value="Mocoa">Mocoa</option>
+            <option value="Colón">Colón</option>
+            <option value="Orito">Orito</option>
+            <option value="Puerto Asís">Puerto Asís</option>
+            <option value="Puerto Caicedo">Puerto Caicedo</option>
+            <option value="Puerto Guzmán">Puerto Guzmán</option>
+            <option value="Puerto Leguízamo">Puerto Leguízamo</option>
+            <option value="San Francisco">San Francisco</option>
+            <option value="San Miguel">San Miguel</option>
+            <option value="Santiago">Santiago</option>
+            <option value="Sibundoy">Sibundoy</option>
+            <option value="Valle del Guamuez">Valle del Guamuez</option>
+            <option value="Villagarzón">Villagarzón</option>
+          </select>
+          <button type="submit" class="btn-action-green" style="padding: 8px 15px; border-radius: 4px; border:none; color:white; background:var(--sena-verde); cursor: pointer; font-weight: bold;">Crear</button>
+        </form>
       </div>
-    </div>
+
+      <h4 style="margin-bottom: 10px; color: var(--sena-azul-oscuro);">Sedes Registradas</h4>
+      <ul style="list-style:none; padding:0; margin:0; max-height: 250px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 8px; background: #f8fafc;">
+        <li v-for="s in sedesList" :key="s.cr6a3_sedeid" style="padding: 12px; border-bottom: 1px solid #e2e8f0; display: flex; flex-direction: column;">
+          <strong style="color: var(--sena-azul-oscuro);">{{ s.cr6a3_nombre }}</strong>
+          <span style="font-size: 0.85rem; color: var(--texto-secundario);"><font-awesome-icon icon="fa-solid fa-location-dot" style="margin-right:4px;" />{{ s.cr6a3_municipio || 'N/A' }}</span>
+        </li>
+      </ul>
+      <p v-if="sedesList.length === 0" style="text-align:center; padding: 20px; color:#666;">No hay sedes registradas.</p>
+    </BaseModal>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
-import { useProgramacionStore } from '@/stores/programacion';
-import { useConfigStore } from '@/stores/config';
+import { ambientesService } from '@/services/ambientesService';
+import { horarioJornada, formatearFecha } from '@/stores/tituladas';
+import BaseModal from '@/components/admin/modals/BaseModal.vue';
 
 const route = useRoute();
-const store = useProgramacionStore();
 
-const currentDate = ref(new Date().toISOString().split('T')[0]);
+const currentView = ref('table'); 
+const ambientesList = ref([]);
+const sedesList = ref([]);
+const selectedAmbienteForCalendar = ref(null);
+
 const searchQuery = ref('');
-const selectedSede = ref('caaa');
-const isLoading = ref(true);
-const error = ref(null);
 const showModalSedes = ref(false);
 
-const configStore = useConfigStore();
+const showModal = ref(false);
+const formId = ref(null);
+const formData = ref({
+  cr6a3_nombre_ambiente: '',
+  sede_id: '',
+  cr6a3_direccion_ip_maestra: '',
+  cr6a3_capacidad_aprendices: 0,
+  cr6a3_cantidad_nodos_electricos: 0,
+  cr6a3_Estado_Ambiente: 430120000
+});
 
-// Los bloques horarios se calculan dinámicamente desde la configuración global
-const bloques = computed(() => configStore.bloquesHorarios);
+const formSede = ref({
+  cr6a3_nombre: '',
+  cr6a3_municipio: ''
+});
 
-// Estado para almacenar los datos que vendrán de la API
-const ambientes = computed(() => store.ambientes);
-const schedule = computed(() => store.schedule);
-
-// Función para obtener la lista de ambientes desde el backend
-const fetchAmbientes = async () => {
-  // Ahora manejado por el store
+const saveSede = async () => {
+  try {
+    await ambientesService.createSede(formSede.value);
+    formSede.value = { cr6a3_nombre: '', cr6a3_municipio: '' };
+    await loadSedes();
+    alert("Sede creada exitosamente.");
+  } catch (error) {
+    console.error('Error creando sede:', error);
+    alert("Error al crear la sede.");
+  }
 };
 
-// Función para obtener la programación desde el backend
-const fetchSchedule = async () => {
-  isLoading.value = false;
+// CALENDARIO LOGIC
+const asignacionesData = ref([]);
+const cargandoCalendario = ref(false);
+const NOMBRES_MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+const PALETA_FICHAS = ['#39A900', '#2980B9', '#E67E22', '#8E44AD', '#C0392B', '#16A085', '#B7950B', '#1F618D'];
+
+const hoy = new Date();
+const hoyIso = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+const periodo = ref({ anio: hoy.getFullYear(), mes: hoy.getMonth() });
+
+const etiquetaMes = computed(() => `${NOMBRES_MESES[periodo.value.mes]} ${periodo.value.anio}`);
+
+const cambiarMes = (delta) => {
+  const fecha = new Date(periodo.value.anio, periodo.value.mes + delta, 1);
+  periodo.value = { anio: fecha.getFullYear(), mes: fecha.getMonth() };
+};
+
+const irAHoy = () => {
+  periodo.value = { anio: hoy.getFullYear(), mes: hoy.getMonth() };
+};
+
+const colorFicha = (codigoFicha) => {
+  if (!codigoFicha) return '#7f8c8d';
+  let hash = 0;
+  for (let i = 0; i < codigoFicha.length; i++) {
+    hash = codigoFicha.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return PALETA_FICHAS[Math.abs(hash) % PALETA_FICHAS.length];
+};
+
+const estiloChip = (asig) => {
+  const baseColor = colorFicha(asig.ficha_codigo);
+  return {
+    borderLeft: `4px solid ${baseColor}`,
+    background: `${baseColor}15`, 
+    color: 'var(--texto-principal)'
+  };
+};
+
+const cargarCalendario = async (ambId) => {
+  cargandoCalendario.value = true;
+  try {
+    const data = await ambientesService.getCalendario(ambId);
+    if (data && data.asignaciones) {
+      asignacionesData.value = data.asignaciones.map(a => ({
+        ...a,
+        fecha_inicio: a.fecha_inicio ? a.fecha_inicio.split('T')[0] : a.fecha_inicio,
+        fecha_fin: a.fecha_fin ? a.fecha_fin.split('T')[0] : a.fecha_fin
+      }));
+    } else {
+      asignacionesData.value = [];
+    }
+  } catch (error) {
+    console.error("Error cargando calendario:", error);
+    asignacionesData.value = [];
+  } finally {
+    cargandoCalendario.value = false;
+  }
+};
+
+const asignacionesMes = computed(() => {
+  if (!asignacionesData.value.length) return [];
+  const p = periodo.value;
+  const mesAnioPrefix = `${p.anio}-${String(p.mes + 1).padStart(2, '0')}`;
+  
+  return asignacionesData.value.filter(a => {
+    if (!a.fecha_inicio || !a.fecha_fin) return false;
+    return a.fecha_inicio.startsWith(mesAnioPrefix) || 
+           a.fecha_fin.startsWith(mesAnioPrefix) ||
+           (a.fecha_inicio < `${mesAnioPrefix}-01` && a.fecha_fin >= `${mesAnioPrefix}-31`);
+  });
+});
+
+const celdasMes = computed(() => {
+  const p = periodo.value;
+  const primerDiaMes = new Date(p.anio, p.mes, 1);
+  const ultimoDiaMes = new Date(p.anio, p.mes + 1, 0);
+  
+  let diaSemanaInicio = primerDiaMes.getDay() || 7; 
+  diaSemanaInicio--; 
+  
+  const diasAnterior = new Date(p.anio, p.mes, 0).getDate();
+  const celdas = [];
+  
+  for (let i = diaSemanaInicio - 1; i >= 0; i--) {
+    const d = diasAnterior - i;
+    const iso = `${p.mes === 0 ? p.anio - 1 : p.anio}-${String(p.mes === 0 ? 12 : p.mes).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    celdas.push({ dia: d, esDelMes: false, iso, finDeSemana: i === 0 || i === 1 });
+  }
+  
+  for (let d = 1; d <= ultimoDiaMes.getDate(); d++) {
+    const iso = `${p.anio}-${String(p.mes + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    const diaSemana = new Date(p.anio, p.mes, d).getDay();
+    celdas.push({ dia: d, esDelMes: true, iso, finDeSemana: diaSemana === 0 || diaSemana === 6 });
+  }
+  
+  const extras = celdas.length % 7 === 0 ? 0 : 7 - (celdas.length % 7);
+  for (let d = 1; d <= extras; d++) {
+    const iso = `${p.mes === 11 ? p.anio + 1 : p.anio}-${String(p.mes === 11 ? 1 : p.mes + 2).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+    celdas.push({ dia: d, esDelMes: false, iso, finDeSemana: false });
+  }
+  
+  const asignacionesPorFecha = {};
+  asignacionesMes.value.forEach(asig => {
+    const inicio = new Date(asig.fecha_inicio + 'T12:00:00');
+    const fin = new Date(asig.fecha_fin + 'T12:00:00');
+    for (let dt = new Date(inicio); dt <= fin; dt.setDate(dt.getDate() + 1)) {
+      const iterIso = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+      if (!asignacionesPorFecha[iterIso]) asignacionesPorFecha[iterIso] = [];
+      asignacionesPorFecha[iterIso].push(asig);
+    }
+  });
+  
+  return celdas.map(celda => {
+    let diaAsigs = asignacionesPorFecha[celda.iso] || [];
+    if (celda.finDeSemana) {
+      diaAsigs = diaAsigs.filter(a => a.jornada !== 'Mañana' && a.jornada !== 'Tarde'); // Logica basica para finde
+    }
+    return { ...celda, asignaciones: diaAsigs };
+  });
+});
+
+const leyendaMes = computed(() => {
+  const map = new Map();
+  asignacionesMes.value.forEach(a => {
+    if (!map.has(a.ficha_codigo)) {
+      map.set(a.ficha_codigo, {
+        codigo: a.ficha_codigo,
+        programa: a.ficha_programa,
+        jornada: a.jornada,
+        color: colorFicha(a.ficha_codigo)
+      });
+    }
+  });
+  return Array.from(map.values());
+});
+
+
+const loadAmbientes = async () => {
+  try {
+    const data = await ambientesService.getAll();
+    ambientesList.value = data;
+  } catch (error) {
+    console.error('Error loading ambientes:', error);
+  }
+};
+
+const loadSedes = async () => {
+  try {
+    const data = await ambientesService.getSedes();
+    sedesList.value = data;
+  } catch (error) {
+    console.error('Error loading sedes:', error);
+  }
 };
 
 onMounted(async () => {
-  store.initStore();
-  
+  await loadAmbientes();
+  await loadSedes();
   if (route.query.q) {
     searchQuery.value = route.query.q;
   }
-  
-  await fetchAmbientes();
-  await fetchSchedule();
 });
 
-watch(currentDate, () => {
-  fetchSchedule();
-});
-
-watch(selectedSede, () => {
-  fetchAmbientes(); // Asumiendo que los ambientes cambian por sede
-  fetchSchedule();
-});
-
-const filteredSchedule = computed(() => {
-  if (!searchQuery.value) return schedule.value;
+const filteredAmbientesList = computed(() => {
+  if (!searchQuery.value) return ambientesList.value;
   const q = searchQuery.value.toLowerCase();
-  return schedule.value.filter(s => 
-    (s.instructor && s.instructor.toLowerCase().includes(q)) || 
-    (s.ficha && s.ficha.toLowerCase().includes(q))
+  return ambientesList.value.filter(amb => 
+    amb.cr6a3_nombre_ambiente?.toLowerCase().includes(q) ||
+    amb.sede_nombre?.toLowerCase().includes(q)
   );
 });
 
-const getSessions = (ambId, bloque) => {
-  return filteredSchedule.value.filter(s => s.ambienteId === ambId && s.bloque === bloque);
+// CRUD Logic
+const openModal = (amb = null) => {
+  if (amb) {
+    formId.value = amb.cr6a3_ambiente_formacionid;
+    formData.value = {
+      cr6a3_nombre_ambiente: amb.cr6a3_nombre_ambiente || '',
+      sede_id: amb.sede_id || '',
+      cr6a3_direccion_ip_maestra: amb.cr6a3_direccion_ip_maestra || '',
+      cr6a3_capacidad_aprendices: amb.cr6a3_capacidad_aprendices || 0,
+      cr6a3_cantidad_nodos_electricos: amb.cr6a3_cantidad_nodos_electricos || 0,
+      cr6a3_Estado_Ambiente: amb.cr6a3_Estado_Ambiente || 430120000
+    };
+  } else {
+    formId.value = null;
+    formData.value = {
+      cr6a3_nombre_ambiente: '',
+      sede_id: '',
+      cr6a3_direccion_ip_maestra: '',
+      cr6a3_capacidad_aprendices: 0,
+      cr6a3_cantidad_nodos_electricos: 0,
+      cr6a3_Estado_Ambiente: 430120000
+    };
+  }
+  showModal.value = true;
 };
 
-const getDisciplineClass = (discipline) => {
+const closeModal = () => {
+  showModal.value = false;
+  formId.value = null;
+};
+
+const saveAmbiente = async () => {
+  try {
+    if (formId.value) {
+      await ambientesService.update(formId.value, formData.value);
+    } else {
+      await ambientesService.create(formData.value);
+    }
+    closeModal();
+    await loadAmbientes();
+  } catch (error) {
+    console.error("Error guardando ambiente:", error);
+    alert("Hubo un error al guardar el ambiente");
+  }
+};
+
+const deleteAmbiente = async (id) => {
+  if (confirm("¿Estás seguro de eliminar este ambiente?")) {
+    try {
+      await ambientesService.delete(id);
+      await loadAmbientes();
+    } catch (error) {
+      console.error("Error eliminando ambiente:", error);
+      alert("Hubo un error al eliminar el ambiente");
+    }
+  }
+};
+
+// Calendar Actions
+const viewCalendar = async (amb) => {
+  selectedAmbienteForCalendar.value = amb;
+  currentView.value = 'calendar';
+  await cargarCalendario(amb.cr6a3_ambiente_formacionid);
+};
+
+// Utils
+const getStatusText = (status) => {
   const map = {
-    'software': 'card-software',
-    'design': 'card-design',
-    'hardware': 'card-hardware',
-    'language': 'card-language',
+    430120000: 'Activo',
+    430120001: 'Mantenimiento',
+    430120002: 'Inactivo'
   };
-  return map[discipline] || 'card-default';
+  return map[status] || 'Desconocido';
+};
+
+const getStatusClass = (status) => {
+  const map = {
+    430120000: 'badge-planta',
+    430120001: 'badge-contratista',
+    430120002: 'badge-contratista' // using existing sena-table classes for now
+  };
+  return map[status] || 'badge-contratista';
 };
 </script>
 
 <style scoped>
-/* ==========================================================================
-   ESTILO ESTRUCTURAL E INSTITUCIONAL
-   ========================================================================== */
+@import './cal.css';
+
 .admin-view-shell {
   font-family: var(--fuente-principal, 'Inter', sans-serif);
   min-height: 100vh;
@@ -337,105 +700,163 @@ const getDisciplineClass = (discipline) => {
   color: #000;
 }
 
-/* Barra de herramientas */
-.toolbar-section {
+.filters-bar {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: var(--fondo-tarjetas);
-  padding: 1rem 1.5rem;
-  border-radius: 12px;
-  margin-bottom: 1.5rem;;
+  margin-bottom: 2rem;
   flex-wrap: wrap;
   gap: 1rem;
 }
 
-.toolbar-left, .toolbar-right {
+.btn-crear-instructor {
+  background: var(--sena-verde, #39A900);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 6px rgba(57, 169, 0, 0.2);
+}
+
+.btn-crear-instructor:hover {
+  background: #2d8500;
+  transform: translateY(-2px);
+}
+
+.filters-right {
   display: flex;
   align-items: center;
   gap: 1rem;
 }
 
-.btn-info-sedes {
-  background-color: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
-  padding: 0.6rem 1rem;
-  border-radius: 6px;
-  font-weight: 700;
-  font-size: 0.95rem;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.btn-info-sedes:hover {
-  background-color: #c3e6cb;
-}
-
-.date-picker-wrapper, .search-wrapper {
+.search-box {
   position: relative;
-  display: flex;
-  align-items: center;
+  width: 250px;
 }
 
-.date-picker-wrapper .input-icon, .search-wrapper .search-icon {
+.search-icon {
   position: absolute;
-  color: #6c757d;
-  pointer-events: none;
-}
-
-.date-picker-wrapper .input-icon {
-  right: 12px;
-}
-
-.date-picker-wrapper input[type="date"]::-webkit-calendar-picker-indicator {
-  opacity: 0;
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  top: 0;
-  left: 0;
-  cursor: pointer;
-}
-
-.search-wrapper .search-icon {
   left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #adb5bd;
 }
 
-.search-wrapper input {
-  padding-left: 36px !important;
-}
-
-.form-input {
-  background: var(--fondo-app);
-  border: 1px solid var(--borde);
-  border-radius: 6px;
-  padding: 0.6rem 1rem;
-  color: var(--texto-secundario);
-  font-family: inherit;
-  font-size: 0.95rem;
-  outline: none;
-  min-height: 40px;
-  font-weight: 500;
-}
-
-.select-filter {
-  min-width: 160px;
-  cursor: pointer;
-}
-
-.date-filter {
-  width: 140px;
-}
-
-.dash-grid {
-  display: flex;
-  flex-direction: column;
+.search-input {
   width: 100%;
-  max-width: 100%;
+  padding: 0.6rem 1rem 0.6rem 2.2rem;
+  border: 1px solid var(--borde, #dee2e6);
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.2s;
 }
+
+.search-input:focus {
+  border-color: var(--sena-verde, #39A900);
+}
+
+/* ==========================================================================
+   TABLA ESTILO SENA (Copia de InstructoresView)
+   ========================================================================== */
+.instructors-table-container {
+    width: 100%;
+    animation: fadeIn 0.4s ease;
+  }
+  
+  .sena-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: white;
+    font-size: 0.9rem;
+  }
+  
+  .sena-table th {
+    background-color: var(--fondo-app, #f8fafc);
+    color: var(--texto-secundario, #64748b);
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 2px solid var(--borde, #e2e8f0);
+    font-size: 0.8rem;
+  }
+  
+  .sena-table td {
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid var(--borde, #e2e8f0);
+    vertical-align: middle;
+  }
+  
+  .sena-table tr:hover td {
+    background-color: #f8f9fa;
+  }
+  
+  .table-instructor-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .instructor-name-table {
+    display: block;
+    font-weight: 700;
+    color: var(--sena-azul-oscuro);
+    font-size: 1rem;
+  }
+  
+  .instructor-specialty-table {
+    font-size: 0.9rem;
+    color: var(--texto-secundario);
+  }
+  
+  .status-badge {
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+  .badge-planta {
+    background: rgba(57, 169, 0, 0.15);
+    color: #2d8500;
+  }
+  .badge-contratista {
+    background: rgba(41, 128, 185, 0.15);
+    color: #2980b9;
+  }
+  
+  .table-actions-group {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+  }
+  
+  .btn-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--texto-secundario);
+    background: #f8f9fa;
+  }
+  
+  .btn-icon:hover {
+    background: #e9ecef;
+    color: var(--sena-azul-oscuro);
+  }
+.action-view:hover { color: #2980b9; }
+.action-edit:hover { color: #f39c12; }
+.action-delete:hover { color: #c0392b; }
 
 .module-card {
   background: var(--fondo-tarjetas);
@@ -447,199 +868,11 @@ const getDisciplineClass = (discipline) => {
   overflow: hidden;
 }
 
-.module-title {
-  font-size: 1.2rem;
-  font-weight: 700;
-  color: var(--texto-secundario);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 0;
-}
-
-.mb-4 {
-  margin-bottom: 1.5rem;
-}
-
-/* Matrix Estilos Específicos (Adaptados del Calendario) */
-.matrix-wrapper {
-  width: 100%;
-  overflow-x: auto;
-  border-radius: 12px;
-}
-
-.grid-matrix {
-  display: grid;
-  gap: 4px;
-  min-width: 860px;
-}
-
-.matrix-cell {
-  /* Las celdas ya no usan bordes colapsados como tabla, sino cajas individuales */
-}
-
-.header-cell {
-  text-align: center;
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  color: var(--texto-secundario);
-  padding: 0.4rem 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  background-color: var(--fondo-tarjetas);
-}
-
-.corner-cell {
-  font-size: 0.85rem;
-  left: 0;
-  z-index: 3;
-}
-
-.time-cell {
-  color: var(--texto-secundario);
-}
-
-.time-icon {
-  margin-right: 8px;
-}
-
-.room-cell {
-  background: var(--fondo-app);
-  border: 1px solid var(--borde);
-  border-radius: 10px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 10px;
-  position: sticky;
-  left: 0;
-  z-index: 1;
-}
-
-.room-name {
-  color: var(--texto-secundario);
-  font-size: 0.85rem;
-  text-align: center;
-  font-weight: 800;
-}
-
-.room-capacity {
-  font-size: 0.72rem;
-  color: var(--texto-secundario);
-  margin-top: 4px;
-  font-weight: 600;
-}
-
-.data-cell {
-  background: var(--fondo-app);
-  border: 1px solid var(--borde);
-  border-radius: 10px;
-  min-height: 86px;
-  padding: 6px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  overflow-y: auto;
-}
-
-.session-card {
-  border: none;
-  border-radius: 6px;
-  padding: 4px 6px;
-  font-size: 0.64rem;
-  text-align: left;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-family: inherit;
-  line-height: 1.25;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
-}
-
-.session-card:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(0, 48, 64, 0.18);
-}
-
-.compact-session {
-  height: auto;
-  min-height: min-content;
-}
-
-.session-time {
-  font-size: 0.64rem;
-  font-weight: 800;
-  margin-bottom: 2px;
-  opacity: 0.85;
-}
-
-.session-ficha {
-  font-size: 0.66rem;
-  font-weight: 800;
-}
-
-.session-instructor {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 120px;
-  color: var(--texto-secundario);
-}
-
-.empty-cell {
-  height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #adb5bd;
-  font-style: italic;
-  font-size: 0.72rem;
-  font-weight: 500;
-}
-
-/* Discipline Colors (Estilo Chips) */
-.card-software {
-  background-color: rgba(76, 175, 80, 0.14);
-  border-left: 3px solid #4caf50;
-  color: var(--texto-principal);
-}
-.card-design {
-  background-color: rgba(171, 71, 188, 0.14);
-  border-left: 3px solid #ab47bc;
-  color: var(--texto-principal);
-}
-.card-hardware {
-  background-color: rgba(41, 182, 246, 0.14);
-  border-left: 3px solid #29b6f6;
-  color: var(--texto-principal);
-}
-.card-language {
-  background-color: rgba(255, 202, 40, 0.14);
-  border-left: 3px solid #ffca28;
-  color: var(--texto-principal);
-}
-.card-default {
-  background-color: rgba(108, 117, 125, 0.14);
-  border-left: 3px solid #6c757d;
-  color: var(--texto-principal);
-}
-
-/* ==========================================================================
-   MODAL DE SEDES
-   ========================================================================== */
+/* Modals Overlay */
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
   background-color: rgba(255, 255, 255, 0.4);
   backdrop-filter: blur(8px);
   display: flex;
@@ -648,140 +881,87 @@ const getDisciplineClass = (discipline) => {
   z-index: 1000;
 }
 
-.modal-content {
-  background: transparent;
-  padding: 2rem;
-  width: 90%;
-  max-width: 900px;
-  position: relative;
-}
+/* ── Detalle del mes ── */
+.titulo-lista { margin-bottom: 1rem; }
 
-.modal-close {
-  position: absolute;
-  top: 0;
-  right: 0;
-  background: white;
-  border: 1px solid var(--borde, #dee2e6);
-  border-radius: 50%;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
-  color: #333;
-  z-index: 10;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.sedes-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1.5rem;
-  justify-content: center;
-}
-
-.sede-card {
-  display: flex;
-  background: #ffffff;
-  border-radius: 12px;
-  border: 2px solid var(--sena-verde, #39A900);
-  overflow: hidden;
-  box-shadow: 0 4px 15px rgba(57, 169, 0, 0.15);
-  height: 160px;
-}
-
-.centered-card {
-  grid-column: 1 / -1;
-  width: 50%;
-  margin: 0 auto;
-}
-
-.sede-img-placeholder {
-  width: 40%;
-  background-color: #e9ecef;
-  border-right: 2px solid var(--sena-verde, #39A900);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.placeholder-text {
-  color: #adb5bd;
-  font-size: 0.85rem;
-  font-style: italic;
-}
-
-.sede-img-placeholder img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.sede-info {
-  width: 60%;
-  padding: 1rem;
+.lista-asignaciones {
+  list-style: none;
+  margin: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
+  gap: 10px;
+}
+
+.asig-fila {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--fondo-app);
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  padding: 0.7rem 0.9rem;
+}
+
+.asig-franja {
+  width: 5px;
+  align-self: stretch;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.asig-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.asig-principal {
+  font-size: 0.82rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.asig-principal small { color: var(--texto-secundario); }
+
+.asig-secundario { font-size: 0.72rem; color: var(--texto-secundario); }
+
+/* ── Disponibilidad por jornadas ── */
+.jornadas-ocupacion {
+  display: flex;
+  gap: 6px;
+}
+
+.jornada-badge {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
   justify-content: center;
-  text-align: center;
-  background: linear-gradient(to right, #ffffff, #fdfdfd);
-}
-
-.sede-type {
-  color: var(--sena-verde, #39A900);
-  font-weight: 900;
-  font-size: 0.95rem;
-  margin-bottom: 4px;
-}
-
-.sede-title {
-  color: var(--sena-azul-oscuro);
+  border-radius: 4px;
+  font-size: 0.75rem;
   font-weight: 800;
-  font-size: 1.05rem;
-  margin: 0 0 4px 0;
-  line-height: 1.2;
+  cursor: help;
+  transition: transform 0.1s ease;
 }
 
-.sede-location {
-  color: var(--texto-secundario);
-  font-weight: 700;
-  font-size: 0.9rem;
-  margin: 0 0 12px 0;
+.jornada-badge:hover {
+  transform: scale(1.1);
 }
 
-.sede-branches {
-  color: var(--texto-secundario);
-  font-size: 0.8rem;
-  font-weight: 600;
+.jornada-badge.libre {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #c8e6c9;
 }
 
-@media (max-width: 768px) {
-  .sedes-grid {
-    grid-template-columns: 1fr;
-  }
-  .centered-card {
-    width: 100%;
-  }
-}
-
-@media (max-width: 992px) {
-  .dash-header, .toolbar-section {
-    flex-direction: column;
-    align-items: stretch;
-    text-align: center;
-  }
-  .header-left, .header-right {
-    justify-content: center;
-    margin-bottom: 1rem;
-  }
-  .toolbar-left, .toolbar-right {
-    flex-direction: column;
-    width: 100%;
-  }
-  .btn-info-sedes, .select-filter, .form-input, .date-picker-wrapper, .search-wrapper {
-    width: 100%;
-  }
+.jornada-badge.ocupado {
+  background: #ffebee;
+  color: #c62828;
+  border: 1px solid #ffcdd2;
 }
 </style>

@@ -41,11 +41,11 @@
             </div>
             <div class="info-item">
               <span class="info-label"><font-awesome-icon icon="fa-solid fa-envelope" class="info-icon"/> Correo</span>
-              <span class="info-value">{{ aprendiz?.correo || 'correo@misena.edu.co' }}</span>
+              <span class="info-value">{{ aprendiz?.correo || 'No registrado' }}</span>
             </div>
             <div class="info-item">
               <span class="info-label"><font-awesome-icon icon="fa-solid fa-phone" class="info-icon"/> Telefono</span>
-              <span class="info-value">{{ aprendiz?.telefono || '3158709236' }}</span>
+              <span class="info-value">{{ aprendiz?.telefono || 'No registrado' }}</span>
             </div>
             <div class="info-item">
               <span class="info-label"><font-awesome-icon icon="fa-solid fa-building" class="info-icon"/> Ambiente Asignado</span>
@@ -56,8 +56,16 @@
               <span class="info-value">{{ aprendiz?.assignDate || '17/06/2026' }}</span>
             </div>
             <div class="info-item">
-              <span class="info-label"><font-awesome-icon icon="fa-solid fa-user-tie" class="info-icon"/> Instructor Asignado</span>
-              <span class="info-value">{{ aprendiz?.instructor || 'Inst. Marlon Monsalve' }}</span>
+              <span class="info-label"><font-awesome-icon icon="fa-solid fa-user-tie" class="info-icon"/> Instructor Titular</span>
+              <span class="info-value">{{ aprendiz?.instructor || 'No asignado' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label"><font-awesome-icon icon="fa-solid fa-clipboard-user" class="info-icon"/> Faltas Totales</span>
+              <span class="info-value faltas-value">{{ aprendiz?.faltas_totales || 0 }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label"><font-awesome-icon icon="fa-solid fa-triangle-exclamation" class="info-icon"/> Faltas Consecutivas</span>
+              <span class="info-value faltas-value" :class="{'riesgo': aprendiz?.faltas_consecutivas >= 3}">{{ aprendiz?.faltas_consecutivas || 0 }}</span>
             </div>
           </div>
 
@@ -600,6 +608,15 @@ const closeModal = () => {
 
 .detail-label { color: var(--texto-secundario); }
 .detail-value { color: var(--texto-principal); font-weight: 600; display: flex; align-items: center; gap: 6px; }
+
+.faltas-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+.faltas-value.riesgo {
+  color: #c62828;
+}
 
 .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
 .green-dot { background: var(--sena-verde); }

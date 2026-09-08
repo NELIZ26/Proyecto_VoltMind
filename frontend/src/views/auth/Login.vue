@@ -94,7 +94,7 @@ const processLoginSuccess = async (account) => {
     localStorage.setItem("nombreInstructor", userName.split(' ')[0]);
     
     toast.success(`Autenticación Exitosa. Cargando su área de trabajo...`);
-    router.push("/select-ficha");
+    router.push("/instructor/fichas");
 
   } else {
     // SEGURIDAD: Bloquea dominios externos no autorizados

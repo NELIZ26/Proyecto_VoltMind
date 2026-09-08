@@ -336,7 +336,7 @@
       "asignar_ficha": false,
       "gestion_ficha": false,
       "proceso_matricula": false,
-      "estado": "Pendiente",
+      "estado": "Publicada",
       "enlace_lista_matriculados": "",
       "observaciones": "",
       "cantidad_inscritos": 0,

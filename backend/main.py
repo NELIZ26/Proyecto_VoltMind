@@ -1,7 +1,7 @@
 # main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import fichas, aprendices, sesiones, asistencia, usuarios, complementarias, tituladas, iot, ws_kiosko, kiosko, instructores
+from routers import fichas, aprendices, sesiones, asistencia, usuarios, complementarias, tituladas, iot, ws_kiosko, kiosko, instructores, ambientes
 
 #  IMPORTACIÓN DEL PLANIFICADOR
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -28,8 +28,8 @@ app.add_middleware(
 # Inclusión de rutas existentes
 app.include_router(complementarias.router)
 app.include_router(tituladas.router)
-app.include_router(fichas.router)
 app.include_router(aprendices.router)
+app.include_router(fichas.router)
 app.include_router(sesiones.router)
 app.include_router(asistencia.router)
 app.include_router(usuarios.router)
@@ -37,6 +37,7 @@ app.include_router(iot.router)
 app.include_router(ws_kiosko.router)
 app.include_router(kiosko.router)
 app.include_router(instructores.router)
+app.include_router(ambientes.router)
 
 # =================================================================
 #  SUBSISTEMA DE TAREAS PROGRAMADAS (CRON JOBS - APSCHEDULER)

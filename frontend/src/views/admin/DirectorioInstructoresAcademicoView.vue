@@ -11,17 +11,7 @@
       </div>
     </header>
 
-    <div v-if="cargando" class="module-card estado-panel">
-      <font-awesome-icon :icon="['fas', 'circle-notch']" spin class="estado-icono" />
-      <p>Cargando instructores...</p>
-    </div>
-    
-    <div v-else-if="error" class="module-card estado-panel estado-error">
-      <font-awesome-icon icon="fa-solid fa-triangle-exclamation" class="estado-icono" />
-      <p>{{ error }}</p>
-    </div>
-
-    <main v-else class="module-card">
+    <main class="module-card">
       <div class="filtros-bar">
         <div class="search-box">
           <font-awesome-icon icon="fa-solid fa-magnifying-glass" class="search-icon" />
@@ -34,34 +24,61 @@
         </div>
       </div>
       
-      <div class="tabla-scroll mt-3">
-        <table class="tabla-fichas">
+      <div class="instructors-table-container">
+        <table class="sena-table">
           <thead>
             <tr>
               <th>INSTRUCTOR</th>
-              <th class="text-center">VINCULACIÓN</th>
-              <th class="text-center">CORREO</th>
-              <th class="text-center">ACCIÓN</th>
+              <th>PERFIL PROFESIONAL</th>
+              <th>VINCULACIÓN</th>
+              <th>CARGA MENSUAL</th>
+              <th>DISPONIBLE</th>
+              <th>ACCIONES</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="i in instructoresPaginados" :key="i.id" class="fila-ficha" @click="verCalendario(i)">
+            <tr v-for="instructor in instructoresPaginados" :key="instructor.id">
               <td>
-                <div class="instructor-cell">
-                  <span class="punto-color" :style="{ background: i.color }"></span>
-                  <strong>{{ i.nombre }}</strong>
+                <div class="table-instructor-info">
+                  <UserAvatar class="instructor-avatar-ring small" :alt="instructor.name" />
+                  <div class="texts">
+                    <span class="instructor-name-table">{{ instructor.name }}</span>
+                    <span class="instructor-doc-table">Doc: {{ instructor.document || 'No registrado' }}</span>
+                  </div>
                 </div>
               </td>
-              <td class="text-center">
-                <span class="badge-vinculacion" :class="`badge-${(i.tipo_vinculacion || '').toLowerCase()}`">
-                  {{ i.tipo_vinculacion }}
+              <td>
+                <span class="instructor-specialty-table">{{ instructor.specialty }}</span>
+              </td>
+              <td>
+                <span :class="['status-badge', instructor.type === 'Planta' ? 'badge-planta' : 'badge-contratista']" style="display: inline-block; width: fit-content;">
+                  {{ instructor.type ? instructor.type.toUpperCase() : '' }}
                 </span>
               </td>
-              <td class="text-center">{{ i.correo }}</td>
-              <td class="text-center">
-                <button class="btn-tabla" title="Ver Calendario" @click.stop="verCalendario(i)">
-                  <font-awesome-icon icon="fa-solid fa-calendar-days" />
-                </button>
+              <td>
+                <div class="hours-header" style="justify-content: flex-start; gap: 10px;">
+                  <span class="time-cell">{{ instructor.hours }}h / {{ instructor.maxHours }}h</span>
+                  <span class="hours-status" :style="{ color: instructor.progressColor }">({{ instructor.statusLabel }})</span>
+                </div>
+                <div class="progress-track" style="margin-top: 5px; max-width: 200px;">
+                  <div class="progress-fill" :style="{ width: Math.min(((instructor.hours || 0) / (instructor.maxHours || 1)) * 100, 100) + '%', backgroundColor: instructor.progressColor }"></div>
+                </div>
+              </td>
+              <td>
+                <span class="hours-badge">
+                  <font-awesome-icon icon="fa-solid fa-clock" />
+                  {{ instructor.available }}
+                </span>
+              </td>
+              <td>
+                <div class="table-actions-group">
+                  <button class="btn-icon" title="Ver Horario" @click="verCalendario(instructor)">
+                    <font-awesome-icon icon="fa-solid fa-calendar-days" />
+                  </button>
+                  <button class="btn-icon" title="Mostrar más" @click="openDetailModal(instructor)">
+                    <font-awesome-icon icon="fa-solid fa-eye" />
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -88,6 +105,14 @@
           <font-awesome-icon icon="fa-solid fa-chevron-right" />
         </button>
       </div>
+      
+      <ModalInstructorDetail
+        :show="showDetailModal"
+        :readonly="true"
+        :instructorData="selectedDetailInstructor"
+        @update:show="showDetailModal = $event"
+        @close="showDetailModal = false"
+      />
     </main>
   </div>
 </template>
@@ -95,35 +120,29 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import { tituladasService } from '@/services/tituladasService';
+import { useProgramacionStore } from '@/stores/programacion';
+import UserAvatar from '@/components/UserAvatar.vue';
+import ModalInstructorDetail from '@/components/admin/modals/ModalInstructorDetail.vue';
 
 const router = useRouter();
-const instructores = ref([]);
-const cargando = ref(true);
-const error = ref('');
+const store = useProgramacionStore();
+
 const busqueda = ref('');
 
 // Paginación
 const paginaActual = ref(1);
 const elementosPorPagina = 10;
 
-onMounted(async () => {
-  try {
-    const data = await tituladasService.getInstructores();
-    instructores.value = data.sort((a, b) => a.nombre.localeCompare(b.nombre));
-  } catch (e) {
-    error.value = 'No se pudieron cargar los instructores: ' + e.message;
-  } finally {
-    cargando.value = false;
-  }
+onMounted(() => {
+  store.initStore();
 });
 
 const instructoresFiltrados = computed(() => {
-  if (!busqueda.value) return instructores.value;
+  if (!busqueda.value) return store.instructores;
   const q = busqueda.value.toLowerCase();
-  return instructores.value.filter(i => 
-    i.nombre.toLowerCase().includes(q) || 
-    (i.tipo_vinculacion || '').toLowerCase().includes(q)
+  return store.instructores.filter(i => 
+    (i.name || '').toLowerCase().includes(q) || 
+    (i.type || '').toLowerCase().includes(q)
   );
 });
 
@@ -132,7 +151,7 @@ watch(busqueda, () => {
   paginaActual.value = 1;
 });
 
-const totalPaginas = computed(() => Math.ceil(instructoresFiltrados.value.length / elementosPorPagina));
+const totalPaginas = computed(() => Math.ceil(instructoresFiltrados.value.length / elementosPorPagina) || 1);
 
 const instructoresPaginados = computed(() => {
   const inicio = (paginaActual.value - 1) * elementosPorPagina;
@@ -142,6 +161,14 @@ const instructoresPaginados = computed(() => {
 
 const verCalendario = (instructor) => {
   router.push(`/programador-academico/instructores/${instructor.id}`);
+};
+
+const showDetailModal = ref(false);
+const selectedDetailInstructor = ref(null);
+
+const openDetailModal = (instructor) => {
+  selectedDetailInstructor.value = instructor;
+  showDetailModal.value = true;
 };
 </script>
 
@@ -176,17 +203,6 @@ const verCalendario = (instructor) => {
   border: 1px solid var(--borde);
 }
 
-.estado-panel {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  padding: 3rem;
-  color: var(--texto-secundario);
-}
-.estado-icono { font-size: 2rem; color: var(--sena-verde); }
-.estado-error .estado-icono { color: #e67e22; }
-
 .filtros-bar {
   display: flex;
   margin-bottom: 1rem;
@@ -212,60 +228,150 @@ const verCalendario = (instructor) => {
   color: var(--texto-principal);
 }
 
-.mt-3 { margin-top: 1.5rem; }
+/* Estilos de Tabla e Indicadores */
+.instructors-table-container {
+  margin-top: 1.5rem;
+  overflow-x: auto;
+}
 
-.tabla-scroll { overflow-x: auto; }
-.tabla-fichas {
+.sena-table {
   width: 100%;
   border-collapse: collapse;
+  background-color: transparent;
+  font-size: 0.9rem;
 }
-.tabla-fichas th {
+
+.sena-table th {
+  background-color: var(--fondo-app, #f8fafc);
+  color: var(--texto-secundario, #64748b);
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 1rem;
   text-align: left;
-  font-size: 0.75rem;
-  font-weight: 800;
-  color: var(--texto-secundario);
-  padding: 0.8rem;
-  border-bottom: 2px solid var(--borde);
+  border-bottom: 2px solid var(--borde, #e2e8f0);
+  font-size: 0.8rem;
 }
-.tabla-fichas td {
-  padding: 0.8rem;
-  border-bottom: 1px solid var(--fondo-app);
-  font-size: 0.85rem;
+
+.sena-table td {
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid var(--borde, #e2e8f0);
+  vertical-align: middle;
 }
-.text-center { text-align: center; }
 
-.fila-ficha { cursor: pointer; transition: background 0.15s; }
-.fila-ficha:hover { background: rgba(57, 169, 0, 0.05); }
-
-.instructor-cell {
+.table-instructor-info {
   display: flex;
   align-items: center;
-  gap: 8px;
-}
-.punto-color {
-  width: 12px; height: 12px; border-radius: 50%;
-  border: 1px solid rgba(0,0,0,0.2);
+  gap: 1rem;
 }
 
-.badge-vinculacion {
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 0.7rem;
+.instructor-avatar-ring.small {
+  width: 40px;
+  height: 40px;
+  transform: scale(0.8);
+}
+
+.table-instructor-info .texts {
+  display: flex;
+  flex-direction: column;
+}
+
+.instructor-name-table {
   font-weight: 800;
+  color: var(--texto-principal, #0f172a);
 }
-.badge-planta { background: var(--sena-verde); color: white; }
-.badge-contratista { background: var(--sena-verde-oscuro); color: white; }
 
-.btn-tabla {
-  background: var(--fondo-app);
-  border: 1px solid var(--borde);
-  border-radius: 6px;
-  width: 32px; height: 32px;
-  color: var(--texto-secundario);
-  cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
+.instructor-doc-table {
+  font-size: 0.75rem;
+  color: var(--texto-secundario, #64748b);
 }
-.btn-tabla:hover { border-color: var(--sena-verde); color: var(--sena-verde); }
+
+.instructor-specialty-table {
+  font-weight: 600;
+  color: var(--texto-principal, #0f172a);
+}
+
+.status-badge {
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.badge-planta {
+  background: var(--sena-verde);
+  color: white;
+}
+
+.badge-contratista {
+  background: var(--sena-verde-oscuro);
+  color: white;
+}
+
+.hours-header {
+  display: flex;
+  align-items: baseline;
+}
+
+.time-cell {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--texto-secundario);
+}
+
+.hours-status {
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.progress-track {
+  height: 6px;
+  background: var(--borde);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.hours-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background-color: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.table-actions-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.table-actions-group .btn-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid var(--borde, #e2e8f0);
+  background: transparent;
+  color: var(--texto-secundario, #64748b);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.table-actions-group .btn-icon:hover {
+  border-color: var(--sena-verde, #39A900);
+  color: var(--sena-verde, #39A900);
+}
 
 /* Paginación */
 .paginacion-container {

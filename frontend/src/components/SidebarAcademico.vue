@@ -37,6 +37,14 @@
           <span class="menu-text">Instructores</span>
         </router-link>
       </li>
+      <li>
+        <router-link to="/programador-academico/ambientes" class="menu-link" @click="handleMenuClick">
+          <div class="icon-box">
+            <font-awesome-icon icon="fa-solid fa-building" fixed-width />
+          </div>
+          <span class="menu-text">Ambientes</span>
+        </router-link>
+      </li>
 
       <li class="logout-item">
         <router-link to="/login" class="menu-link logout-link" @click="handleMenuClick">

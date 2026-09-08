@@ -108,10 +108,6 @@
               <font-awesome-icon icon="fa-solid fa-calendar-days" />
               <span>Ver Horario</span>
             </button>
-            <button class="btn-action-green" @click="openAssignModal(instructor)">
-              <font-awesome-icon icon="fa-solid fa-user-plus" />
-              <span>Asignar Horas</span>
-            </button>
           </div>
           <div class="show-more">
             <a href="#" @click.prevent="openDetailModal(instructor)">Mostrar más</a>
@@ -172,9 +168,6 @@
                 <div class="table-actions-group">
                   <button class="btn-icon" title="Ver Horario" @click="openViewModal(instructor)">
                     <font-awesome-icon icon="fa-solid fa-calendar-days" />
-                  </button>
-                  <button class="btn-icon" title="Asignar Horas" @click="openAssignModal(instructor)">
-                    <font-awesome-icon icon="fa-solid fa-user-plus" />
                   </button>
                   <button class="btn-icon" title="Mostrar más" @click="openDetailModal(instructor)">
                     <font-awesome-icon icon="fa-solid fa-eye" />
@@ -280,7 +273,7 @@ import Swal from 'sweetalert2';
 const router = useRouter();
 const store = useProgramacionStore();
 const calendarInstructorId = ref(null);
-const viewMode = ref('grid');
+const viewMode = ref('table');
 
 // Paginación
 const currentPage = ref(1);

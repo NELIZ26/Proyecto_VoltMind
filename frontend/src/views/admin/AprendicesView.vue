@@ -42,8 +42,8 @@
           </div>
           <div class="stat-content">
             <h3>Aprendices Matriculados</h3>
-            <div class="stat-value">150</div>
-            <div class="stat-meta green-text"><span>+20</span> este mes</div>
+            <div class="stat-value">{{ totalItems }}</div>
+            <div class="stat-meta green-text">Total en la búsqueda actual</div>
           </div>
         </div>
         <div class="stat-card blue-card">
@@ -81,15 +81,27 @@
       <!-- Table Section -->
       <section class="module-card table-card">
         <div class="filters-row">
+          <!-- Ficha Search Box (Movido a la izquierda) -->
+          <div class="search-box autocomplete-box">
+            <font-awesome-icon icon="fa-solid fa-layer-group" class="search-icon" />
+            <input 
+              type="text" 
+              v-model="selectedFicha" 
+              placeholder="N° de Ficha"
+              @focus="showFichaDropdown = true"
+              @blur="hideFichaDropdown"
+            />
+            <ul v-if="showFichaDropdown && filteredFichasList.length > 0" class="autocomplete-dropdown">
+              <li v-for="ficha in filteredFichasList" :key="ficha.id" @mousedown.prevent="selectFicha(ficha.codigo)">
+                <strong>{{ ficha.codigo }}</strong> - {{ ficha.programa }}
+              </li>
+            </ul>
+          </div>
+          <!-- Aprendiz Search Box (Movido a la derecha) -->
           <div class="search-box">
             <font-awesome-icon icon="fa-solid fa-magnifying-glass" class="search-icon" />
-            <input type="text" v-model="searchQuery" placeholder="Digital el documento de indentidad del atleta para su ingreso" />
+            <input type="text" v-model="searchQuery" placeholder="Documento o nombre del aprendiz" />
           </div>
-          <select class="form-select" v-model="selectedFicha">
-            <option value="">Todos las Fichas</option>
-            <option value="2693821">2693821</option>
-            <option value="2693822">2693822</option>
-          </select>
           <select class="form-select" v-model="selectedDevice">
             <option value="">Todos los Dispositivos</option>
             <option value="assigned">Asignados</option>
@@ -102,23 +114,32 @@
           </select>
         </div>
 
-        <div class="table-responsive-wrapper">
-          <table class="modern-table">
+        <div class="table-container">
+          <!-- Estado en Blanco si no hay búsqueda activa -->
+          <div v-if="!hasActiveSearch" class="empty-state-search">
+            <font-awesome-icon icon="fa-solid fa-magnifying-glass" class="empty-icon" />
+            <h3>Comienza tu búsqueda</h3>
+            <p>Ingresa un número de ficha o el documento/nombre de un aprendiz para ver los resultados.</p>
+          </div>
+
+          <table v-else class="data-table">
             <thead>
               <tr>
                 <th>APRENDIZ</th>
                 <th>FICHA</th>
-                <th>IDENTIFICACIÓN DEL DISPOSITIVO (NFC/IOT)</th>
-                <th>ESTADO</th>
+                <th>PROGRAMA</th>
+                <th>JORNADA</th>
+                <th>NFC/IOT</th>
+                <th>RIESGO ABANDONO</th>
                 <th>ACCIONES</th>
               </tr>
             </thead>
             <tbody>
               <tr v-if="loading">
-                <td colspan="5" class="text-center py-4" style="text-align: center; padding: 2rem;">Cargando aprendices...</td>
+                <td colspan="7" class="text-center py-4" style="text-align: center; padding: 2rem;">Cargando aprendices...</td>
               </tr>
               <tr v-else-if="aprendices.length === 0">
-                <td colspan="5" class="text-center py-4" style="text-align: center; padding: 2rem;">No se encontraron resultados</td>
+                <td colspan="7" class="text-center py-4" style="text-align: center; padding: 2rem;">No se encontraron resultados</td>
               </tr>
               <tr v-else v-for="aprendiz in aprendices" :key="aprendiz.documento">
                 <td>
@@ -134,6 +155,16 @@
                   <span class="ficha-badge">{{ aprendiz.ficha }}</span>
                 </td>
                 <td>
+                  <span class="programa-badge">{{ aprendiz.programa }}</span>
+                  <div class="instructor-subtext">Inst: {{ aprendiz.instructor }}</div>
+                </td>
+                <td>
+                  <span class="jornada-badge" :class="getJornadaClass(aprendiz.jornada)">
+                    <font-awesome-icon :icon="getJornadaIcon(aprendiz.jornada)" />
+                    {{ aprendiz.jornada }}
+                  </span>
+                </td>
+                <td>
                   <div v-if="aprendiz.deviceId" class="device-cell">
                     <strong>{{ aprendiz.deviceId }}</strong>
                     <span>Asignado el {{ aprendiz.assignDate }}</span>
@@ -143,11 +174,11 @@
                   </div>
                 </td>
                 <td>
-                  <span v-if="aprendiz.deviceId" class="status-badge status-vinculado">
-                    <font-awesome-icon icon="fa-solid fa-check-circle" /> Vinculado
+                  <span v-if="aprendiz.faltas_consecutivas >= 3" class="status-badge status-riesgo-alto">
+                    <font-awesome-icon icon="fa-solid fa-triangle-exclamation" /> Alerta Deserción
                   </span>
-                  <span v-else class="status-badge status-pendiente">
-                    <font-awesome-icon icon="fa-solid fa-clock" /> Pendiente
+                  <span v-else class="status-badge status-riesgo-normal">
+                    <font-awesome-icon icon="fa-solid fa-check-circle" /> Normal
                   </span>
                 </td>
                 <td>
@@ -247,11 +278,14 @@ import ModalFormAprendiz from '@/components/admin/modals/ModalFormAprendiz.vue';
 import ModalPerfilAprendiz from '@/components/admin/modals/ModalPerfilAprendiz.vue';
 import ModalEditarAprendiz from '@/components/admin/modals/ModalEditarAprendiz.vue';
 import { useToast } from 'vue-toastification';
+import { tituladasService } from '@/services/tituladasService';
+import { aprendicesService } from '@/services/aprendicesService';
 
 const toast = useToast();
 
 // --- Estados Dinámicos ---
 const aprendices = ref([]);
+const fichasList = ref([]);
 const loading = ref(false);
 
 // Filtros
@@ -263,6 +297,28 @@ const selectedState = ref('');
 // Paginación
 const currentPage = ref(1);
 const itemsPerPage = ref(15);
+const showFichaDropdown = ref(false);
+
+const hideFichaDropdown = () => {
+  showFichaDropdown.value = false;
+};
+
+const selectFicha = (codigo) => {
+  selectedFicha.value = codigo;
+  showFichaDropdown.value = false;
+};
+
+const filteredFichasList = computed(() => {
+  if (!selectedFicha.value) return fichasList.value.slice(0, 50);
+  const q = selectedFicha.value.toLowerCase();
+  return fichasList.value.filter(f => f.codigo.includes(q) || f.programa.toLowerCase().includes(q)).slice(0, 50);
+});
+
+// Búsqueda inteligente
+const hasValidFicha = computed(() => selectedFicha.value && selectedFicha.value.length >= 5);
+const hasValidSearch = computed(() => searchQuery.value && searchQuery.value.length >= 3);
+const hasActiveSearch = computed(() => hasValidFicha.value || hasValidSearch.value);
+
 const totalItems = ref(0);
 
 const totalPages = computed(() => Math.max(1, Math.ceil(totalItems.value / itemsPerPage.value)));
@@ -299,37 +355,46 @@ const showNuevoAprendizModal = ref(false);
 const showPerfilModal = ref(false);
 const selectedAprendiz = ref(null);
 
-// --- Inicializar LocalStorage ---
-const initLocalStorage = () => {
-  if (!localStorage.getItem('mock_aprendices')) {
-    const mockDatabase = [
-      { documento: '1001234567', nombre: 'Andres Felipe Gomez', ficha: '2693821', deviceId: 'A1:B2:C3:D4:E5', assignDate: '17/06/2026', telefono: '3158709236', correo: 'andres.gomez@misena.edu.co', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Andres' },
-      { documento: '1007654321', nombre: 'María Paula Ramírez', ficha: '2693821', deviceId: 'F6:G7:H8:I9:J0', assignDate: '17/06/2026', telefono: '3124567890', correo: 'maria.ramirez@misena.edu.co', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Maria' },
-      { documento: '1023456789', nombre: 'Carlos Eduardo López', ficha: '2693821', deviceId: null, telefono: '3109876543', correo: 'carlos.lopez@misena.edu.co', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Carlos' },
-      { documento: '1054321987', nombre: 'Laura Valentina Sánchez', ficha: '2693821', deviceId: 'K1:L2:M3:N4:O5', assignDate: '17/06/2026', telefono: '3201234567', correo: 'laura.sanchez@misena.edu.co', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Laura' },
-      { documento: '1098765432', nombre: 'Julián David Castro', ficha: '2693821', deviceId: null, telefono: '3145678901', correo: 'julian.castro@misena.edu.co', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Julian' }
-    ];
-    localStorage.setItem('mock_aprendices', JSON.stringify(mockDatabase));
-  }
-};
-
-// --- Funciones del Backend (Mocks con LocalStorage) ---
+// --- Funciones del Backend ---
 const fetchAprendices = async () => {
+  if (!hasActiveSearch.value) {
+    aprendices.value = [];
+    totalItems.value = 0;
+    return;
+  }
+  
   loading.value = true;
   
   try {
-    // Simulamos un delay de red
-    await new Promise(resolve => setTimeout(resolve, 300));
+    let data = [];
+    if (hasValidFicha.value) {
+      data = await aprendicesService.obtenerAprendicesPorFicha(selectedFicha.value);
+    } else if (hasValidSearch.value) {
+      // Búsqueda global (requiere al menos 3 caracteres para no sobrecargar la BD)
+      data = await aprendicesService.buscarAprendicesGlobal(searchQuery.value);
+    }
 
-    const allData = JSON.parse(localStorage.getItem('mock_aprendices') || '[]');
+    const allData = data.map(ap => ({
+      documento: ap.documento,
+      nombre: ap.nombre,
+      ficha: ap.ficha,
+      programa: ap.programa,
+      jornada: ap.jornada || 'Sin Jornada',
+      instructor: ap.instructor || 'No asignado',
+      etapa: ap.etapa,
+      correo: ap.correo,
+      telefono: ap.telefono || 'N/A',
+      faltas_totales: ap.faltas_totales || 0,
+      faltas_consecutivas: ap.faltas_consecutivas || 0,
+      deviceId: null,
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${ap.nombre}`
+    }));
+
     let filteredData = [...allData];
     
     if (searchQuery.value) {
       const q = searchQuery.value.toLowerCase();
-      filteredData = filteredData.filter(a => a.nombre.toLowerCase().includes(q) || a.documento.includes(q) || a.ficha.includes(q));
-    }
-    if (selectedFicha.value) {
-      filteredData = filteredData.filter(a => a.ficha === selectedFicha.value);
+      filteredData = filteredData.filter(a => (a.nombre && a.nombre.toLowerCase().includes(q)) || (a.documento && a.documento.includes(q)));
     }
     if (selectedDevice.value) {
       filteredData = filteredData.filter(a => selectedDevice.value === 'assigned' ? a.deviceId !== null : a.deviceId === null);
@@ -344,7 +409,9 @@ const fetchAprendices = async () => {
 
   } catch (error) {
     console.error("Error cargando aprendices:", error);
-    toast.error("Ocurrió un error obteniendo los datos");
+    toast.error("Error al cargar los aprendices de la ficha seleccionada.");
+    aprendices.value = [];
+    totalItems.value = 0;
   } finally {
     loading.value = false;
   }
@@ -361,8 +428,13 @@ watch(currentPage, () => {
 });
 
 // --- Ciclo de Vida ---
-onMounted(() => {
-  initLocalStorage();
+onMounted(async () => {
+  try {
+    fichasList.value = await aprendicesService.obtenerFichasRapido();
+  } catch (error) {
+    console.error("Error al obtener fichas:", error);
+    toast.error("Error al cargar la lista de fichas disponibles.");
+  }
   fetchAprendices();
 });
 
@@ -371,28 +443,49 @@ const openNuevoAprendizModal = () => {
   showNuevoAprendizModal.value = true;
 };
 
-const handleNuevoAprendizSave = (payload) => {
-  const newAprendiz = {
-    documento: payload.documento,
-    nombre: `${payload.nombres} ${payload.apellidos}`,
-    ficha: payload.ficha,
-    correo: payload.correo,
-    telefono: '3000000000', // Mock fallback
-    deviceId: null,
-    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${payload.nombres}`
-  };
+const handleNuevoAprendizSave = async (payload) => {
+  try {
+    const apiPayload = {
+      cr6a3_nombre_completo: `${payload.nombres} ${payload.apellidos}`,
+      cr6a3_documento_de_identidad: payload.documento,
+      cr6a3_correo_electronico: payload.correo,
+      cr6a3_numero_celular: payload.celular || null,
+      cr6a3_numero_ficha: payload.ficha,
+    };
+    
+    await aprendicesService.crearAprendiz(apiPayload);
 
-  const allData = JSON.parse(localStorage.getItem('mock_aprendices') || '[]');
-  allData.unshift(newAprendiz); // Agregamos al inicio
-  localStorage.setItem('mock_aprendices', JSON.stringify(allData));
-
-  showNuevoAprendizModal.value = false;
-  toast.success("Aprendiz registrado exitosamente.");
-  fetchAprendices(); // Refrescar lista
+    showNuevoAprendizModal.value = false;
+    toast.success("Aprendiz registrado exitosamente.");
+    fetchAprendices();
+  } catch (error) {
+    console.error(error);
+    toast.error(error.message || "Error al crear el aprendiz en el servidor");
+  }
 };
 
 const exportarExcel = () => {
   toast.info("Iniciando exportación de aprendices...");
+};
+
+const getJornadaClass = (jornada) => {
+  if (!jornada) return 'jornada-default';
+  const j = jornada.toLowerCase();
+  if (j.includes('mañana')) return 'jornada-manana';
+  if (j.includes('tarde')) return 'jornada-tarde';
+  if (j.includes('noche')) return 'jornada-noche';
+  if (j.includes('madrugada')) return 'jornada-madrugada';
+  return 'jornada-default';
+};
+
+const getJornadaIcon = (jornada) => {
+  if (!jornada) return 'fa-solid fa-clock';
+  const j = jornada.toLowerCase();
+  if (j.includes('mañana')) return 'fa-solid fa-sun';
+  if (j.includes('tarde')) return 'fa-solid fa-cloud-sun';
+  if (j.includes('noche')) return 'fa-solid fa-moon';
+  if (j.includes('madrugada')) return 'fa-solid fa-cloud-moon';
+  return 'fa-solid fa-clock';
 };
 
 const handleVincularSave = (payload) => {
@@ -739,16 +832,21 @@ const handleEditAprendizSave = (payload) => {
   border-color: var(--sena-verde);
 }
 
-.table-responsive-wrapper {
+.table-container {
+  width: 100%;
   overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid var(--borde);
+  background: white;
 }
 
-.modern-table {
+.data-table {
   width: 100%;
   border-collapse: collapse;
+  min-width: 1200px;
 }
 
-.modern-table th {
+.data-table th {
   text-align: left;
   padding: 1rem;
   font-size: 0.8rem;
@@ -758,7 +856,7 @@ const handleEditAprendizSave = (payload) => {
   text-transform: uppercase;
 }
 
-.modern-table td {
+.data-table td {
   padding: 1rem;
   border-bottom: 1px solid var(--fondo-app);
   vertical-align: middle;
@@ -793,6 +891,78 @@ const handleEditAprendizSave = (payload) => {
   color: var(--texto-secundario);
 }
 
+/* --- Autocomplete Styles --- */
+.autocomplete-box {
+  position: relative;
+}
+
+.autocomplete-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  max-height: 250px;
+  overflow-y: auto;
+  z-index: 1000;
+  list-style: none;
+  padding: 0;
+  margin: 4px 0 0 0;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.autocomplete-dropdown li {
+  padding: 10px 15px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--borde);
+  font-size: 0.9rem;
+  color: var(--texto-principal);
+}
+
+.autocomplete-dropdown li:last-child {
+  border-bottom: none;
+}
+
+.autocomplete-dropdown li:hover, .autocomplete-dropdown li:active {
+  background-color: var(--fondo-app);
+  color: var(--sena-verde);
+}
+
+/* --- Empty State Styles --- */
+.empty-state-search {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  text-align: center;
+  background-color: var(--blanco);
+  border-radius: 12px;
+  border: 1px dashed var(--borde);
+  margin-top: 1rem;
+}
+
+.empty-state-search .empty-icon {
+  font-size: 3rem;
+  color: var(--texto-secundario);
+  margin-bottom: 1rem;
+  opacity: 0.5;
+}
+
+.empty-state-search h3 {
+  color: var(--texto-principal);
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.empty-state-search p {
+  color: var(--texto-secundario);
+  font-size: 0.95rem;
+  max-width: 400px;
+}
+
 .ficha-badge {
   background: var(--fondo-app);
   color: var(--texto-secundario);
@@ -801,6 +971,43 @@ const handleEditAprendizSave = (payload) => {
   font-weight: 700;
   font-size: 0.85rem;
   border: 1px solid var(--borde);
+}
+
+.programa-badge {
+  color: var(--sena-azul-oscuro);
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.instructor-subtext {
+  font-size: 0.75rem;
+  color: var(--texto-secundario);
+  margin-top: 4px;
+}
+
+.jornada-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.jornada-manana { background-color: #fff3e0; color: #e65100; }
+.jornada-tarde { background-color: #e3f2fd; color: #1565c0; }
+.jornada-noche { background-color: #ede7f6; color: #4527a0; }
+.jornada-madrugada { background-color: #eceff1; color: #37474f; }
+.jornada-default { background-color: #f5f5f5; color: #616161; }
+
+.status-riesgo-alto {
+  background-color: #fce4e4;
+  color: #c62828;
+}
+
+.status-riesgo-normal {
+  background-color: #e8f5e9;
+  color: #2e7d32;
 }
 
 .device-cell {
@@ -839,14 +1046,19 @@ const handleEditAprendizSave = (payload) => {
   font-weight: 700;
 }
 
-.status-vinculado {
-  background: rgba(57, 169, 0, 0.1);
-  color: var(--sena-verde-oscuro);
+.status-lectiva {
+  background-color: #E3F2FD;
+  color: #1976D2;
 }
 
-.status-pendiente {
-  background: rgba(253, 195, 0, 0.1);
-  color: var(--sena-amarillo);
+.status-practica {
+  background-color: #E8F5E9;
+  color: #2E7D32;
+}
+
+.status-finalizada {
+  background-color: #F5F5F5;
+  color: #757575;
 }
 
 .actions-cell {

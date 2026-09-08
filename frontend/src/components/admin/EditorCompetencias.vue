@@ -25,6 +25,7 @@
         min="0"
         max="2000"
         class="form-input col-horas"
+        :disabled="bloquearHoras"
         @input="emitir"
       />
       <button
@@ -57,6 +58,7 @@ import { COLORES_TIPO_COMPETENCIA, TIPOS_COMPETENCIA } from '@/stores/tituladas'
 
 const props = defineProps({
   modelValue: { type: Array, default: () => [] },
+  bloquearHoras: { type: Boolean, default: false }
 });
 const emit = defineEmits(['update:modelValue']);
 
@@ -66,7 +68,7 @@ const nuevaFila = (base = {}) => ({
   id: base.id || null,
   nombre: base.nombre || '',
   tipo: base.tipo || 'Técnica',
-  horas: base.horas !== undefined && base.horas !== null ? base.horas : 0,
+  horas: props.bloquearHoras ? 0 : (base.horas !== undefined && base.horas !== null ? base.horas : 0),
 });
 
 const filas = ref(props.modelValue.map(nuevaFila));

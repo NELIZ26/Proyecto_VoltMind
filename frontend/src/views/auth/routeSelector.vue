@@ -28,7 +28,7 @@ const devLogins = [
   },
   {
     role: "instructor",
-    path: "/solicitud-complementaria",
+    path: "/instructor/fichas",
     name: "Instructor de Ambiente",
     desc: "Solicitud de fichas complementarias, gestión local de energía y asistencia.",
     icon: "chalkboard-user",
