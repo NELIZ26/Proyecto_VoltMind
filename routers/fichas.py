@@ -8,8 +8,43 @@ router = APIRouter(
     tags=["Fichas y Aprendices"]
 )
 
-@router.get("/{correo_instructor}")
-async def obtener_fichas_por_instructor(correo_instructor: str):
+@router.get("/todas")
+async def obtener_todas_las_fichas():
+    try:
+        log.info("Iniciando consulta rápida de todas las fichas")
+        client = obtener_cliente()
+        url_fichas = (
+            f"cr6a3_fichas?"
+            f"$select=cr6a3_numero_ficha,cr6a3_nombre_programa,cr6a3_jornada,cr6a3_fichaid"
+        )
+        res_fichas = await client.get(url_fichas)
+        if res_fichas.status_code != 200:
+            log.error(f"Falla en Dataverse al consultar fichas. Status: {res_fichas.status_code}. Respuesta: {res_fichas.text}")
+            raise HTTPException(status_code=res_fichas.status_code, detail="Error al recuperar las fichas.")
+        
+        datos_fichas = res_fichas.json().get("value", [])
+        
+        # Mapeamos la jornada (opcional, si es un choice 430120000=Mañana, etc.)
+        map_jornada = {430120000: "Mañana", 430120001: "Tarde", 430120002: "Noche"}
+        
+        fichas_mapeadas = [
+            {
+                "fichaid": ficha.get("cr6a3_fichaid"),
+                "codigo": ficha.get("cr6a3_numero_ficha"),
+                "programa": ficha.get("cr6a3_nombre_programa"),
+                "jornada": map_jornada.get(ficha.get("cr6a3_jornada"), "Mañana")
+            }
+            for ficha in datos_fichas
+        ]
+        return fichas_mapeadas
+    except HTTPException as http_e:
+        raise http_e
+    except Exception as e:
+        log.error(f"Colapso crítico en obtener_todas_las_fichas: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Error inesperado al listar fichas.")
+
+@router.get("/instructor/{correo_instructor}")
+async def listar_fichas_por_instructor(correo_instructor: str):
     try:
         # 🛡️ PASO 0: Sanitizar la entrada (Se elimina el lower() para respetar mayúsculas y minúsculas)
         correo_seguro = sanitizar_odata(correo_instructor)
@@ -57,20 +92,20 @@ async def obtener_fichas_por_instructor(correo_instructor: str):
         url_fichas = (
             f"cr6a3_fichas?"
             f"$filter=_cr6a3_instructorasignado_value eq '{instructor_id}'"
-            f"&$select=cr6a3_numero_ficha,cr6a3_nombre_programa"
+            f"&$select=cr6a3_fichaid,cr6a3_numero_ficha,cr6a3_nombre_programa"
         )
 
         res_fichas = await client.get(url_fichas)
 
         if res_fichas.status_code != 200:
-            # 🛑 REEMPLAZADO: log.error para auditoría de la consulta de fichas
+            # 🛠️ REEMPLAZADO: log.error para auditoría de la consulta de fichas
             log.error(
                 f"Falla en Dataverse (Paso 2) para ID Instructor {instructor_id}. "
                 f"Status: {res_fichas.status_code}. Respuesta: {res_fichas.text}"
             )
             raise HTTPException(
                 status_code=res_fichas.status_code,
-                detail="Error al recuperar las fichas de Dataverse"
+                detail="Error al consultar las fichas del instructor."
             )
 
         datos_fichas = res_fichas.json().get("value", [])
@@ -80,6 +115,7 @@ async def obtener_fichas_por_instructor(correo_instructor: str):
 
         fichas_mapeadas = [
             {
+                "id": ficha.get("cr6a3_fichaid"),
                 "numero_ficha": ficha.get("cr6a3_numero_ficha"),
                 "nombre_programa": ficha.get("cr6a3_nombre_programa")
             }
