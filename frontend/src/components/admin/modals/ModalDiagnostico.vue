@@ -10,7 +10,7 @@
       <div v-if="ficha" class="cuerpo" style="position: relative;">
         <!-- Bloqueo y Spinner Overlay -->
         <div v-if="guardando" class="overlay-bloqueo">
-          <font-awesome-icon icon="fa-solid fa-circle-notch" spin class="spinner-grande" />
+          <GlobalSpinner inline size="small" />
           <p>Guardando matriz de horas...</p>
         </div>
 
@@ -34,7 +34,7 @@
       <template #footer>
         <button class="btn-cancelar" :disabled="guardando" @click="$emit('close')">Cancelar</button>
         <button class="btn-guardar" :disabled="guardando" @click="guardar">
-          <font-awesome-icon v-if="guardando" icon="fa-solid fa-circle-notch" spin />
+          <GlobalSpinner v-if="guardando" inline size="small" />
           <font-awesome-icon v-else icon="fa-solid fa-check" />
           {{ guardando ? 'Guardando...' : 'Guardar diagnóstico' }}
         </button>

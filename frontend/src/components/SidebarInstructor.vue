@@ -29,6 +29,14 @@
           <span class="menu-text">Mi Calendario</span>
         </router-link>
       </li>
+      <li>
+        <router-link to="/instructor/complementarios" class="menu-link" @click="handleMenuClick">
+          <div class="icon-box">
+            <font-awesome-icon icon="fa-solid fa-file-circle-plus" fixed-width />
+          </div>
+          <span class="menu-text">Complementarios</span>
+        </router-link>
+      </li>
 
       <li class="logout-item">
         <router-link to="/login" class="menu-link logout-link" @click="handleMenuClick">

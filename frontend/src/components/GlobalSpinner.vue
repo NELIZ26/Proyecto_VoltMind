@@ -1,92 +1,127 @@
 <template>
   <div v-if="isModal" class="spinner-modal-overlay">
     <div class="spinner-modal-content">
-      <div class="spinner"></div>
+      <div class="spinner" :class="sizeClass"></div>
       <p v-if="message" class="spinner-message">{{ message }}</p>
     </div>
   </div>
+  <div v-else-if="inline" class="spinner-inline">
+    <div class="spinner" :class="sizeClass"></div>
+    <span v-if="message" class="spinner-message-inline">{{ message }}</span>
+  </div>
   <div v-else class="loading-state">
-    <div class="spinner"></div>
+    <div class="spinner" :class="sizeClass"></div>
     <p v-if="message">{{ message }}</p>
   </div>
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue';
+
+const props = defineProps({
   message: {
     type: String,
-    default: 'Cargando...',
+    default: '',
   },
   isModal: {
     type: Boolean,
     default: false,
   },
+  inline: {
+    type: Boolean,
+    default: false,
+  },
+  size: {
+    type: String,
+    default: 'medium', // 'small', 'medium', 'large'
+  }
 });
+
+const sizeClass = computed(() => `spinner-${props.size}`);
 </script>
 
 <style scoped>
-/* ── MODO INLINE (Como estaba en el Dashboard de Complementarias) ── */
+/* ── MODO INLINE (Para botones y textos) ── */
+.spinner-inline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.spinner-message-inline {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+/* ── MODO BLOQUE (Para secciones o páginas) ── */
 .loading-state {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 4rem;
+  padding: 2rem;
   color: var(--texto-secundario);
   gap: 1rem;
+  width: 100%;
 }
 
-/* ── MODO MODAL (Bloquea la pantalla) ── */
+/* ── MODO MODAL (Bloquea la pantalla o un contenedor relativo) ── */
 .spinner-modal-overlay {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
-  width: 100vw;
-  height: 100vh;
-  background-color: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(4px);
-  z-index: 9999;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 48, 64, 0.7);
+  backdrop-filter: blur(2px);
+  z-index: 10;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: inherit;
 }
 
 .spinner-modal-content {
-  background: var(--fondo-tarjetas, #ffffff);
-  padding: 2.5rem 3.5rem;
-  border-radius: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
+  color: white;
 }
 
 .spinner-message {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 700;
-  color: var(--sena-azul-oscuro, #00324d);
   text-align: center;
-}
-
-[data-theme="dark"] .spinner-modal-content {
-  background: var(--fondo-tarjetas, #1e293b);
-  border: 1px solid var(--borde, #334155);
-}
-
-[data-theme="dark"] .spinner-message {
-  color: var(--texto-principal, #f1f5f9);
 }
 
 /* ── EL SPINNER ANIMADO ── */
 .spinner {
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.spinner-small {
+  width: 16px;
+  height: 16px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  opacity: 0.8;
+}
+
+.spinner-medium {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(57, 169, 0, 0.2);
+  border-top-color: var(--sena-verde, #39A900);
+}
+
+.spinner-large {
   width: 48px;
   height: 48px;
   border: 4px solid rgba(57, 169, 0, 0.2);
   border-top-color: var(--sena-verde, #39A900);
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
 }
 
 @keyframes spin {

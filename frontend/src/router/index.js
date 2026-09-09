@@ -37,16 +37,6 @@ const routes = [
     },
   },
   {
-    path: "/solicitud-complementaria",
-    name: "SolicitudComplementaria",
-    component: () => import("@/views/display/SolicitudComplementaria.vue"),
-    meta: {
-      title: "VoltMind - Solicitud de Ficha Complementaria",
-      requiresAuth: true,
-      roles: ["instructor"], // El instructor solicita; el admin crea la ficha
-    },
-  },
-  {
     path: "/dashboard",
     name: "Dashboard",
     component: () => import("@/views/display/DashboardInstru.vue"),
@@ -119,6 +109,12 @@ const routes = [
         name: "InstructorCalendario",
         component: () => import("@/views/display/MiProgramacionView.vue"),
         meta: { title: "VoltMind - Mi Calendario" }
+      },
+      {
+        path: "complementarios",
+        name: "InstructorComplementarios",
+        component: () => import("@/views/display/SolicitudComplementaria.vue"),
+        meta: { title: "VoltMind - Solicitud de Ficha Complementaria" }
       }
     ]
   },
@@ -150,17 +146,16 @@ const routes = [
 
       {
          // Permitir acceso a Yolima
-        
-  
-  path: "instructores",
-  name: "AdminInstructores",
-  component: () => import("@/views/admin/InstructoresView.vue"),
-  meta: { 
-    title: "VoltMind Admin - Instructores",
-    requiresAuth: true, 
-    roles: ['dinamizador', 'admin', 'yolima', 'YOLIMA'] 
-  }
-},
+        path: "instructores",
+        name: "AdminInstructores",
+        component: () => import("@/views/admin/InstructoresView.vue"),
+        meta: { 
+          title: "VoltMind Admin - Instructores",
+          requiresAuth: true, 
+          roles: ['dinamizador', 'admin', 'yolima', 'YOLIMA'] 
+        }
+      },
+
  
 
       
@@ -323,10 +318,17 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const userRole = localStorage.getItem("user_role");
 
-  // 1. Bypass directo para Yolima
+  // 1. Control de seguridad estricto para Yolima
   if (userRole && userRole.toLowerCase() === "yolima") {
     if (to.meta && to.meta.title) document.title = to.meta.title;
-    return next();
+    
+    // Solo permitir login, selector, y la vista de instructores
+    if (to.path === "/login" || to.path === "/route-selector" || to.path === "/admin/instructores") {
+      return next();
+    } else {
+      console.warn("Seguridad: Acceso denegado para Yolima a", to.path);
+      return next("/admin/instructores");
+    }
   }
 
   // 2. Título de la pestaña para el resto de usuarios

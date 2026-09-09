@@ -41,7 +41,7 @@
                 @click="toggleCompetencias(p)"
                 :disabled="cargandoCompetenciasId === p.id"
               >
-                <font-awesome-icon v-if="cargandoCompetenciasId === p.id" :icon="['fas', 'circle-notch']" spin />
+                <GlobalSpinner v-if="cargandoCompetenciasId === p.id" inline size="small" />
                 <font-awesome-icon v-else :icon="verId === p.id ? 'fa-solid fa-chevron-down' : 'fa-solid fa-eye'" />
               </button>
               <ul v-if="verId === p.id" class="vista-previa">
@@ -90,7 +90,7 @@
       <template #footer>
         <button class="btn-cancelar" :disabled="guardando" @click="$emit('close')">Cerrar</button>
         <button class="btn-guardar" :disabled="guardando" @click="guardar">
-          <font-awesome-icon v-if="guardando" :icon="['fas', 'circle-notch']" spin />
+          <GlobalSpinner v-if="guardando" inline size="small" />
           <font-awesome-icon v-else icon="fa-solid fa-check" />
           {{ guardando ? 'Guardando...' : 'Guardar programa' }}
         </button>

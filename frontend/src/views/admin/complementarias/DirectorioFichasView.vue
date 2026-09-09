@@ -88,7 +88,7 @@
       </div>
 
       <div v-if="cargando" class="estado-panel">
-        <font-awesome-icon :icon="['fas', 'circle-notch']" spin class="estado-icono" />
+        <GlobalSpinner inline size="small" />
         <p>Cargando información desde el servidor...</p>
       </div>
       

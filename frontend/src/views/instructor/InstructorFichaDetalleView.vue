@@ -122,7 +122,11 @@ const cargarFicha = async () => {
 const cargarAmbientes = async () => {
   try {
     const data = await ambientesService.getAll();
-    ambientesDisponibles.value = data;
+    ambientesDisponibles.value = data.map(amb => ({
+      id: amb.cr6a3_ambiente_formacionid,
+      nombre: amb.cr6a3_nombre_ambiente,
+      ...amb
+    }));
   } catch (error) {
     console.error('Error al cargar ambientes:', error);
   }

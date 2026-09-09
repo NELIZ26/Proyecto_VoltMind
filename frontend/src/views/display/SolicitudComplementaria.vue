@@ -274,7 +274,7 @@
           Envíe su primera solicitud para ver aquí su estado.
         </p>
         <p v-else-if="cargandoMis && misSolicitudes.length === 0" class="mis-vacio">
-          <font-awesome-icon :icon="['fas', 'circle-notch']" spin /> Consultando sus solicitudes...
+          <GlobalSpinner inline size="small" /> Consultando sus solicitudes...
         </p>
         <p v-else-if="misSolicitudes.length === 0" class="mis-vacio">
           Aún no tiene solicitudes registradas con el correo {{ correoConsulta }}.
@@ -318,7 +318,7 @@
     <NotificacionesBell
       v-if="correoConsulta"
       :destinatario="correoConsulta"
-      ruta-solicitud="/solicitud-complementaria"
+      ruta-solicitud="/instructor/complementarios"
     />
 
     <!-- Barra fija de acceso rápido a SOFIA Plus (estilo aviso institucional) -->
@@ -802,7 +802,7 @@ const formatearTamano = (bytes) => {
 const misSolicitudes = ref([]);
 const cargandoMis = ref(false);
 const correoConsulta = ref(
-  auth.instructorEmail || localStorage.getItem(CLAVE_CORREO) || ''
+  auth.instructorEmail || localStorage.getItem(CLAVE_CORREO) || 'instructor.prueba@sena.edu.co'
 );
 
 // ── Hero institucional (carrusel de afiches, solo visual) ──
@@ -994,8 +994,32 @@ watch(() => route.query.solicitud, (id) => {
 
 // ── Ciclo de vida ──
 onMounted(async () => {
-  if (auth.instructorName) form.value.nombre_instructor = auth.instructorName;
-  if (auth.instructorEmail) form.value.correo_instructor = auth.instructorEmail;
+  const userData = JSON.parse(localStorage.getItem('user') || '{}');
+  const mockName = userData.name !== 'Instructor de Ambiente' ? userData.name : 'Carlos Díaz (Simulado)';
+  const mockEmail = 'instructor.prueba@sena.edu.co';
+
+  form.value.nombre_instructor = auth.instructorName || mockName || '';
+  form.value.correo_instructor = auth.instructorEmail || mockEmail || '';
+  form.value.celular_instructor = '3000000000';
+
+  // Buscar el nombre real del instructor en la DB (Dataverse) si existe
+  if (form.value.correo_instructor) {
+    try {
+      const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+      const res = await fetch(`${BASE_URL}/api/instructores`);
+      if (res.ok) {
+        const instructores = await res.json();
+        const instructorReal = instructores.find(
+          i => (i.cr6a3_correo_institucional || '').toLowerCase() === form.value.correo_instructor.toLowerCase()
+        );
+        if (instructorReal && instructorReal.cr6a3_nombre_completo) {
+          form.value.nombre_instructor = instructorReal.cr6a3_nombre_completo;
+        }
+      }
+    } catch (error) {
+      console.warn("No se pudo obtener el nombre real de la base de datos:", error);
+    }
+  }
 
   // La bienvenida aparece siempre al entrar o refrescar la vista
   mostrarBienvenida.value = true;

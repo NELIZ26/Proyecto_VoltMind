@@ -65,7 +65,7 @@
           <tbody>
             <tr v-if="cargando">
               <td colspan="7" class="text-center" style="padding: 32px; color: var(--texto-secundario);">
-                <font-awesome-icon icon="fa-solid fa-circle-notch" spin /> Cargando fichas...
+                <GlobalSpinner inline size="small" message="Cargando fichas..." />
               </td>
             </tr>
             <tr v-else-if="fichasFiltradas.length === 0">
@@ -84,8 +84,7 @@
               <td>
                 <div class="titular-container">
                   <span v-if="store.actualizandoTitularId === ficha.id" class="titular">
-                    <font-awesome-icon :icon="['fas', 'circle-notch']" spin />
-                    Guardando...
+                    <GlobalSpinner inline size="small" message="Guardando..." />
                   </span>
                   <span v-else-if="ficha.instructor_titular" class="titular">
                     <span class="punto-color" :style="{ background: ficha.instructor_titular.color }"></span>
@@ -110,7 +109,7 @@
                     @click="abrirCompetencias(ficha)"
                     :disabled="cargandoFichaId === ficha.id"
                   >
-                    <font-awesome-icon v-if="cargandoFichaId === ficha.id" icon="fa-solid fa-circle-notch" spin />
+                    <GlobalSpinner v-if="cargandoFichaId === ficha.id" inline size="small" />
                     <font-awesome-icon v-else icon="fa-solid fa-list-check" />
                   </button>
                   <button

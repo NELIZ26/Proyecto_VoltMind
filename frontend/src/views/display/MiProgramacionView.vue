@@ -24,7 +24,7 @@
 
     <!-- Estado: cargando -->
     <div v-if="cargando" class="module-card estado-panel">
-      <font-awesome-icon :icon="['fas', 'circle-notch']" spin class="estado-icono" />
+      <GlobalSpinner inline size="small" />
       <p>Cargando su programación...</p>
     </div>
 

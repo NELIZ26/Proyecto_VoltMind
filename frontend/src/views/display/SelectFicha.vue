@@ -93,7 +93,7 @@ const seleccionarFicha = (ficha) => {
           @click="seleccionarFicha(ficha)"
         >
           <div v-if="connectingId === ficha.id" class="connecting-overlay">
-            <font-awesome-icon icon="fa-solid fa-circle-notch" spin class="spinner-icon" />
+            <GlobalSpinner inline size="small" />
             <span>Sincronizando...</span>
           </div>
 

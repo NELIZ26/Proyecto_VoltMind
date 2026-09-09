@@ -71,7 +71,7 @@
             <h4 class="seccion-titulo">
               <font-awesome-icon icon="fa-solid fa-chalkboard-user" /> 3. Instructor
               <span v-if="consultando" class="consultando">
-                <font-awesome-icon :icon="['fas', 'circle-notch']" spin /> calculando disponibilidad...
+                <GlobalSpinner inline size="small" /> calculando disponibilidad...
               </span>
             </h4>
             <label v-if="disponibilidad && esTecnicaConTitular" class="toggle-titular">
@@ -206,7 +206,7 @@
         </button>
         <button class="btn-cancelar" :disabled="guardando" @click="$emit('close')">Cancelar</button>
         <button class="btn-guardar" :disabled="guardando || disponibilidad?.ficha_ocupada != null" @click="guardar">
-          <font-awesome-icon v-if="guardando" :icon="['fas', 'circle-notch']" spin />
+          <GlobalSpinner v-if="guardando" inline size="small" />
           <font-awesome-icon v-else icon="fa-solid fa-check" />
           {{ esEdicion ? 'Guardar cambios' : 'Programar' }}
         </button>

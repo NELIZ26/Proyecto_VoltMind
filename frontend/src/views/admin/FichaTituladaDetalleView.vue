@@ -2,7 +2,7 @@
   <div class="admin-view-shell">
     <!-- Estado de carga del detalle -->
     <div v-if="store.cargandoDetalle && !ficha" class="module-card estado-panel">
-      <font-awesome-icon :icon="['fas', 'circle-notch']" spin class="estado-icono" />
+      <GlobalSpinner inline size="small" />
       <p>Cargando el detalle de la ficha...</p>
     </div>
 
@@ -40,7 +40,7 @@
               </span>
               <button class="chip-titular btn-asignar-titular" @click="showModalTitular = true" :disabled="store.actualizandoTitularId === ficha.id" title="Cambiar Instructor Titular">
                 <template v-if="store.actualizandoTitularId === ficha.id">
-                  <font-awesome-icon :icon="['fas', 'circle-notch']" spin />
+                  <GlobalSpinner inline size="small" />
                   Guardando...
                 </template>
                 <template v-else-if="ficha.instructor_titular">
@@ -345,7 +345,7 @@
             <font-awesome-icon icon="fa-solid fa-paperclip" /> RESPALDO DE ARCHIVOS DE LA FICHA
           </h2>
           <label class="btn-secundario btn-subir" :class="{ deshabilitado: subiendoArchivo }">
-            <font-awesome-icon v-if="subiendoArchivo" :icon="['fas', 'circle-notch']" spin />
+            <GlobalSpinner v-if="subiendoArchivo" inline size="small" />
             <font-awesome-icon v-else icon="fa-solid fa-cloud-arrow-up" />
             {{ subiendoArchivo ? 'Subiendo...' : 'Subir archivo' }}
             <input

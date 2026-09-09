@@ -89,7 +89,7 @@
     </div>
 
     <div v-else-if="store.cargando && store.solicitudes.length === 0" class="module-card estado-panel">
-      <font-awesome-icon :icon="['fas', 'circle-notch']" spin class="estado-icono" />
+      <GlobalSpinner inline size="small" />
       <p>Cargando solicitudes de formación complementaria...</p>
     </div>
 

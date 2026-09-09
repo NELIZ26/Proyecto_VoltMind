@@ -165,7 +165,7 @@
 
     <!-- Estado de carga -->
     <div v-else-if="store.cargando && store.fichas.length === 0" class="module-card estado-panel">
-      <font-awesome-icon :icon="['fas', 'circle-notch']" spin class="estado-icono" />
+      <GlobalSpinner inline size="small" />
       <p>Cargando la programación de las fichas tituladas...</p>
     </div>
 
@@ -225,7 +225,7 @@
               <td>
                 <div class="titular-container" @click.stop="store.actualizandoTitularId === f.id ? null : abrirModalTitular(f)">
                   <span v-if="store.actualizandoTitularId === f.id" class="titular">
-                    <font-awesome-icon :icon="['fas', 'circle-notch']" spin />
+                    <GlobalSpinner inline size="small" />
                     Guardando...
                   </span>
                   <span v-else-if="f.instructor_titular" class="titular clickable">

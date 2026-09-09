@@ -154,7 +154,7 @@
           </div>
 
           <div v-if="cargandoCalendario" class="estado-panel">
-            <font-awesome-icon :icon="['fas', 'circle-notch']" spin class="estado-icono" />
+            <GlobalSpinner inline size="small" />
             <p>Cargando programación del ambiente...</p>
           </div>
 

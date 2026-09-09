@@ -349,7 +349,7 @@
             </div>
             <div v-if="previewCampo === a.campo" class="previa">
               <p v-if="previewCargando" class="previa-nota">
-                <font-awesome-icon :icon="['fas', 'circle-notch']" spin /> Cargando vista previa...
+                <GlobalSpinner inline size="small" /> Cargando vista previa...
               </p>
               <p v-else-if="previewError" class="previa-nota">{{ previewError }}</p>
               <img

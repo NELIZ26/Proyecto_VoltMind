@@ -111,12 +111,15 @@
         <p v-if="error" class="banner banner-error">
           <font-awesome-icon icon="fa-solid fa-triangle-exclamation" /> {{ error }}
         </p>
+
+        <!-- Overlay de carga -->
+        <GlobalSpinner v-if="guardando" isModal size="large" message="Creando ficha, por favor espere..." />
       </div>
 
       <template #footer>
         <button class="btn-cancelar" :disabled="guardando" @click="$emit('close')">Cancelar</button>
         <button class="btn-guardar" :disabled="guardando" @click="guardar">
-          <font-awesome-icon v-if="guardando" :icon="['fas', 'circle-notch']" spin />
+          <GlobalSpinner v-if="guardando" inline size="small" />
           <font-awesome-icon v-else icon="fa-solid fa-check" />
           {{ guardando ? 'Creando...' : 'Crear ficha' }}
         </button>
@@ -227,6 +230,7 @@ async function guardar() {
   display: flex;
   flex-direction: column;
   gap: 1.1rem;
+  position: relative;
 }
 
 .contexto {

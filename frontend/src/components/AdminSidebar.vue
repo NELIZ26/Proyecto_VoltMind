@@ -12,34 +12,35 @@
     </div>
     
     <ul class="sidebar-menu">
-      <li class="menu-category">MONITOREO GENERAL</li>
-      <li>
-        <router-link to="/admin/dashboard" class="menu-link" @click="handleMenuClick">
-          <div class="icon-box">
-            <font-awesome-icon icon="fa-solid fa-chart-pie" fixed-width />
-          </div>
-          <span class="menu-text">Dashboard Global</span>
-        </router-link>
-      </li>
+      <template v-if="!isYolima">
+        <li class="menu-category">MONITOREO GENERAL</li>
+        <li>
+          <router-link to="/admin/dashboard" class="menu-link" @click="handleMenuClick">
+            <div class="icon-box">
+              <font-awesome-icon icon="fa-solid fa-chart-pie" fixed-width />
+            </div>
+            <span class="menu-text">Dashboard Global</span>
+          </router-link>
+        </li>
 
-      <li class="menu-category">PLANIFICACIÓN ACADÉMICA</li>
-      <li>
-        <router-link to="/admin/calculadora" class="menu-link" @click="handleMenuClick">
-          <div class="icon-box">
-            <font-awesome-icon icon="fa-solid fa-calculator" fixed-width />
-          </div>
-          <span class="menu-text">Calculadora de Horas</span>
-        </router-link>
-      </li>
-      <li>
-        <router-link to="/admin/fichas" class="menu-link" @click="handleMenuClick">
-          <div class="icon-box">
-            <font-awesome-icon icon="fa-solid fa-graduation-cap" fixed-width />
-          </div>
-          <span class="menu-text">Gestión de Fichas</span>
-        </router-link>
-      </li>
-
+        <li class="menu-category">PLANIFICACIÓN ACADÉMICA</li>
+        <li>
+          <router-link to="/admin/calculadora" class="menu-link" @click="handleMenuClick">
+            <div class="icon-box">
+              <font-awesome-icon icon="fa-solid fa-calculator" fixed-width />
+            </div>
+            <span class="menu-text">Calculadora de Horas</span>
+          </router-link>
+        </li>
+        <li>
+          <router-link to="/admin/fichas" class="menu-link" @click="handleMenuClick">
+            <div class="icon-box">
+              <font-awesome-icon icon="fa-solid fa-graduation-cap" fixed-width />
+            </div>
+            <span class="menu-text">Gestión de Fichas</span>
+          </router-link>
+        </li>
+      </template>
 
       <li class="menu-category">CONTROL DE PERSONAL</li>
       <li>
@@ -50,32 +51,35 @@
           <span class="menu-text">Instructores</span>
         </router-link>
       </li>
-      <li>
-        <router-link to="/admin/aprendices" class="menu-link" @click="handleMenuClick">
-          <div class="icon-box">
-            <font-awesome-icon icon="fa-solid fa-users" fixed-width />
-          </div>
-          <span class="menu-text">Aprendices</span>
-        </router-link>
-      </li>
+      
+      <template v-if="!isYolima">
+        <li>
+          <router-link to="/admin/aprendices" class="menu-link" @click="handleMenuClick">
+            <div class="icon-box">
+              <font-awesome-icon icon="fa-solid fa-users" fixed-width />
+            </div>
+            <span class="menu-text">Aprendices</span>
+          </router-link>
+        </li>
 
-      <li class="menu-category">INFRAESTRUCTURA E IOT</li>
-      <li>
-        <router-link to="/admin/ambientes" class="menu-link" @click="handleMenuClick">
-          <div class="icon-box">
-            <font-awesome-icon icon="fa-solid fa-location-dot" fixed-width />
-          </div>
-          <span class="menu-text">Ambientes</span>
-        </router-link>
-      </li>
-      <li>
-        <router-link to="/admin/iot" class="menu-link" @click="handleMenuClick">
-          <div class="icon-box">
-            <font-awesome-icon icon="fa-solid fa-microchip" fixed-width />
-          </div>
-          <span class="menu-text">Configuración Relés</span>
-        </router-link>
-      </li>
+        <li class="menu-category">INFRAESTRUCTURA E IOT</li>
+        <li>
+          <router-link to="/admin/ambientes" class="menu-link" @click="handleMenuClick">
+            <div class="icon-box">
+              <font-awesome-icon icon="fa-solid fa-location-dot" fixed-width />
+            </div>
+            <span class="menu-text">Ambientes</span>
+          </router-link>
+        </li>
+        <li>
+          <router-link to="/admin/iot" class="menu-link" @click="handleMenuClick">
+            <div class="icon-box">
+              <font-awesome-icon icon="fa-solid fa-microchip" fixed-width />
+            </div>
+            <span class="menu-text">Configuración Relés</span>
+          </router-link>
+        </li>
+      </template>
       
       <li class="logout-item">
         <router-link to="/login" class="menu-link logout-link" @click="handleMenuClick">
@@ -90,7 +94,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 
 const props = defineProps({
   isOpen: {
@@ -100,6 +104,13 @@ const props = defineProps({
 });
 
 const emit = defineEmits(['close']);
+
+const userRole = ref('');
+onMounted(() => {
+  userRole.value = localStorage.getItem('user_role') || '';
+});
+
+const isYolima = computed(() => userRole.value.toLowerCase() === 'yolima');
 
 const handleMenuClick = () => {
   emit('close');

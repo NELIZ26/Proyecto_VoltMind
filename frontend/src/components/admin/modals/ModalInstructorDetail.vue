@@ -125,7 +125,7 @@
           <!-- ASIGNACIONES TAB -->
           <div v-if="activeTab === 'asignaciones'" class="tab-pane">
             <div v-if="cargandoAsignaciones" class="empty-state">
-              <font-awesome-icon :icon="['fas', 'circle-notch']" spin class="empty-icon" />
+              <GlobalSpinner inline size="small" />
               <p>Cargando asignaciones...</p>
             </div>
             <div v-else-if="realAsignaciones.length > 0" class="assignments-grid">

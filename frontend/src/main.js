@@ -286,6 +286,8 @@ library.add(
   faFlagCheckered
 );
 
+import GlobalSpinner from "@/components/GlobalSpinner.vue";
+
 // ── 3. INICIALIZACIÓN DE LA INSTANCIA DE VUE ──
 const app = createApp(App);
 
@@ -293,7 +295,8 @@ app.use(createPinia());
 app.use(router);
 app.use(Toast, toastOptions);
 
-// Registro global del componente de iconos
+// Registro global del componente de iconos y spinner
 app.component("font-awesome-icon", FontAwesomeIcon);
+app.component("GlobalSpinner", GlobalSpinner);
 
 app.mount("#app");
