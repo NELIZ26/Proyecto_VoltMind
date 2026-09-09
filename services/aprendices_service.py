@@ -43,9 +43,10 @@ async def consultar_aprendices_por_ficha(numero_ficha: str) -> list:
 
     columnas = (
         "cr6a3_documento_de_identidad,"
+        "cr6a3_tipodocumento,"
         "cr6a3_correo_electronico,"
         "cr6a3_numero_celular,"
-        "cr6a3_nombre_completo,"
+        "cr6a3_Nombre_Completo,"
         "cr6a3_faltas_totales,"
         "cr6a3_faltas_consecutivas"
     )
@@ -108,9 +109,10 @@ async def consultar_aprendices_por_ficha(numero_ficha: str) -> list:
     return [
         {
             "documento": ap.get("cr6a3_documento_de_identidad"),
+            "tipo_documento": ap.get("cr6a3_tipodocumento"),
             "correo": ap.get("cr6a3_correo_electronico"),
             "telefono": ap.get("cr6a3_numero_celular"),
-            "nombre": ap.get("cr6a3_nombre_completo"),
+            "nombre": ap.get("cr6a3_Nombre_Completo") or ap.get("cr6a3_nombre_completo"),
             "ficha": numero_limpio,
             "programa": programa_nombre,
             "instructor": instructor_nombre,
@@ -129,9 +131,10 @@ async def buscar_aprendices_global(criterio: str) -> list:
     
     columnas = (
         "cr6a3_documento_de_identidad,"
+        "cr6a3_tipodocumento,"
         "cr6a3_correo_electronico,"
         "cr6a3_numero_celular,"
-        "cr6a3_nombre_completo,"
+        "cr6a3_Nombre_Completo,"
         "cr6a3_faltas_totales,"
         "cr6a3_faltas_consecutivas"
     )
@@ -173,10 +176,11 @@ async def buscar_aprendices_global(criterio: str) -> list:
     return [
         {
             "documento": ap.get("cr6a3_documento_de_identidad"),
+            "tipo_documento": ap.get("cr6a3_tipodocumento"),
             "correo": ap.get("cr6a3_correo_electronico"),
             "telefono": ap.get("cr6a3_numero_celular"),
-            "nombre": ap.get("cr6a3_nombre_completo"),
-            "ficha": ap.get("cr6a3_FichaVinculad", {}).get("cr6a3_numero_ficha", "N/A") if ap.get("cr6a3_FichaVinculad") else "N/A",
+            "nombre": ap.get("cr6a3_Nombre_Completo") or ap.get("cr6a3_nombre_completo"),
+            "ficha": ap.get("cr6a3_FichaVinculad", {}).get("cr6a3_numero_ficha", "Sin ficha") if ap.get("cr6a3_FichaVinculad") else "N/A",
             "programa": ap.get("cr6a3_FichaVinculad", {}).get("cr6a3_nombre_programa", "Sin Programa") if ap.get("cr6a3_FichaVinculad") else "Sin Programa",
             "instructor": ap.get("cr6a3_FichaVinculad", {}).get("_cr6a3_instructorasignado_value@OData.Community.Display.V1.FormattedValue") or ap.get("cr6a3_FichaVinculad", {}).get("_cr6a3_instructorasignado_value") or "No asignado",
             "jornada": ap.get("cr6a3_FichaVinculad", {}).get("cr6a3_jornada@OData.Community.Display.V1.FormattedValue") or "Sin Jornada",
@@ -288,15 +292,19 @@ async def crear_aprendiz_service(aprendiz_data) -> dict:
         
     ficha_id = datos_ficha[0]["cr6a3_fichaid"]
     
+    # Generamos el nombre completo si no lo mandan explícitamente
+    nombre_completo_calc = aprendiz_data.cr6a3_nombre_completo or f"{aprendiz_data.cr6a3_nombres} {aprendiz_data.cr6a3_apellidos}".strip()
+
     payload = {
-        "cr6a3_nombre_completo": aprendiz_data.cr6a3_nombre_completo,
+        "cr6a3_tipodocumento": aprendiz_data.cr6a3_tipodocumento,
+        "cr6a3_nombre_completo": nombre_completo_calc,
         "cr6a3_documento_de_identidad": aprendiz_data.cr6a3_documento_de_identidad,
         "cr6a3_correo_electronico": aprendiz_data.cr6a3_correo_electronico,
         "cr6a3_numero_celular": aprendiz_data.cr6a3_numero_celular,
         "cr6a3_FichaVinculad@odata.bind": f"/cr6a3_fichas({ficha_id})"
     }
     
-    log.info(f"Registrando nuevo aprendiz: {aprendiz_data.cr6a3_nombre_completo}")
+    log.info(f"Registrando nuevo aprendiz: {nombre_completo_calc}")
     res_crear = await client.post("cr6a3_aprendizs", json=payload)
     
     if res_crear.status_code != 204: # Dataverse returns 204 on successful creation usually, or 201 with return representation
