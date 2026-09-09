@@ -693,8 +693,9 @@ async def actualizar_solicitud(solicitud_id: str, datos: dict) -> dict:
     if res.status_code != 204:
         raise HTTPException(status_code=400, detail="No se pudo actualizar la solicitud en Dataverse.")
         
-    # Si la solicitud pasa a "En Ejecución" y tiene código de ficha oficial, la instanciamos en el módulo IoT (Tituladas)
-    if datos.get("estado") == "En Ejecución" and datos.get("codigo_ficha"):
+    # Si la solicitud pasa a "Publicada" y tiene código de ficha oficial, la instanciamos en el módulo IoT (Tituladas)
+    # y procesamos el Excel para crear los aprendices asociados.
+    if datos.get("estado") == "Publicada" and datos.get("codigo_ficha") and previa.get("estado") != "Publicada":
         from services.dataverse import crear_registro_dataverse, actualizar_registro_dataverse
         try:
             # 1. Crear ficha en módulo general
@@ -721,8 +722,44 @@ async def actualizar_solicitud(solicitud_id: str, datos: dict) -> dict:
             await actualizar_registro_dataverse("cr6a3_solicitudcomplementarias", solicitud_id, {
                 "cr6a3_FichaOficialId@odata.bind": f"/cr6a3_fichas({ficha_id})"
             })
+
+            # 4. Procesar el Excel para cargar aprendices
+            carpeta = _carpeta_solicitud(solicitud_id)
+            if carpeta.exists():
+                for f in carpeta.iterdir():
+                    if f.name.startswith("plano__") and f.suffix in [".xlsx", ".xls"]:
+                        try:
+                            import pandas as pd
+                            df = pd.read_excel(f)
+                            for _, row in df.iterrows():
+                                tipo_doc = str(row.get('Tipo de Documento', 'CC')).strip()
+                                num_doc = str(row.get('Número de Documento', '')).strip()
+                                nombres = str(row.get('Nombres', '')).strip()
+                                apellidos = str(row.get('Apellidos', '')).strip()
+                                correo = str(row.get('Correo Electrónico Institucional', '')).strip()
+                                telefono = str(row.get('Teléfono', '')).strip()
+                                
+                                if not num_doc or num_doc.lower() == 'nan': continue
+                                
+                                # Nombre Completo fallback
+                                nombre_completo = f"{nombres} {apellidos}".strip()
+
+                                payload_aprendiz = {
+                                    "cr6a3_tipodocumento": tipo_doc,
+                                    "cr6a3_numero_documento": num_doc,
+                                    "cr6a3_nombres": nombres,
+                                    "cr6a3_apellidos": apellidos,
+                                    "cr6a3_Nombre_Completo": nombre_completo,
+                                    "cr6a3_correo_institucional": correo if correo.lower() != 'nan' else "",
+                                    "cr6a3_telefono": telefono if telefono.lower() != 'nan' else "",
+                                    "cr6a3_FichaId@odata.bind": f"/cr6a3_fichas({ficha_id})"
+                                }
+                                await crear_registro_dataverse("cr6a3_aprendizs", payload_aprendiz)
+                        except Exception as excel_err:
+                            print(f"Error procesando Excel de aprendices: {excel_err}")
+                        break
         except Exception as e:
-            print("Error al instanciar ficha puente:", e)
+            print("Error al instanciar ficha puente o aprendices:", e)
             
     if previa is not None and previa.get("estado") != "Publicada":
         await _avisar_publicacion_sin_fallar({**previa, **datos, "id": solicitud_id})

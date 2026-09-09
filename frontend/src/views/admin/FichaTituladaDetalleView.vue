@@ -74,15 +74,6 @@
             >
               <font-awesome-icon icon="fa-solid fa-calendar-days" /> Calendario
             </button>
-            <button
-              class="btn-toggle"
-              :class="{ activo: pestana === 'archivos' }"
-              title="Respaldo de los archivos de Excel históricos de la ficha"
-              @click="pestana = 'archivos'"
-            >
-              <font-awesome-icon icon="fa-solid fa-paperclip" /> Archivos
-              <span v-if="ficha.archivos?.length" class="conteo-archivos">{{ ficha.archivos.length }}</span>
-            </button>
           </div>
           <button
             v-if="!ficha.tiene_diagnostico"
@@ -239,7 +230,7 @@
       </main>
 
       <!-- ── PESTAÑA CALENDARIO ── -->
-      <main v-else-if="pestana === 'calendario'" class="calendario-vista">
+      <main v-else class="calendario-vista">
         <div class="module-card calendario-card">
           <!-- Navegación de meses -->
           <div class="calendario-toolbar">
@@ -338,60 +329,6 @@
         </div>
       </main>
 
-      <!-- ── PESTAÑA ARCHIVOS (respaldo de los Excel históricos) ── -->
-      <main v-else class="module-card">
-        <div class="tabla-toolbar">
-          <h2 class="module-title">
-            <font-awesome-icon icon="fa-solid fa-paperclip" /> RESPALDO DE ARCHIVOS DE LA FICHA
-          </h2>
-          <label class="btn-secundario btn-subir" :class="{ deshabilitado: subiendoArchivo }">
-            <GlobalSpinner v-if="subiendoArchivo" inline size="small" />
-            <font-awesome-icon v-else icon="fa-solid fa-cloud-arrow-up" />
-            {{ subiendoArchivo ? 'Subiendo...' : 'Subir archivo' }}
-            <input
-              type="file"
-              class="input-archivo"
-              accept=".xlsx,.xls,.xlsm,.csv,.pdf,.docx"
-              :disabled="subiendoArchivo"
-              @change="subirArchivo"
-            />
-          </label>
-        </div>
-
-        <p class="nota-archivos">
-          <font-awesome-icon icon="fa-solid fa-circle-info" />
-          Guarde aquí las matrices de Excel históricas y demás soportes de la ficha. Los archivos
-          se conservan tal cual se subieron (solo lectura) y se pueden descargar cuando se necesiten.
-          Formatos: Excel, CSV, PDF o Word · máximo 10 MB.
-        </p>
-
-        <ul v-if="ficha.archivos?.length" class="lista-archivos">
-          <li v-for="a in ficha.archivos" :key="a.id" class="archivo-fila">
-            <font-awesome-icon icon="fa-solid fa-paperclip" class="archivo-icono" />
-            <div class="archivo-info">
-              <span class="archivo-nombre">{{ a.nombre }}</span>
-              <span class="archivo-datos">{{ formatearTamano(a.tamano) }} · subido el {{ a.fecha }}</span>
-            </div>
-            <div class="asig-acciones">
-              <a
-                class="btn-tabla btn-descarga"
-                :href="tituladasService.urlArchivoFicha(ficha.id, a.id)"
-                :download="a.nombre"
-                title="Descargar el archivo"
-              >
-                <font-awesome-icon icon="fa-solid fa-download" />
-              </a>
-              <button class="btn-tabla btn-eliminar" title="Eliminar el archivo del respaldo" @click="confirmarEliminarArchivo(a)">
-                <font-awesome-icon icon="fa-solid fa-trash-can" />
-              </button>
-            </div>
-          </li>
-        </ul>
-        <p v-else class="calendario-vacio">
-          Aún no hay archivos de respaldo. Use el botón <strong>Subir archivo</strong> para
-          guardar las matrices de Excel históricas de esta ficha.
-        </p>
-      </main>
 
       <!-- Pantalla de programación (crear / editar asignaciones) -->
       <ModalProgramarAsignacion
@@ -597,54 +534,6 @@ const confirmarEliminar = async (a) => {
   const resultado = await store.eliminarAsignacion(a.id, ficha.value.id);
   if (resultado.success) {
     toast.success('Asignación eliminada. Horarios y ambiente liberados.');
-  } else {
-    toast.error(resultado.error);
-  }
-};
-
-// ── Respaldo de archivos ──
-const formatearTamano = (bytes) => {
-  if (!bytes) return '0 KB';
-  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
-
-const subirArchivo = async (evento) => {
-  const archivo = evento.target.files?.[0];
-  evento.target.value = ''; // permite volver a subir el mismo archivo
-  if (!archivo) return;
-  if (archivo.size > 10 * 1024 * 1024) {
-    toast.error('El archivo supera el tamaño máximo permitido (10 MB).');
-    return;
-  }
-
-  subiendoArchivo.value = true;
-  const resultado = await store.subirArchivo(ficha.value.id, archivo);
-  subiendoArchivo.value = false;
-
-  if (resultado.success) {
-    toast.success(`Archivo "${archivo.name}" guardado en el respaldo de la ficha.`);
-  } else {
-    toast.error(resultado.error);
-  }
-};
-
-const confirmarEliminarArchivo = async (a) => {
-  const { isConfirmed } = await Swal.fire({
-    title: '¿Eliminar el archivo?',
-    text: `Se eliminará "${a.nombre}" del respaldo de la ficha. Esta acción no se puede deshacer.`,
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#E53E3E',
-    cancelButtonColor: '#39A900',
-    confirmButtonText: 'Sí, eliminar',
-    cancelButtonText: 'Cancelar',
-  });
-  if (!isConfirmed) return;
-
-  const resultado = await store.eliminarArchivo(ficha.value.id, a.id);
-  if (resultado.success) {
-    toast.success('Archivo eliminado del respaldo.');
   } else {
     toast.error(resultado.error);
   }

@@ -373,23 +373,33 @@
           </div>
         </div>
 
-        <div class="documentos">
-          <a
-            v-for="doc in documentos"
-            :key="doc.etiqueta"
-            :href="doc.url || null"
-            target="_blank"
-            rel="noopener"
-            class="doc-chip"
-            :class="{ 'doc-vacio': !doc.url }"
-            :title="doc.url ? 'Abrir en una pestaña nueva' : 'Documento sin adjuntar'"
-          >
-            <font-awesome-icon :icon="doc.icono" />
-            <span>{{ doc.etiqueta }}</span>
-            <font-awesome-icon v-if="doc.url" icon="fa-solid fa-arrow-up-right-from-square" class="icono-salida" />
-            <span v-else class="pendiente">Sin adjuntar</span>
-          </a>
+        <!-- Lista de Aprendices Cargados -->
+        <div v-if="aprendicesCargados.length" class="aprendices-cargados">
+          <h5><font-awesome-icon icon="fa-solid fa-users" /> Aprendices Cargados ({{ aprendicesCargados.length }})</h5>
+          <div class="tabla-scroll">
+            <table class="tabla-admin">
+              <thead>
+                <tr>
+                  <th>Documento</th>
+                  <th>Nombres y Apellidos</th>
+                  <th>Teléfono</th>
+                  <th>Correo Institucional</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="apr in aprendicesCargados" :key="apr.id">
+                  <td>{{ apr.tipo_documento }} {{ apr.numero_documento }}</td>
+                  <td>{{ apr.nombres }} {{ apr.apellidos }}</td>
+                  <td>{{ apr.telefono || '—' }}</td>
+                  <td>{{ apr.correo_institucional || '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
+        <p v-else-if="solicitud.estado !== 'Pendiente'" class="nota-sin-aprendices">
+          No hay aprendices cargados aún.
+        </p>
       </section>
 
       <!-- Observaciones -->
@@ -578,24 +588,26 @@ const irADirectorio = (codigo) => {
   });
 };
 
-const documentos = computed(() => {
-  if (!props.solicitud) return [];
-  const s = props.solicitud;
-  const tieneSubido = (campo) => (s.archivos || []).some((a) => a.campo === campo);
-  const base = [
-    { etiqueta: 'Matriz de la ficha (enlace)', url: s.enlace_matriz_ficha, icono: 'fa-solid fa-table-list', oculto: tieneSubido('matriz') },
-    { etiqueta: 'Archivo plano (enlace)', url: s.enlace_archivo_plano, icono: 'fa-solid fa-code', oculto: tieneSubido('plano') },
-    { etiqueta: 'Carta de la empresa', url: s.enlace_carta_empresa, icono: 'fa-solid fa-file-contract' },
-    { etiqueta: 'Formato de solicitud', url: s.enlace_formato_solicitud, icono: 'fa-solid fa-clipboard-list' },
-    { etiqueta: 'Lista de matriculados', url: s.enlace_lista_matriculados, icono: 'fa-solid fa-users' },
-  ].filter((d) => !(d.oculto && !d.url));
-  const pdfs = (s.enlaces_pdf || []).map((url, i) => ({
-    etiqueta: `PDF adjunto ${i + 1}`,
-    url,
-    icono: 'fa-solid fa-file-pdf',
-  }));
-  return [...base, ...pdfs];
-});
+import { aprendicesService } from '@/services/aprendicesService';
+
+const aprendicesCargados = ref([]);
+
+watch(
+  () => props.solicitud?.codigo_ficha,
+  async (nuevoCodigo) => {
+    aprendicesCargados.value = [];
+    if (nuevoCodigo && props.solicitud?.estado !== 'Pendiente') {
+      try {
+        const data = await aprendicesService.obtenerAprendicesPorFicha(nuevoCodigo);
+        aprendicesCargados.value = data;
+      } catch (error) {
+        console.error('Error al cargar los aprendices de la ficha', error);
+      }
+    }
+  },
+  { immediate: true }
+);
+
 </script>
 
 <style scoped>
