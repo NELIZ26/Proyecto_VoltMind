@@ -27,7 +27,7 @@
       </div>
     </header>
 
-    <main class="dash-grid">
+    <main v-if="ficha" class="dash-grid">
       <!-- PESTAÑA COMPETENCIAS -->
       <section v-if="pestana === 'competencias'" class="module-card">
         <div class="card-header">
@@ -116,6 +116,8 @@ const cargarFicha = async () => {
     }
   } catch (error) {
     console.error('Error al cargar la ficha', error);
+    toast.error('La ficha solicitada no existe.');
+    volver();
   }
 };
 
