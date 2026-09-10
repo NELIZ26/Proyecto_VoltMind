@@ -27,19 +27,25 @@
       </div>
     </header>
 
-    <main v-if="ficha" class="dash-grid">
-      <!-- PESTAÑA COMPETENCIAS -->
-      <section v-if="pestana === 'competencias'" class="module-card">
-        <div class="card-header">
-          <h2>Asignación de Horas a Competencias</h2>
-        </div>
-        <div class="card-body">
-          <p>En esta sección podrás registrar la carga horaria para cada competencia asignada a esta ficha.</p>
-          <button class="btn-action-green" @click="abrirEditarMatriz">
-            <font-awesome-icon icon="fa-solid fa-pen-to-square" /> Editar Matriz de Horas
-          </button>
-        </div>
-      </section>
+    <main class="dash-grid">
+      <div v-if="!ficha" style="text-align: center; padding: 3rem;">
+        <GlobalSpinner size="large" />
+        <p style="color: var(--texto-secundario); margin-top: 1rem;">Cargando información de la ficha...</p>
+      </div>
+      
+      <template v-else>
+        <!-- PESTAÑA COMPETENCIAS -->
+        <section v-if="pestana === 'competencias'" class="module-card">
+          <div class="card-header">
+            <h2>Asignación de Horas a Competencias</h2>
+          </div>
+          <div class="card-body">
+            <p>En esta sección podrás registrar la carga horaria para cada competencia asignada a esta ficha.</p>
+            <button class="btn-action-green" @click="abrirEditarMatriz">
+              <font-awesome-icon icon="fa-solid fa-pen-to-square" /> Editar Matriz de Horas
+            </button>
+          </div>
+        </section>
 
       <!-- PESTAÑA APRENDICES -->
       <section v-if="pestana === 'aprendices'" class="module-card">
@@ -74,6 +80,7 @@
           </button>
         </div>
       </section>
+      </template>
     </main>
 
     <!-- Modal Editar Matriz -->

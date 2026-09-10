@@ -62,13 +62,47 @@
           </label>
           <button
             class="btn-publicar"
-            :disabled="!codigoEmpresaRapido || !codigoFichaRapido"
+            :disabled="!codigoEmpresaRapido || !codigoFichaRapido || actualizando"
             :title="!codigoEmpresaRapido || !codigoFichaRapido
               ? 'Complete el código de empresa y el código de ficha para publicar'
               : 'Publicar la ficha y avisar al instructor automáticamente'"
             @click="publicarRapido"
           >
-            <font-awesome-icon icon="fa-solid fa-paper-plane" /> Publicar ficha
+            <font-awesome-icon :icon="actualizando ? ['fas', 'circle-notch'] : 'fa-solid fa-paper-plane'" :spin="actualizando" />
+            {{ actualizando ? 'Publicando...' : 'Publicar ficha' }}
+          </button>
+        </div>
+      </section>
+
+      <!-- Gestión rápida (Matriculados) -->
+      <section v-if="solicitud.estado === 'Publicada' && (!solicitud.cantidad_inscritos || solicitud.cantidad_inscritos === 0)" class="seccion destacado">
+        <h4 class="seccion-titulo">
+          <font-awesome-icon icon="fa-solid fa-users" /> MATRÍCULA
+        </h4>
+        <p class="gestion-texto">
+          Ingrese la cantidad de aprendices matriculados en esta ficha:
+        </p>
+        <div class="gestion-campos">
+          <label class="gestion-campo">
+            <span class="etiqueta-mini">Total matriculados</span>
+            <input
+              v-model.number="matriculadosRapido"
+              type="number"
+              class="gestion-input"
+              placeholder="Ej: 30"
+              min="1"
+              :disabled="actualizando"
+              @keydown.enter="guardarMatriculados"
+            />
+          </label>
+          <button
+            class="btn-publicar"
+            :disabled="!matriculadosModificado || actualizando || matriculadosRapido <= 0"
+            :title="matriculadosModificado ? 'Guardar cantidad de matriculados' : 'No hay cambios por guardar'"
+            @click="guardarMatriculados"
+          >
+            <font-awesome-icon :icon="actualizando ? ['fas', 'circle-notch'] : 'fa-solid fa-save'" :spin="actualizando" />
+            {{ actualizando ? 'Guardando...' : 'Guardar' }}
           </button>
         </div>
       </section>
@@ -436,6 +470,7 @@ const props = defineProps({
   solicitud: { type: Object, default: null },
   enviandoAviso: { type: Boolean, default: false },
   subiendoResultados: { type: Boolean, default: false },
+  actualizando: { type: Boolean, default: false },
 });
 
 const emit = defineEmits([
@@ -457,6 +492,12 @@ const previewError = ref('');
 // ── Gestión rápida (Pendiente → Publicada en un solo paso) ──
 const codigoEmpresaRapido = ref('');
 const codigoFichaRapido = ref('');
+const matriculadosRapido = ref(0);
+
+const matriculadosModificado = computed(() => {
+  const original = props.solicitud?.cantidad_inscritos || 0;
+  return matriculadosRapido.value !== original;
+});
 
 const publicarRapido = () => {
   emit('actualizar', props.solicitud.id, {
@@ -466,12 +507,20 @@ const publicarRapido = () => {
   });
 };
 
+const guardarMatriculados = () => {
+  if (!matriculadosModificado.value) return;
+  emit('actualizar', props.solicitud.id, {
+    cantidad_inscritos: matriculadosRapido.value,
+  });
+};
+
 // Al cambiar de solicitud: precargar los códigos y cerrar la vista previa
 watch(
   () => props.solicitud?.id,
   () => {
     codigoEmpresaRapido.value = props.solicitud?.codigo_empresa || '';
     codigoFichaRapido.value = props.solicitud?.codigo_ficha || '';
+    matriculadosRapido.value = props.solicitud?.cantidad_inscritos || 0;
     previewCampo.value = null;
     previewTexto.value = '';
     previewError.value = '';

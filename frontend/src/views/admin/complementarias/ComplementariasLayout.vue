@@ -113,6 +113,7 @@
       :solicitud="solicitudSeleccionada"
       :enviando-aviso="enviandoAviso"
       :subiendo-resultados="subiendoResultados"
+      :actualizando="actualizando"
       @update:show="showDetalle = $event"
       @close="showDetalle = false"
       @actualizar="handleActualizar"
@@ -237,14 +238,21 @@ const handleGuardar = async (datos) => {
   }
 };
 
+const actualizando = ref(false);
+
 const handleActualizar = async (id, datos) => {
+  if (actualizando.value) return;
+  actualizando.value = true;
   const resultado = await store.actualizarSolicitud(id, datos);
+  actualizando.value = false;
   if (!resultado.success) {
     toast.error(resultado.error);
     return;
   }
   if (datos.estado === 'Publicada') {
     toast.success('Ficha publicada. El instructor recibirá el aviso por correo y por la campana.');
+  } else if (datos.cantidad_inscritos !== undefined) {
+    toast.success('Matrícula guardada. La ficha pasa a Ejecución y se avisa al instructor.');
   }
 };
 

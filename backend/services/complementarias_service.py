@@ -38,48 +38,62 @@ from services.dataverse import (
 )
 from services import notificaciones_service
 
-TABLA_COMPLEMENTARIAS = os.getenv("TABLA_COMPLEMENTARIAS", "cr6a3_fichacomplementarias")
+TABLA_COMPLEMENTARIAS = os.getenv("TABLA_COMPLEMENTARIAS", "cr6a3_ficha_complementarioses")
 
-# Mapeo campo API ↔ columna Dataverse (una sola fuente de verdad).
-# `enlaces_pdf` viaja como texto con URLs separadas por ';'.
+_ESTADO_MAP = {
+    "Pendiente": 430120000,
+    "Publicada": 430120001,
+    "En Ejecución": 430120002,
+    "Cancelada": 430120003
+}
+_ESTADO_INV = {v: k for k, v in _ESTADO_MAP.items()}
+
+_JORNADA_MAP = {
+    "Mañana": 430120000,
+    "Tarde": 430120001,
+    "Noche": 430120002
+}
+_JORNADA_INV = {
+    430120000: "Mañana",
+    430120001: "Tarde",
+    430120002: "Noche"
+}
+
+_TIPO_CONVOCATORIA_MAP = {
+    "Abierta": 430120000,
+    "Cerrada": 430120001
+}
+_TIPO_CONVOCATORIA_MAP_INV = {v: k for k, v in _TIPO_CONVOCATORIA_MAP.items()}
+
+# Mapeo campo API ↔ columna Dataverse
 _CAMPOS_DV = {
-    "nombre_instructor": "cr6a3_nombre_instructor",
-    "correo_instructor": "cr6a3_correo_instructor",
-    "celular_instructor": "cr6a3_celular_instructor",
-    "codigo_programa": "cr6a3_codigo_programa",
-    "version_programa": "cr6a3_version_programa",
-    "nombre_programa": "cr6a3_nombre_programa",
-    "duracion_horas": "cr6a3_duracion_horas",
-    "fecha_inicio_inscripcion": "cr6a3_fecha_inicio_inscripcion",
-    "fecha_cierre_inscripcion": "cr6a3_fecha_cierre_inscripcion",
-    "fecha_inicio_formacion": "cr6a3_fecha_inicio_formacion",
-    "fecha_fin_formacion": "cr6a3_fecha_fin_formacion",
+    "codigo_ficha": "cr6a3_codigoficha",
+    "id_ficha": "cr6a3_idficha",
+    "nombre_programa": "cr6a3_nombredelcurso",
+    "codigo_programa": "cr6a3_codigoprograma",
+    "area": "cr6a3_area",
+    "programa_especial": "cr6a3_programaespecial",
+    "competencias": "cr6a3_competencias",
+    "estado": "cr6a3_estado",
+    "duracion_horas": "cr6a3_horasdelcurso",
+    "observaciones": "cr6a3_observaciones",
+    "fecha_inicio_formacion": "cr6a3_fechainicioprograma",
+    "fecha_fin_formacion": "cr6a3_fechafinprograma",
+    "fecha_inicio_inscripcion": "cr6a3_fechainicioinscripciones",
+    "fecha_cierre_inscripcion": "cr6a3_fechafininscripciones",
+    "fecha_publicacion": "cr6a3_fechapublicacion",
+    "fecha_programacion": "cr6a3_fechaprogramacion",
+    "numero_aspirantes": "cr6a3_cupomatriculados",
+    "cantidad_inscritos": "cr6a3_num_matriculados",
+    "tipo_convocatoria": "cr6a3_tipo_convocatoria",
+    "instructor_id": "_cr6a3_instructor_value",
+    "codigo_empresa": "cr6a3_codigo_empresa",
     "jornada": "cr6a3_jornada",
     "municipio": "cr6a3_municipio",
-    "lugar_ejecucion": "cr6a3_lugar_ejecucion",
-    "enlace_carta_empresa": "cr6a3_enlace_carta_empresa",
-    "enlace_formato_solicitud": "cr6a3_enlace_formato_solicitud",
-    "enlace_matriz_ficha": "cr6a3_enlace_matriz_ficha",
-    "enlace_archivo_plano": "cr6a3_enlace_archivo_plano",
-    "enlaces_pdf": "cr6a3_enlaces_pdf",
-    "codigo_empresa": "cr6a3_codigo_empresa",
-    "codigo_ficha": "cr6a3_codigo_ficha",
-    "fecha_creacion": "cr6a3_fecha_creacion",
-    "publicacion": "cr6a3_publicacion",
-    "asignar_ficha": "cr6a3_asignar_ficha",
-    "gestion_ficha": "cr6a3_gestion_ficha",
-    "proceso_matricula": "cr6a3_proceso_matricula",
-    "estado": "cr6a3_estado",
-    "enlace_lista_matriculados": "cr6a3_enlace_lista_matriculados",
-    "observaciones": "cr6a3_observaciones",
-    "cantidad_inscritos": "cr6a3_cantidad_inscritos",
-    # Fecha/hora ISO del último aviso de publicación enviado al instructor
-    "notificado": "cr6a3_notificado",
-    # Metadatos de los archivos subidos por el instructor (JSON serializado).
-    # Los archivos físicos viven en backend/storage/complementarias/<id>/.
-    "archivos": "cr6a3_archivos_json",
+    "lugar_ejecucion": "cr6a3_lugardeformacion",
+    
 }
-_ID_DV = "cr6a3_fichacomplementariaid"
+_ID_DV = "cr6a3_ficha_complementariosid"
 
 _RUTA_DATA = Path(__file__).resolve().parent.parent / "data"
 _RUTA_DEMO = _RUTA_DATA / "complementarias_demo.json"
@@ -98,8 +112,7 @@ _ZONA_BOGOTA = ZoneInfo("America/Bogota")
 
 def dataverse_configurado() -> bool:
     """True si el .env tiene todas las credenciales necesarias de Dataverse."""
-    # Forzamos temporalmente a False porque la tabla cr6a3_fichacomplementarias aún NO existe en Dataverse
-    return False
+    return all([TENANT_ID, CLIENT_ID, CLIENT_SECRET, DATAVERSE_URL])
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -269,7 +282,7 @@ _SEMILLA_DEMO = {
             "nombre_programa": "Buenas Prácticas Piscícolas para la Producción de Arapaima", "duracion_horas": 80,
             "fecha_inicio_inscripcion": "2026-06-01", "fecha_cierre_inscripcion": "2026-06-19",
             "fecha_inicio_formacion": "2026-06-29", "fecha_fin_formacion": "2026-09-04",
-            "jornada": "Mixta", "municipio": "Puerto Leguízamo",
+            "jornada": "Mañana", "municipio": "Puerto Leguízamo",
             "lugar_ejecucion": "Asociación de Piscicultores del Bajo Putumayo",
             "enlace_carta_empresa": "https://forms.office.com/carta-asopez.pdf",
             "enlace_formato_solicitud": "https://forms.office.com/solicitud-22210025.pdf",
@@ -304,39 +317,91 @@ def _guardar_db(db: dict) -> None:
 # HELPERS DATAVERSE
 # ─────────────────────────────────────────────────────────────────────────────
 def _a_cuerpo_dataverse(datos: dict) -> dict:
-    """Convierte el payload de la API al cuerpo OData (enlaces_pdf → texto ';')."""
+    """Convierte el payload de la API al cuerpo OData."""
     cuerpo = {}
     for campo, columna in _CAMPOS_DV.items():
         if campo not in datos or datos[campo] is None:
             continue
         valor = datos[campo]
+        if valor == "" and campo.startswith("fecha_"):
+            continue
         if campo == "enlaces_pdf":
             valor = ";".join(valor)
-        elif campo == "archivos":
-            valor = json.dumps(valor, ensure_ascii=False)
+        elif campo == "estado" and valor in _ESTADO_MAP:
+            valor = _ESTADO_MAP[valor]
+        elif campo == "jornada" and valor in _JORNADA_MAP:
+            valor = _JORNADA_MAP[valor]
+        elif campo == "tipo_convocatoria" and valor in _TIPO_CONVOCATORIA_MAP:
+            valor = _TIPO_CONVOCATORIA_MAP[valor]
+        elif campo in ("duracion_horas", "cantidad_inscritos", "numero_aspirantes"):
+            try:
+                valor = int(valor)
+            except (ValueError, TypeError):
+                valor = 0
+        elif campo == "instructor_id" and valor:
+            # We don't map to the column value, we map to the navigation property @odata.bind
+            cuerpo[f"cr6a3_Instructor@odata.bind"] = f"/cr6a3_instructors({valor})"
+            continue
         cuerpo[columna] = valor
     return cuerpo
 
 
 def _desde_fila_dataverse(fila: dict) -> dict:
     """Convierte una fila OData al contrato de la API."""
-    resultado = {"id": fila.get(_ID_DV)}
+    id_sol = fila.get(_ID_DV)
+    resultado = {"id": id_sol}
     for campo, columna in _CAMPOS_DV.items():
         valor = fila.get(columna)
         if campo == "enlaces_pdf":
             valor = [u for u in (valor or "").split(";") if u.strip()]
-        elif campo == "archivos":
-            try:
-                valor = json.loads(valor) if valor else []
-            except (TypeError, ValueError):
-                valor = []
-        elif campo in ("publicacion", "asignar_ficha", "gestion_ficha", "proceso_matricula"):
-            valor = bool(valor)
-        elif campo in ("duracion_horas", "cantidad_inscritos"):
+        elif campo == "estado" and valor in _ESTADO_INV:
+            valor = _ESTADO_INV[valor]
+        elif campo == "jornada" and valor in _JORNADA_INV:
+            valor = _JORNADA_INV[valor]
+        elif campo == "tipo_convocatoria" and valor in _TIPO_CONVOCATORIA_MAP_INV:
+            valor = _TIPO_CONVOCATORIA_MAP_INV[valor]
+        elif campo in ("duracion_horas", "cantidad_inscritos", "numero_aspirantes"):
             valor = valor or 0
-        else:
-            valor = valor or ""
+        elif isinstance(valor, str) and not valor:
+            valor = ""
+        elif valor is None:
+            valor = ""
+            
+        if campo.startswith("fecha_") and isinstance(valor, str) and len(valor) >= 10:
+            valor = valor[:10]
+            
         resultado[campo] = valor
+
+    # Campos faltantes que se extraen manualmente o se calculan
+    resultado["fecha_creacion"] = fila.get("createdon", "")[:10] if fila.get("createdon") else ""
+
+    inst = fila.get("cr6a3_Instructor") or {}
+    resultado["nombre_instructor"] = inst.get("cr6a3_nombre_completo", "")
+    resultado["correo_instructor"] = inst.get("cr6a3_correo_institucional", "")
+    resultado["celular_instructor"] = inst.get("cr6a3_nro_telefono", "")
+    
+    # Flags derivados del estado
+    estado = resultado.get("estado", "Pendiente")
+    resultado["publicacion"] = estado in ("Publicada", "En Ejecución")
+    resultado["asignar_ficha"] = estado in ("Publicada", "En Ejecución")
+    resultado["gestion_ficha"] = estado == "En Ejecución"
+    resultado["proceso_matricula"] = estado == "En Ejecución"
+    resultado["notificado"] = "" # No hay columna en Dataverse
+
+    # Archivos desde disco
+    archivos = []
+    if id_sol:
+        carpeta = _RUTA_STORAGE / _nombre_seguro(id_sol)
+        if carpeta.exists():
+            for archivo in carpeta.glob("*__*"):
+                campo = archivo.name.split("__", 1)[0]
+                archivos.append({
+                    "campo": campo,
+                    "nombre": archivo.name.split("__", 1)[1],
+                    "tamano": archivo.stat().st_size
+                })
+    resultado["archivos"] = archivos
+    
     return resultado
 
 
@@ -456,8 +521,9 @@ async def listar_solicitudes(
     else:
         # --- MODO DATAVERSE ---
         client = obtener_cliente()
-        columnas = ",".join([_ID_DV, *_CAMPOS_DV.values()])
-        res = await client.get(f"{TABLA_COMPLEMENTARIAS}?$select={columnas}")
+        columnas = ",".join([_ID_DV, *_CAMPOS_DV.values(), "createdon"])
+        query = f"{TABLA_COMPLEMENTARIAS}?$select={columnas}&$expand=cr6a3_Instructor($select=cr6a3_nombre_completo,cr6a3_correo_institucional,cr6a3_nro_telefono)"
+        res = await client.get(query)
         if res.status_code != 200:
             print("ERROR DATAVERSE COMPLEMENTARIAS:", res.text)
             raise HTTPException(
@@ -500,8 +566,9 @@ async def obtener_solicitud(solicitud_id: str) -> dict:
 
     # --- MODO DATAVERSE ---
     client = obtener_cliente()
-    columnas = ",".join([_ID_DV, *_CAMPOS_DV.values()])
-    res = await client.get(f"{TABLA_COMPLEMENTARIAS}({solicitud_id})?$select={columnas}")
+    columnas = ",".join([_ID_DV, *_CAMPOS_DV.values(), "createdon"])
+    query = f"{TABLA_COMPLEMENTARIAS}({solicitud_id})?$select={columnas}&$expand=cr6a3_Instructor($select=cr6a3_nombre_completo,cr6a3_correo_institucional,cr6a3_nro_telefono)"
+    res = await client.get(query)
     if res.status_code != 200:
         raise HTTPException(status_code=404, detail="La solicitud no existe en Dataverse.")
     return _desde_fila_dataverse(res.json())
@@ -622,6 +689,59 @@ async def _avisar_publicacion_sin_fallar(solicitud: dict) -> None:
         print("AVISO: la ficha quedó Publicada pero falló el aviso al instructor:", str(e))
 
 
+async def avisar_ejecucion(solicitud: dict) -> dict:
+    correo = (solicitud.get("correo_instructor") or "").strip()
+    if not correo:
+        raise HTTPException(
+            status_code=409,
+            detail="La solicitud no tiene correo del instructor; regístrelo antes de enviar el aviso.",
+        )
+
+    await notificaciones_service.crear_notificacion(
+        destinatario=correo.lower(),
+        tipo="ficha_en_ejecucion",
+        texto=(
+            f'Su ficha complementaria "{solicitud.get("nombre_programa", "")}" ya está publicada y '
+            f'cuenta con los aprendices matriculados. Se encuentra En Ejecución.'
+        ),
+        ficha_relacionada=solicitud.get("id", ""),
+    )
+
+    correo_enviado = False
+    if _correo_configurado():
+        def _enviar_correo_ejecucion():
+            msg = EmailMessage()
+            msg["Subject"] = f"Ficha en Ejecución – {solicitud.get('nombre_programa', '')}"
+            msg["From"] = os.getenv("SMTP_EMAIL")
+            msg["To"] = correo
+            msg.set_content(
+                f"Cordial saludo, instructor(a) {solicitud.get('nombre_instructor', '')}.\n\n"
+                f"Su ficha de formación complementaria '{solicitud.get('nombre_programa', '')}' ya está publicada y los aspirantes han sido matriculados formalmente.\n\n"
+                f"La ficha ha pasado al estado 'En Ejecución'.\n\n"
+                'Puede consultar el detalle en "Mis solicitudes" dentro de VoltMind Access.\n\n'
+                "Atentamente,\nEquipo de Programación - SENA"
+            )
+            import ssl, smtplib
+            context = ssl.create_default_context()
+            context.check_hostname = False
+            context.verify_mode = ssl.CERT_NONE
+            with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=context) as server:
+                server.login(os.getenv("SMTP_EMAIL"), os.getenv("SMTP_PASSWORD"))
+                server.send_message(msg)
+                
+        await asyncio.to_thread(_enviar_correo_ejecucion)
+        correo_enviado = True
+
+    return {"correo_enviado": correo_enviado}
+
+
+async def _avisar_ejecucion_sin_fallar(solicitud: dict) -> None:
+    try:
+        await avisar_ejecucion(solicitud)
+    except Exception as e:
+        print("AVISO: la ficha pasó a Ejecución pero falló el aviso al instructor:", str(e))
+
+
 async def crear_solicitud(datos: dict) -> dict:
     _validar_coherencia_fechas(datos)
 
@@ -644,6 +764,15 @@ async def crear_solicitud(datos: dict) -> dict:
     existentes = await listar_solicitudes()
     _validar_ficha_duplicada(existentes, datos)
     client = obtener_cliente()
+    
+    # Lookup instructor_id using correo_instructor if missing
+    if "correo_instructor" in datos and datos["correo_instructor"] and not datos.get("instructor_id"):
+        res_inst = await client.get(f"cr6a3_instructors?$filter=cr6a3_correo_institucional eq '{datos['correo_instructor']}'&$select=cr6a3_instructorid")
+        if res_inst.status_code == 200:
+            val = res_inst.json().get("value", [])
+            if val:
+                datos["instructor_id"] = val[0].get("cr6a3_instructorid")
+                
     cuerpo = _a_cuerpo_dataverse({**datos, "fecha_creacion": date.today().isoformat()})
     res = await client.post(TABLA_COMPLEMENTARIAS, json=cuerpo)
     if res.status_code != 204:
@@ -669,6 +798,15 @@ async def actualizar_solicitud(solicitud_id: str, datos: dict) -> dict:
                     _validar_coherencia_fechas(combinada)
                     _validar_ficha_duplicada(db["solicitudes"], combinada, excluir_id=solicitud_id)
                     estado_anterior = sol.get("estado")
+                    
+                    if combinada.get("codigo_ficha") and combinada.get("codigo_empresa") and combinada.get("estado", "Pendiente") == "Pendiente":
+                        cambios["estado"] = "Publicada"
+                        combinada["estado"] = "Publicada"
+
+                    if combinada.get("cantidad_inscritos", 0) > 0 and combinada.get("estado", "Pendiente") in ("Pendiente", "Publicada"):
+                        cambios["estado"] = "En Ejecución"
+                        combinada["estado"] = "En Ejecución"
+                        
                     sol.update(cambios)
                     _guardar_db(db)
                     actualizada = dict(sol)
@@ -678,6 +816,8 @@ async def actualizar_solicitud(solicitud_id: str, datos: dict) -> dict:
         # Fuera del lock: el aviso vuelve a entrar a la persistencia (marca `notificado`)
         if actualizada.get("estado") == "Publicada" and estado_anterior != "Publicada":
             await _avisar_publicacion_sin_fallar(actualizada)
+        elif actualizada.get("estado") == "En Ejecución" and estado_anterior != "En Ejecución":
+            await _avisar_ejecucion_sin_fallar(actualizada)
         return actualizada
 
     # --- MODO DATAVERSE ---
@@ -685,8 +825,23 @@ async def actualizar_solicitud(solicitud_id: str, datos: dict) -> dict:
     if datos.get("codigo_ficha"):
         existentes = await listar_solicitudes()
         _validar_ficha_duplicada(existentes, datos, excluir_id=solicitud_id)
-    # Para detectar la transición a "Publicada" se necesita el estado previo
-    previa = await obtener_solicitud(solicitud_id) if datos.get("estado") == "Publicada" else None
+        
+    previa = await obtener_solicitud(solicitud_id)
+    combinada = {**previa, **datos}
+    
+    # Auto-promover a Publicada si tiene ambos códigos y estaba Pendiente
+    if combinada.get("codigo_ficha") and combinada.get("codigo_empresa") and combinada.get("estado", "Pendiente") == "Pendiente":
+        datos["estado"] = "Publicada"
+        combinada["estado"] = "Publicada"
+        
+    # Auto-promover a En Ejecución si tiene cantidad_inscritos
+    if combinada.get("cantidad_inscritos", 0) > 0 and combinada.get("estado", "Pendiente") in ("Pendiente", "Publicada"):
+        datos["estado"] = "En Ejecución"
+        combinada["estado"] = "En Ejecución"
+        
+    transicion_a_publicada = (datos.get("estado") == "Publicada" and previa.get("estado") != "Publicada")
+    transicion_a_ejecucion = (datos.get("estado") == "En Ejecución" and previa.get("estado") != "En Ejecución")
+
     client = obtener_cliente()
     cuerpo = _a_cuerpo_dataverse(datos)
     res = await client.patch(f"{TABLA_COMPLEMENTARIAS}({solicitud_id})", json=cuerpo)
@@ -761,8 +916,11 @@ async def actualizar_solicitud(solicitud_id: str, datos: dict) -> dict:
         except Exception as e:
             print("Error al instanciar ficha puente o aprendices:", e)
             
-    if previa is not None and previa.get("estado") != "Publicada":
+    if transicion_a_publicada:
         await _avisar_publicacion_sin_fallar({**previa, **datos, "id": solicitud_id})
+    elif transicion_a_ejecucion:
+        await _avisar_ejecucion_sin_fallar({**previa, **datos, "id": solicitud_id})
+        
     return {"id": solicitud_id, **datos}
 
 

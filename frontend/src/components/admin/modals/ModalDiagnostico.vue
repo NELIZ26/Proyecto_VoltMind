@@ -20,7 +20,7 @@
 
 
 
-        <EditorCompetencias v-model="competencias" />
+        <EditorCompetencias :key="competenciasOriginal" v-model="competencias" />
 
         <p v-if="error" class="banner banner-error">
           <font-awesome-icon icon="fa-solid fa-triangle-exclamation" /> {{ error }}
@@ -46,7 +46,7 @@
 <script setup>
 // Registro/edición de la matriz de diagnóstico de una ficha titulada:
 // es el punto de partida del flujo real (sin diagnóstico no hay programación).
-import { ref, watch } from 'vue';
+import { ref, watch, nextTick } from 'vue';
 import { useToast } from 'vue-toastification';
 import BaseModal from '@/components/admin/modals/BaseModal.vue';
 import EditorCompetencias from '@/components/admin/EditorCompetencias.vue';
@@ -69,9 +69,10 @@ const guardando = ref(false);
 // Al abrir, se carga la matriz actual de la ficha
 watch(
   () => props.show,
-  (abierto) => {
+  async (abierto) => {
     if (!abierto) return;
     error.value = '';
+    
     competencias.value = (props.ficha?.diagnostico || []).map(({ id, nombre, tipo, horas }) => ({
       id, nombre, tipo, horas,
     }));

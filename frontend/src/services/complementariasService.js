@@ -67,8 +67,8 @@ export const complementariasService = {
   createSolicitudConArchivos(datos, archivos) {
     const formData = new FormData();
     formData.append('datos', JSON.stringify(datos));
-    formData.append('archivo_matriz', archivos.matriz);
-    formData.append('archivo_plano', archivos.plano);
+    if (archivos.matriz) formData.append('archivo_matriz', archivos.matriz);
+    if (archivos.plano) formData.append('archivo_plano', archivos.plano);
     if (archivos.adicional) formData.append('archivo_adicional', archivos.adicional);
     return solicitar('/solicitudes/con-archivos', { method: 'POST', body: formData, headers: {} });
   },

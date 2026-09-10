@@ -115,6 +115,12 @@ const routes = [
         name: "InstructorComplementarios",
         component: () => import("@/views/display/SolicitudComplementaria.vue"),
         meta: { title: "VoltMind - Solicitud de Ficha Complementaria" }
+      },
+      {
+        path: "solicitudes",
+        name: "InstructorMisSolicitudes",
+        component: () => import("@/views/display/MisSolicitudes.vue"),
+        meta: { title: "VoltMind - Mis Solicitudes" }
       }
     ]
   },

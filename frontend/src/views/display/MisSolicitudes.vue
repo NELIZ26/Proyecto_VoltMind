@@ -44,370 +44,76 @@
     -->
 
     <div class="solicitud-contenedor">
-      <form class="form-comp" @submit.prevent="enviar">
-        <!-- Solicitante -->
-        <section id="sec-instructor" class="grupo">
-          <header class="grupo-head">
-            <span class="grupo-icono"><font-awesome-icon icon="fa-solid fa-user-tie" /></span>
-            <div class="grupo-titulos">
-              <h3>Información del instructor</h3>
-              <p>Datos de contacto de quien presenta la solicitud.</p>
-            </div>
-            <span v-if="seccionesCompletas.instructor" class="grupo-check" title="Sección completa">
-              <font-awesome-icon icon="fa-solid fa-circle-check" />
-            </span>
-          </header>
-          <div class="fila">
-            <label class="campo campo-doble">
-              <span>Nombre completo *</span>
-              <input v-model.trim="form.nombre_instructor" type="text" class="form-input" required minlength="3" placeholder="Ej: Carlos Díaz" />
-            </label>
-          </div>
-          <div class="fila">
-            <label class="campo">
-              <span>Correo institucional *</span>
-              <input v-model.trim="form.correo_instructor" type="email" class="form-input" required placeholder="nombre@sena.edu.co" />
-            </label>
-            <label class="campo">
-              <span>Celular *</span>
-              <input v-model.trim="form.celular_instructor" type="tel" class="form-input" required placeholder="3XX XXX XXXX" />
-            </label>
-          </div>
-        </section>
-
-        <!-- Programa -->
-        <section id="sec-formacion" class="grupo">
-          <header class="grupo-head">
-            <span class="grupo-icono"><font-awesome-icon icon="fa-solid fa-graduation-cap" /></span>
-            <div class="grupo-titulos">
-              <h3>Información de la formación</h3>
-              <p>Programa de Sofía Plus que se va a ofertar.</p>
-            </div>
-            <span v-if="seccionesCompletas.formacion" class="grupo-check" title="Sección completa">
-              <font-awesome-icon icon="fa-solid fa-circle-check" />
-            </span>
-          </header>
-          <div class="fila">
-            <label class="campo campo-doble">
-              <span>Nombre del programa *</span>
-              <input v-model.trim="form.nombre_programa" type="text" class="form-input" required minlength="3" placeholder="Ej: Excel Básico para el Registro de Información" />
-            </label>
-          </div>
-          <div class="fila">
-            <label class="campo">
-              <span>Código (Sofía Plus) *</span>
-              <input v-model.trim="form.codigo_programa" type="text" class="form-input" required placeholder="Ej: 12310114" />
-            </label>
-            <label class="campo">
-              <span>Versión</span>
-              <input v-model.trim="form.version_programa" type="text" class="form-input" placeholder="1" />
-            </label>
-            <label class="campo">
-              <span>Duración (horas) *</span>
-              <input v-model.number="form.duracion_horas" type="number" class="form-input" required min="1" max="880" />
-            </label>
-          </div>
-          <div class="fila">
-            <label class="campo">
-              <span>Área</span>
-              <input v-model.trim="form.area" type="text" class="form-input" placeholder="Ej: Informática" />
-            </label>
-            <label class="campo">
-              <span>Programa Especial</span>
-              <input v-model.trim="form.programa_especial" type="text" class="form-input" placeholder="Ej: Jóvenes en Paz" />
-            </label>
-          </div>
-          <div class="fila">
-            <label class="campo campo-doble">
-              <span>Competencias</span>
-              <input v-model.trim="form.competencias" type="text" class="form-input" placeholder="Competencias a desarrollar" />
-            </label>
-          </div>
-        </section>
-
-        <!-- Fechas -->
-        <section id="sec-fechas" class="grupo">
-          <header class="grupo-head">
-            <span class="grupo-icono"><font-awesome-icon icon="fa-solid fa-calendar-days" /></span>
-            <div class="grupo-titulos">
-              <h3>Fechas</h3>
-              <p>Ventana de inscripciones y periodo de la formación.</p>
-            </div>
-            <span v-if="seccionesCompletas.fechas" class="grupo-check" title="Sección completa">
-              <font-awesome-icon icon="fa-solid fa-circle-check" />
-            </span>
-          </header>
-          <div class="fila">
-            <label class="campo">
-              <span>Inicio de inscripciones</span>
-              <input v-model="form.fecha_inicio_inscripcion" type="date" class="form-input" />
-            </label>
-            <label class="campo">
-              <span>Cierre de inscripciones</span>
-              <input v-model="form.fecha_cierre_inscripcion" type="date" class="form-input" />
-            </label>
-          </div>
-          <div class="fila">
-            <label class="campo">
-              <span>Inicio de formación</span>
-              <input v-model="form.fecha_inicio_formacion" type="date" class="form-input" />
-            </label>
-            <label class="campo">
-              <span>Fin de formación</span>
-              <input v-model="form.fecha_fin_formacion" type="date" class="form-input" />
-            </label>
-          </div>
-        </section>
-
-        <!-- Logística -->
-        <section id="sec-logistica" class="grupo">
-          <header class="grupo-head">
-            <span class="grupo-icono"><font-awesome-icon icon="fa-solid fa-location-dot" /></span>
-            <div class="grupo-titulos">
-              <h3>Logística</h3>
-              <p>Dónde y en qué jornada se ejecutará la formación.</p>
-            </div>
-            <span v-if="seccionesCompletas.logistica" class="grupo-check" title="Sección completa">
-              <font-awesome-icon icon="fa-solid fa-circle-check" />
-            </span>
-          </header>
-          <div class="fila">
-            <label class="campo">
-              <span>Jornada *</span>
-              <select v-model="form.jornada" class="form-input" required>
-                <option value="" disabled>Seleccione...</option>
-                <option v-for="j in JORNADAS" :key="j" :value="j">{{ j }}</option>
-              </select>
-            </label>
-            <label class="campo">
-              <span>Municipio *</span>
-              <input v-model.trim="form.municipio" type="text" class="form-input" required placeholder="Ej: Puerto Asís" list="municipios-putumayo" />
-              <datalist id="municipios-putumayo">
-                <option v-for="m in MUNICIPIOS_PUTUMAYO" :key="m" :value="m" />
-              </datalist>
-            </label>
-          </div>
-          <div class="fila">
-            <label class="campo campo-doble">
-              <span>Lugar de ejecución *</span>
-              <input v-model.trim="form.lugar_ejecucion" type="text" class="form-input" required placeholder="Ej: Alcaldía de Puerto Asís — Sala de sistemas" />
-            </label>
-          </div>
-          <div class="fila">
-            <label class="campo">
-              <span>Tipo Convocatoria</span>
-              <select v-model="form.tipo_convocatoria" class="form-input">
-                <option value="">Seleccione...</option>
-                <option value="Abierta">Abierta</option>
-                <option value="Cerrada">Cerrada</option>
-              </select>
-            </label>
-            <label class="campo">
-              <span>Número de aspirantes</span>
-              <input v-model.number="form.numero_aspirantes" type="number" class="form-input" min="0" />
-            </label>
-          </div>
-          <div class="fila">
-            <label class="campo campo-doble">
-              <span>Observaciones</span>
-              <textarea v-model.trim="form.observaciones" class="form-input" rows="3" placeholder="Observaciones adicionales"></textarea>
-            </label>
-          </div>
-        </section>
-
-        <!-- Archivos adjuntos (se almacenan en VoltMind) -->
-        <section id="sec-adjuntos" class="grupo">
-          <header class="grupo-head">
-            <span class="grupo-icono"><font-awesome-icon icon="fa-solid fa-paperclip" /></span>
-            <div class="grupo-titulos">
-              <h3>Archivos adjuntos</h3>
-              <p>
-                Arrastre o haga clic para seleccionar (máx. {{ TAMANO_MAXIMO_MB }} MB por archivo).
-                Puede adjuntar la matriz y el archivo plano si los tiene.
-              </p>
-            </div>
-            <span v-if="seccionesCompletas.adjuntos" class="grupo-check" title="Sección completa">
-              <font-awesome-icon icon="fa-solid fa-circle-check" />
-            </span>
-          </header>
-
-          <div class="zona-adjuntos">
-            <div
-              v-for="slot in SLOTS_ARCHIVO"
-              :key="slot.campo"
-              class="dropzone"
-              :class="{
-                'con-archivo': archivos[slot.campo],
-                arrastrando: arrastrando === slot.campo,
-                requerido: slot.requerido && !archivos[slot.campo],
-              }"
-              @dragover.prevent="arrastrando = slot.campo"
-              @dragleave.prevent="arrastrando = null"
-              @drop.prevent="soltarArchivo(slot, $event)"
-              @click="abrirSelector(slot.campo)"
-            >
-              <input
-                :ref="(el) => (inputsArchivo[slot.campo] = el)"
-                type="file"
-                class="input-oculto"
-                :accept="slot.accept"
-                @change="seleccionarArchivo(slot, $event)"
-              />
-
-              <template v-if="!archivos[slot.campo]">
-                <font-awesome-icon icon="fa-solid fa-cloud-arrow-up" class="dropzone-icono" />
-                <span class="dropzone-titulo">
-                  {{ slot.etiqueta }} <strong v-if="slot.requerido">*</strong>
-                </span>
-                <span class="dropzone-ayuda">{{ slot.ayuda }}</span>
-              </template>
-
-              <template v-else>
-                <font-awesome-icon icon="fa-solid fa-circle-check" class="dropzone-icono ok" />
-                <span class="dropzone-titulo">{{ slot.etiqueta }}</span>
-                <span class="archivo-nombre" :title="archivos[slot.campo].name">{{ archivos[slot.campo].name }}</span>
-                <span class="archivo-tamano">{{ formatearTamano(archivos[slot.campo].size) }}</span>
-                <div class="archivo-acciones">
-                  <button type="button" class="btn-mini" @click.stop="abrirSelector(slot.campo)">
-                    <font-awesome-icon icon="fa-solid fa-arrows-rotate" /> Reemplazar
-                  </button>
-                  <button type="button" class="btn-mini quitar" @click.stop="quitarArchivo(slot.campo)">
-                    <font-awesome-icon icon="fa-solid fa-xmark" /> Quitar
-                  </button>
-                </div>
-              </template>
-            </div>
-          </div>
-
-          <p v-if="faltantes.length" class="aviso-faltantes">
-            <font-awesome-icon icon="fa-solid fa-triangle-exclamation" />
-            Falta adjuntar: <strong>{{ faltantes.join(' y ') }}</strong>.
-          </p>
-        </section>
-
-        <footer class="acciones">
-          <button type="submit" class="btn-enviar" :disabled="enviando || faltantes.length > 0">
-            <font-awesome-icon :icon="enviando ? ['fas', 'circle-notch'] : 'fa-solid fa-paper-plane'" :spin="enviando" />
-            {{ enviando ? 'ENVIANDO...' : 'ENVIAR SOLICITUD' }}
-          </button>
-        </footer>
-      </form>
-
+<h2 style="margin-bottom: 2rem;">Seguimiento de Mis Solicitudes</h2>
       
+
+      <!-- Mis solicitudes (solo lectura: el seguimiento lo gestiona el admin) -->
+      <section class="module-card mis-solicitudes">
+        <header class="grupo-head mis-header">
+          <span class="grupo-icono"><font-awesome-icon icon="fa-solid fa-clock-rotate-left" /></span>
+          <div class="grupo-titulos">
+            <h3>Mis solicitudes</h3>
+            <p>Estado y seguimiento de las solicitudes que ha enviado.</p>
+          </div>
+          <button v-if="correoConsulta" class="btn-mini" :disabled="cargandoMis" @click="cargarMisSolicitudes">
+            <font-awesome-icon icon="fa-solid fa-arrows-rotate" :spin="cargandoMis" /> Actualizar
+          </button>
+        </header>
+
+        <p v-if="!correoConsulta" class="mis-vacio">
+          Envíe su primera solicitud para ver aquí su estado.
+        </p>
+        <p v-else-if="cargandoMis && misSolicitudes.length === 0" class="mis-vacio">
+          <GlobalSpinner inline size="small" /> Consultando sus solicitudes...
+        </p>
+        <p v-else-if="misSolicitudes.length === 0" class="mis-vacio">
+          Aún no tiene solicitudes registradas con el correo {{ correoConsulta }}.
+        </p>
+
+        <ul v-else class="mis-lista">
+          <li
+            v-for="s in misSolicitudes"
+            :key="s.id"
+            class="mi-solicitud"
+            :class="{ resaltada: s.id === solicitudResaltada }"
+          >
+            <div class="mi-info">
+              <span class="mi-programa">{{ s.nombre_programa }}</span>
+              <span class="mi-detalle">
+                {{ s.codigo_programa }} · Solicitada el {{ (s.fecha_creacion || '—').split('T')[0] }}
+                <template v-if="s.codigo_ficha"> · Ficha {{ s.codigo_ficha }}</template>
+              </span>
+            </div>
+            <div class="mi-derecha">
+              <span class="mi-pasos" :title="`Seguimiento del admin: ${pasosCompletados(s)} de 4 pasos`">
+                {{ pasosCompletados(s) }}/4 pasos
+              </span>
+              <span :class="['status-badge', claseEstado(s.estado)]">{{ s.estado }}</span>
+              <button
+                type="button"
+                class="btn-ver-ficha"
+                :title="`Ver cómo va quedando la ficha de ${s.nombre_programa} (solo lectura)`"
+                @click="abrirFicha(s)"
+              >
+                <font-awesome-icon icon="fa-solid fa-eye" /> Ver ficha
+              </button>
+            </div>
+          </li>
+        </ul>
+      </section>
 
     </div>
 
+    <!-- Campana del instructor: recibe el aviso cuando su ficha queda Publicada -->
+    <NotificacionesBell
+      v-if="correoConsulta"
+      :destinatario="correoConsulta"
+      ruta-solicitud="/instructor/solicitudes"
+    />
+
     
 
-    <!-- Barra fija de acceso rápido a SOFIA Plus (estilo aviso institucional) -->
-    <Transition name="barra" appear>
-      <div
-        v-if="mostrarBarraSofia"
-        class="barra-sofia"
-        role="region"
-        aria-label="Acceso rápido a SOFIA Plus"
-      >
-        <span class="barra-icono" aria-hidden="true">
-          <font-awesome-icon icon="fa-solid fa-bell" />
-        </span>
-        <p class="barra-texto">
-          <strong>Importante:</strong> aquí gestiona sus solicitudes de ficha complementaria.
-          La oferta y la inscripción oficial se realizan en SOFIA Plus.
-        </p>
-        <div class="barra-acciones">
-          <a
-            class="barra-boton"
-            href="https://www.senasofiaplus.edu.co/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Ir a SOFIA Plus
-            <font-awesome-icon icon="fa-solid fa-arrow-up-right-from-square" />
-          </a>
-          <button
-            type="button"
-            class="barra-cerrar"
-            aria-label="Ocultar la barra de SOFIA Plus"
-            title="Cerrar"
-            @click="mostrarBarraSofia = false"
-          >
-            <font-awesome-icon icon="fa-solid fa-xmark" />
-          </button>
-        </div>
-      </div>
-    </Transition>
-
-    <!-- Bienvenida: popup que aparece cada vez que se carga la vista -->
-    <Transition name="bienvenida">
-      <div
-        v-if="mostrarBienvenida"
-        class="bienvenida-fondo"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="bienvenida-titulo"
-        @click.self="cerrarBienvenida"
-      >
-        <div class="bienvenida-card">
-          <div class="bienvenida-luces" aria-hidden="true">
-            <span class="luz luz-a"></span>
-            <span class="luz luz-b"></span>
-            <span class="luz luz-c"></span>
-          </div>
-
-          <button
-            type="button"
-            class="bienvenida-cerrar"
-            aria-label="Cerrar bienvenida"
-            title="Cerrar"
-            @click="cerrarBienvenida"
-          >
-            <font-awesome-icon icon="fa-solid fa-xmark" />
-          </button>
-
-          <!-- Titular: saludo grande con jerarquía de banner -->
-          <div class="bienvenida-encabezado">
-            <p class="bienvenida-eyebrow">SENA · Formación Complementaria</p>
-            <h2 id="bienvenida-titulo" class="bienvenida-titulo">
-              {{ saludo }}, {{ primerNombre }}
-            </h2>
-            <p class="bienvenida-sub">
-              Le damos la bienvenida al módulo de fichas complementarias de VoltMind.
-            </p>
-          </div>
-
-          <!-- Franja de contraste con el recordatorio -->
-          <div class="bienvenida-franja">
-            <span class="franja-icono" aria-hidden="true">!</span>
-            <p class="franja-texto">
-              Recuerde <strong>completar su solicitud de ficha complementaria</strong>:
-              son <span class="franja-verde">5 secciones</span>. Puede adjuntar
-              la matriz y el archivo plano de manera <span class="franja-verde">opcional</span>.
-            </p>
-          </div>
-
-          <!-- Llamada a la acción + identidad de la sesión -->
-          <div class="bienvenida-pie">
-            <button ref="botonComenzar" type="button" class="btn-comenzar" @click="cerrarBienvenida">
-              Comenzar
-            </button>
-            <div class="pie-identidad">
-              <span class="pie-avatar" aria-hidden="true">{{ inicialesPerfil }}</span>
-              <span class="pie-datos">
-                <span class="pie-nombre">
-                  {{ nombrePerfil }}
-                  <font-awesome-icon
-                    icon="fa-solid fa-circle-check"
-                    class="bienvenida-verificado"
-                    title="Instructor de la sesión activa"
-                  />
-                </span>
-                <span class="pie-rol">Instructor · VoltMind Access</span>
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </Transition>
+    
 
     <!-- Botón flotante de WhatsApp: contacto directo con el área administrativa -->
     <a
@@ -431,7 +137,195 @@
       </svg>
     </a>
 
-    
+    <!-- Vista previa de la ficha: documento institucional de SOLO LECTURA -->
+    <Transition name="ficha">
+      <div
+        v-if="fichaEnVista"
+        class="ficha-fondo"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ficha-titulo"
+        @click.self="cerrarFicha"
+      >
+        <article class="ficha-doc">
+          <!-- Membrete institucional -->
+          <header class="ficha-membrete">
+            <div class="membrete-textos">
+              <p class="membrete-entidad">SENA · Servicio Nacional de Aprendizaje</p>
+              <p class="membrete-centro">Centro Agroforestal y Acuícola Arapaima — Regional Putumayo</p>
+            </div>
+            <span class="chip-solo-lectura" title="Vista de consulta: no se puede editar ni descargar">
+              <font-awesome-icon icon="fa-solid fa-eye" /> Solo lectura
+            </span>
+            <button
+              type="button"
+              class="ficha-cerrar"
+              aria-label="Cerrar la vista previa de la ficha"
+              title="Cerrar"
+              @click="cerrarFicha"
+            >
+              <font-awesome-icon icon="fa-solid fa-xmark" />
+            </button>
+          </header>
+
+          <div class="ficha-cuerpo">
+            <!-- Título del documento -->
+            <div class="ficha-encabezado">
+              <p class="ficha-eyebrow">Ficha de formación complementaria</p>
+              <h2 id="ficha-titulo" class="ficha-programa">{{ fichaEnVista.nombre_programa }}</h2>
+              <p class="ficha-codigos">
+                Programa {{ fichaEnVista.codigo_programa }} · v{{ fichaEnVista.version_programa || '1' }}
+                · {{ fichaEnVista.duracion_horas }} horas
+              </p>
+            </div>
+
+            <!-- Estado de la solicitud -->
+            <section class="ficha-seccion ficha-estado">
+              <h3 class="ficha-seccion-titulo">Estado de la solicitud</h3>
+              <div class="estado-fila">
+                <span :class="['status-badge', claseEstado(fichaEnVista.estado)]">
+                  {{ fichaEnVista.estado }}
+                </span>
+                <span class="estado-descripcion">{{ descripcionEstado(fichaEnVista.estado) }}</span>
+              </div>
+              <ul class="estado-pasos">
+                <li
+                  v-for="paso in PASOS_FICHA"
+                  :key="paso.campo"
+                  :class="{ hecho: fichaEnVista[paso.campo] }"
+                >
+                  <span class="paso-punto" aria-hidden="true">
+                    <font-awesome-icon v-if="fichaEnVista[paso.campo]" icon="fa-solid fa-check" />
+                  </span>
+                  {{ paso.etiqueta }}
+                </li>
+              </ul>
+            </section>
+
+            <div class="ficha-grilla">
+              <section class="ficha-seccion">
+                <h3 class="ficha-seccion-titulo">
+                  <font-awesome-icon icon="fa-solid fa-user-tie" /> Instructor
+                </h3>
+                <dl class="ficha-datos">
+                  <div class="ficha-dato"><dt>Nombre</dt><dd>{{ fichaEnVista.nombre_instructor || '—' }}</dd></div>
+                  <div class="ficha-dato"><dt>Correo institucional</dt><dd>{{ fichaEnVista.correo_instructor || '—' }}</dd></div>
+                  <div class="ficha-dato"><dt>Celular</dt><dd>{{ fichaEnVista.celular_instructor || '—' }}</dd></div>
+                </dl>
+              </section>
+
+              <section class="ficha-seccion">
+                <h3 class="ficha-seccion-titulo">
+                  <font-awesome-icon icon="fa-solid fa-graduation-cap" /> Formación
+                </h3>
+                <dl class="ficha-datos">
+                  <div class="ficha-dato">
+                    <dt>Código de empresa</dt>
+                    <dd>
+                      <template v-if="fichaEnVista.codigo_empresa">{{ fichaEnVista.codigo_empresa }}</template>
+                      <span v-else class="en-tramite">En trámite por la coordinación</span>
+                    </dd>
+                  </div>
+                  <div class="ficha-dato">
+                    <dt>Código de ficha</dt>
+                    <dd>
+                      <template v-if="fichaEnVista.codigo_ficha">{{ fichaEnVista.codigo_ficha }}</template>
+                      <span v-else class="en-tramite">En trámite por la coordinación</span>
+                    </dd>
+                  </div>
+                  <div class="ficha-dato"><dt>Número de aspirantes</dt><dd>{{ fichaEnVista.numero_aspirantes ?? '—' }}</dd></div>
+                  <div class="ficha-dato"><dt>Total matriculados</dt><dd>{{ fichaEnVista.cantidad_inscritos ?? '—' }}</dd></div>
+                </dl>
+              </section>
+
+              <section class="ficha-seccion">
+                <h3 class="ficha-seccion-titulo">
+                  <font-awesome-icon icon="fa-solid fa-calendar-days" /> Fechas
+                </h3>
+                <dl class="ficha-datos">
+                  <div class="ficha-dato">
+                    <dt>Inscripciones</dt>
+                    <dd class="dato-fechas">{{ rangoFechas(fichaEnVista.fecha_inicio_inscripcion, fichaEnVista.fecha_cierre_inscripcion) }}</dd>
+                  </div>
+                  <div class="ficha-dato">
+                    <dt>Formación</dt>
+                    <dd class="dato-fechas">{{ rangoFechas(fichaEnVista.fecha_inicio_formacion, fichaEnVista.fecha_fin_formacion) }}</dd>
+                  </div>
+                  <div class="ficha-dato"><dt>Solicitud enviada</dt><dd class="dato-fechas">{{ (fichaEnVista.fecha_creacion || '—').split('T')[0] }}</dd></div>
+                </dl>
+              </section>
+
+              <section class="ficha-seccion">
+                <h3 class="ficha-seccion-titulo">
+                  <font-awesome-icon icon="fa-solid fa-location-dot" /> Logística
+                </h3>
+                <dl class="ficha-datos">
+                  <div class="ficha-dato"><dt>Jornada</dt><dd>{{ fichaEnVista.jornada || '—' }}</dd></div>
+                  <div class="ficha-dato"><dt>Municipio</dt><dd>{{ fichaEnVista.municipio || '—' }}</dd></div>
+                  <div class="ficha-dato"><dt>Lugar de ejecución</dt><dd>{{ fichaEnVista.lugar_ejecucion || '—' }}</dd></div>
+                </dl>
+              </section>
+            </div>
+
+            <!-- Adjuntos entregados (solo el nombre: quedan en custodia de la coordinación) -->
+            <section class="ficha-seccion">
+              <h3 class="ficha-seccion-titulo">
+                <font-awesome-icon icon="fa-solid fa-paperclip" /> Adjuntos entregados
+              </h3>
+              <ul v-if="adjuntosEntregados.length" class="ficha-adjuntos">
+                <li v-for="a in adjuntosEntregados" :key="a.campo">
+                  <font-awesome-icon icon="fa-solid fa-paperclip" />
+                  <span class="adjunto-tipo">{{ ETIQUETAS_ARCHIVO[a.campo] || a.campo }}:</span>
+                  <span class="adjunto-archivo">{{ a.nombre }}</span>
+                </li>
+              </ul>
+              <p v-else class="ficha-sin-adjuntos">Sin archivos registrados en esta solicitud.</p>
+              <p class="ficha-nota-adjuntos">
+                Los archivos quedan en custodia de la coordinación; esta vista es únicamente de consulta.
+              </p>
+            </section>
+
+            <!-- Resultados de inscritos: ÚNICO documento descargable por el instructor -->
+            <section v-if="archivoResultados" class="ficha-seccion ficha-resultados">
+              <h3 class="ficha-seccion-titulo">
+                <font-awesome-icon icon="fa-solid fa-user-check" /> Resultados de inscritos
+              </h3>
+              <div class="resultados-fila">
+                <div class="resultados-datos">
+                  <span class="resultados-etiqueta">Resultados de aprendices inscritos</span>
+                  <span class="resultados-archivo">{{ archivoResultados.nombre }}</span>
+                </div>
+                <a
+                  class="btn-descargar-resultados"
+                  :href="urlResultados"
+                  :download="archivoResultados.nombre"
+                  :title="`Descargar ${archivoResultados.nombre}`"
+                >
+                  <font-awesome-icon icon="fa-solid fa-download" /> Descargar
+                </a>
+              </div>
+              <p class="ficha-nota-adjuntos">
+                Documento publicado por la coordinación al finalizar el proceso;
+                es el único archivo disponible para descarga en esta vista.
+              </p>
+            </section>
+
+            <!-- Observaciones de la coordinación -->
+            <section v-if="fichaEnVista.observaciones" class="ficha-seccion">
+              <h3 class="ficha-seccion-titulo">
+                <font-awesome-icon icon="fa-solid fa-circle-info" /> Observaciones de la coordinación
+              </h3>
+              <p class="ficha-observaciones">{{ fichaEnVista.observaciones }}</p>
+            </section>
+
+            <footer class="ficha-pie">
+              <p>Documento de consulta generado por VoltMind Access · {{ fechaGeneracion }}</p>
+              <p>Si encuentra un dato incorrecto, comuníquelo al dinamizador: la ficha la gestiona la coordinación.</p>
+            </footer>
+          </div>
+        </article>
+      </div>
+    </Transition>
   </div>
 </template>
 
@@ -513,7 +407,7 @@ const formVacio = () => ({
   programa_especial: '',
   competencias: '',
   observaciones: '',
-  numero_aspirantes: 0,
+  cupo_matriculados: 0,
   tipo_convocatoria: '',
 });
 
@@ -679,7 +573,9 @@ const abrirFicha = (solicitud) => {
   fichaEnVista.value = solicitud;
 };
 
-
+const cerrarFicha = () => {
+  fichaEnVista.value = null;
+};
 
 const descripcionEstado = (estado) => DESCRIPCIONES_ESTADO[estado] || '';
 
@@ -732,16 +628,7 @@ watch([mostrarBienvenida, fichaEnVista], ([bienvenida, ficha]) => {
 // Nombre desde la sesión (auth); si no hay sesión, sigue en vivo lo que el
 // instructor escribe en el formulario. Solo lectura: no toca la funcionalidad.
 const nombrePerfil = computed(
-  () => {
-    const formName = form.value.nombre_instructor.trim();
-    if (formName && !formName.toLowerCase().includes('voltmind')) return formName;
-    const msName = localStorage.getItem('microsoft_user_name');
-    if (msName && !msName.toLowerCase().includes('voltmind')) return msName;
-    const authName = auth.instructorName;
-    if (authName && !authName.toLowerCase().includes('voltmind')) return authName;
-    
-    return formName || 'Instructor SENA';
-  }
+  () => auth.instructorName || form.value.nombre_instructor.trim() || 'Instructor SENA'
 );
 
 const inicialesPerfil = computed(() => {
@@ -761,29 +648,49 @@ const saludo = computed(() => {
   return 'Buenas noches';
 });
 
-
+const cargarMisSolicitudes = async () => {
+  if (!correoConsulta.value) return;
+  cargandoMis.value = true;
+  try {
+    const lista = await complementariasService.getSolicitudes({ correo: correoConsulta.value });
+    misSolicitudes.value = lista.sort((a, b) =>
+      (b.fecha_creacion || '').localeCompare(a.fecha_creacion || '')
+    );
+  } catch (e) {
+    toast.error(e.message);
+  } finally {
+    cargandoMis.value = false;
+  }
+};
 
 // claseEstado y pasosCompletados vienen del store del módulo (helpers compartidos)
 
-// Highlighting logic moved to MisSolicitudes
+// ── Aviso abierto desde la campana (?solicitud=<id>) ──
+const route = useRoute();
+const router = useRouter();
+const solicitudResaltada = ref(null);
+
+const resaltarDesdeQuery = async () => {
+  const id = route.query.solicitud;
+  if (!id) return;
+  await cargarMisSolicitudes();
+  solicitudResaltada.value = id;
+  // Limpiar el query para que recargar la página no repita el resaltado
+  router.replace({ query: {} });
+};
+
+watch(() => route.query.solicitud, (id) => {
+  if (id) resaltarDesdeQuery();
+});
 
 // ── Ciclo de vida ──
 onMounted(async () => {
   const userData = JSON.parse(localStorage.getItem('user') || '{}');
-  const msName = localStorage.getItem('microsoft_user_name');
-  let fallbackName = msName || userData.name;
-  if (!fallbackName || fallbackName.toLowerCase().includes('voltmind') || fallbackName === 'Instructor de Ambiente') {
-    fallbackName = '';
-  }
+  const mockName = userData.name !== 'Instructor de Ambiente' ? userData.name : 'Carlos Díaz (Simulado)';
   const mockEmail = 'instructor.prueba@sena.edu.co';
 
-  let initialAuthName = auth.instructorName || '';
-  if (initialAuthName.toLowerCase().includes('voltmind')) {
-    initialAuthName = '';
-  }
-
-  form.value.nombre_instructor = initialAuthName || fallbackName || '';
-  form.value.correo_instructor = auth.instructorEmail || localStorage.getItem('microsoft_user_email') || mockEmail || '';
+  form.value.nombre_instructor = auth.instructorName || mockName || '';
+  form.value.correo_instructor = auth.instructorEmail || mockEmail || '';
   form.value.celular_instructor = '';
 
   // Buscar el nombre real del instructor en la DB (Dataverse) si existe
@@ -815,6 +722,9 @@ onMounted(async () => {
   nextTick(() => botonComenzar.value?.focus());
   window.addEventListener('keydown', cerrarConEscape);
   // reanudarCarrusel(); // Desactivado junto con el hero-carrusel del template (jul-2026)
+
+  await cargarMisSolicitudes();
+  resaltarDesdeQuery();
 });
 
 onUnmounted(() => {
@@ -859,6 +769,7 @@ const enviar = async () => {
     const { nombre_instructor, correo_instructor, celular_instructor } = form.value;
     form.value = { ...formVacio(), nombre_instructor, correo_instructor, celular_instructor };
     archivos.value = { matriz: null, plano: null, adicional: null };
+    await cargarMisSolicitudes();
   } catch (e) {
     toast.error(e.message);
   } finally {

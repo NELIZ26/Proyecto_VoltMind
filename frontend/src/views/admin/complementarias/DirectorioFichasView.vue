@@ -105,13 +105,16 @@
               <th>INSTRUCTOR TITULAR</th>
               <th class="text-center">JORNADA</th>
               <th>SEDE</th>
-              <th>PROGRAMACIÓN</th>
+              <th class="text-center">ESTADO</th>
               <th class="text-center">ACCIONES</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="ficha in fichasFiltradas" :key="ficha.id" class="table-row">
-              <td class="col-codigo">{{ ficha.codigo_ficha || 'Sin asignar' }}</td>
+            <tr v-for="ficha in fichasPaginadas" :key="ficha.id" class="table-row">
+              <td class="col-codigo">
+                <strong>{{ ficha.codigo_ficha || 'Sin asignar' }}</strong><br>
+                <small class="text-muted">{{ ficha.fecha_creacion?.split('T')[0] }}</small>
+              </td>
               <td class="col-programa">
                 <span class="programa-nombre">{{ ficha.nombre_programa }}</span>
               </td>
@@ -128,13 +131,10 @@
                 </span>
               </td>
               <td class="col-sede">{{ ficha.lugar_ejecucion }}</td>
-              <td class="col-progreso">
-                <div class="progress-wrapper">
-                  <div class="progress-track">
-                    <div class="progress-fill" :style="{ width: `${ficha.progreso}%` }"></div>
-                  </div>
-                  <span class="progress-text">{{ ficha.progreso }}%</span>
-                </div>
+              <td class="text-center">
+                <span class="badge" :class="`badge-estado-${(ficha.estado || '').toLowerCase().replace(' ', '-')}`">
+                  {{ ficha.estado || 'N/A' }}
+                </span>
               </td>
               <td class="text-center">
                 <button class="btn-icon" title="Ver detalles" @click="$router.push('/programador-complementarios/fichas/' + ficha.id)">
@@ -145,6 +145,13 @@
           </tbody>
         </table>
       </div>
+      
+      <!-- Controles de Paginación -->
+      <div v-if="totalPaginas > 1" class="paginacion">
+        <button class="btn-secondary" :disabled="paginaActual === 1" @click="paginaAnterior">Anterior</button>
+        <span class="pagina-info">Página {{ paginaActual }} de {{ totalPaginas }}</span>
+        <button class="btn-secondary" :disabled="paginaActual === totalPaginas" @click="paginaSiguiente">Siguiente</button>
+      </div>
     </section>
 
   </div>
@@ -153,28 +160,48 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
+import { useComplementariasStore } from '@/stores/complementarias';
 
 const route = useRoute();
+const store = useComplementariasStore();
 
 const codigoFiltro = ref(route.query.codigo || null);
 const busqueda = ref('');
 const filtroJornada = ref('');
 const filtroEstado = ref('');
 
+// Paginación
+const paginaActual = ref(1);
+const itemsPorPagina = 10;
+
 const limpiarFiltros = () => {
   busqueda.value = '';
   filtroJornada.value = '';
   filtroEstado.value = '';
+  paginaActual.value = 1;
 };
 
 watch(() => route.query.codigo, (newCodigo) => {
   codigoFiltro.value = newCodigo || null;
+  paginaActual.value = 1;
 });
 
-const cargando = ref(false);
-const todasLasFichas = ref([]);
+// Reiniciar página al filtrar
+watch([busqueda, filtroJornada, filtroEstado], () => {
+  paginaActual.value = 1;
+});
 
-const fichasFiltradas = computed(() => {
+const todasLasFichas = computed(() => {
+  // Copia de las solicitudes para ordenar sin mutar el store original
+  return [...store.solicitudes].sort((a, b) => {
+    // Ordenar de la más reciente a la más antigua
+    const fechaA = new Date(a.fecha_creacion || 0);
+    const fechaB = new Date(b.fecha_creacion || 0);
+    return fechaB - fechaA;
+  });
+});
+
+const fichasFiltradasBase = computed(() => {
   let lista = todasLasFichas.value;
   
   if (codigoFiltro.value) {
@@ -198,50 +225,28 @@ const fichasFiltradas = computed(() => {
   return lista;
 });
 
-onMounted(() => {
-  // Datos mock que cumplen los requisitos exactos solicitados
-  todasLasFichas.value = [
-    {
-      id: 1,
-      codigo_ficha: '2997671',
-      nombre_programa: 'Análisis y Desarrollo de Software',
-      nombre_instructor: 'Ferley Tobon',
-      lugar_ejecucion: 'Principal Puerto Asís',
-      jornada: 'Mañana',
-      estado: 'En Ejecución',
-      progreso: 65
-    },
-    {
-      id: 2,
-      codigo_ficha: '3012458',
-      nombre_programa: 'Gestión Contable y de Información Financiera',
-      nombre_instructor: 'Martha Lucía Ramírez',
-      lugar_ejecucion: 'Sede Centro',
-      jornada: 'Tarde',
-      estado: 'Pendiente',
-      progreso: 42
-    },
-    {
-      id: 3,
-      codigo_ficha: '2895641',
-      nombre_programa: 'Asistencia Administrativa',
-      nombre_instructor: 'Carlos Alberto Ruiz',
-      lugar_ejecucion: 'Principal Puerto Asís',
-      jornada: 'Noche',
-      estado: 'En Ejecución',
-      progreso: 88
-    },
-    {
-      id: 4,
-      codigo_ficha: '3104592',
-      nombre_programa: 'Cocina',
-      nombre_instructor: 'Diana Carolina Méndez',
-      lugar_ejecucion: 'Sede Gastronomía',
-      jornada: 'Mañana',
-      estado: 'Cancelada',
-      progreso: 15
-    }
-  ];
+const fichasFiltradas = computed(() => fichasFiltradasBase.value);
+
+const totalPaginas = computed(() => Math.ceil(fichasFiltradasBase.value.length / itemsPorPagina));
+
+const fichasPaginadas = computed(() => {
+  const inicio = (paginaActual.value - 1) * itemsPorPagina;
+  return fichasFiltradasBase.value.slice(inicio, inicio + itemsPorPagina);
+});
+
+const paginaSiguiente = () => {
+  if (paginaActual.value < totalPaginas.value) paginaActual.value++;
+};
+const paginaAnterior = () => {
+  if (paginaActual.value > 1) paginaActual.value--;
+};
+
+const cargando = computed(() => store.cargando || false);
+
+onMounted(async () => {
+  if (store.solicitudes.length === 0) {
+    await store.cargarTodo();
+  }
 });
 </script>
 
@@ -658,5 +663,17 @@ onMounted(() => {
   font-size: 2rem;
   color: var(--sena-verde);
   margin-bottom: 1rem;
+}
+
+.paginacion {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem 0;
+}
+.pagina-info {
+  font-weight: 500;
+  color: var(--texto-secundario);
 }
 </style>

@@ -37,6 +37,14 @@
           <span class="menu-text">Complementarios</span>
         </router-link>
       </li>
+      <li>
+        <router-link to="/instructor/solicitudes" class="menu-link" @click="handleMenuClick">
+          <div class="icon-box">
+            <font-awesome-icon icon="fa-solid fa-clock-rotate-left" fixed-width />
+          </div>
+          <span class="menu-text">Solicitudes</span>
+        </router-link>
+      </li>
 
       <li class="logout-item">
         <router-link to="/login" class="menu-link logout-link" @click="handleMenuClick">

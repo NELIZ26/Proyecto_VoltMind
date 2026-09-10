@@ -23,7 +23,7 @@ export const PASOS_SEGUIMIENTO = [
 ];
 
 // Opciones institucionales compartidas por los selects/datalists del módulo
-export const JORNADAS = ['Mañana', 'Tarde', 'Noche', 'Mixta'];
+export const JORNADAS = ['Mañana', 'Tarde', 'Noche'];
 export const MUNICIPIOS_PUTUMAYO = [
   'Puerto Asís', 'Mocoa', 'Orito', 'Sibundoy',
   'Puerto Leguízamo', 'Valle del Guamuez', 'Puerto Caicedo', 'Villagarzón',
@@ -93,6 +93,16 @@ export const useComplementariasStore = defineStore('complementarias', {
             (s.codigo_ficha || '').toLowerCase().includes(q)
         );
       }
+      
+      // Excluir fichas que ya terminaron su fecha de formación de la vista activa (Tablero)
+      const hoy = new Date().toISOString().split('T')[0];
+      lista = lista.filter((s) => {
+        if (s.estado === 'En Ejecución' && s.fecha_fin_formacion) {
+          if (s.fecha_fin_formacion < hoy) return false;
+        }
+        return true;
+      });
+
       return lista;
     },
   },

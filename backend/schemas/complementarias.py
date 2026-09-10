@@ -52,6 +52,7 @@ class SolicitudComplementariaCreate(BaseModel):
     # ── Seguimiento ──
     codigo_empresa: str = Field(default="", max_length=30)
     codigo_ficha: str = Field(default="", max_length=15)
+    id_ficha: str = ""
     publicacion: bool = False
     asignar_ficha: bool = False
     gestion_ficha: bool = False
@@ -59,9 +60,17 @@ class SolicitudComplementariaCreate(BaseModel):
     estado: str = "Publicada"
     enlace_lista_matriculados: str = ""
     observaciones: str = Field(default="", max_length=1000)
+    area: str = ""
+    programa_especial: str = ""
+    competencias: str = ""
+    fecha_publicacion: str = ""
+    fecha_programacion: str = ""
+    tipo_convocatoria: str = ""
+    instructor_id: str = ""
 
     # ── Inscritos ──
     cantidad_inscritos: int = Field(default=0, ge=0, le=500)
+    numero_aspirantes: int = Field(default=0, ge=0, le=500)
 
     # ── Archivos subidos (metadatos gestionados por el servidor) ──
     # Cada elemento: {"campo": "matriz"|"plano"|"adicional", "nombre": str, "tamano": int}
@@ -77,6 +86,7 @@ class SolicitudComplementariaCreate(BaseModel):
     @field_validator(
         "fecha_inicio_inscripcion", "fecha_cierre_inscripcion",
         "fecha_inicio_formacion", "fecha_fin_formacion",
+        "fecha_publicacion", "fecha_programacion",
     )
     @classmethod
     def validar_fechas(cls, v: str, info) -> str:
@@ -113,6 +123,15 @@ class SolicitudComplementariaUpdate(BaseModel):
     enlace_lista_matriculados: str | None = None
     observaciones: str | None = None
     cantidad_inscritos: int | None = Field(default=None, ge=0, le=500)
+    numero_aspirantes: int | None = Field(default=None, ge=0, le=500)
+    id_ficha: str | None = None
+    area: str | None = None
+    programa_especial: str | None = None
+    competencias: str | None = None
+    fecha_publicacion: str | None = None
+    fecha_programacion: str | None = None
+    tipo_convocatoria: str | None = None
+    instructor_id: str | None = None
 
     @field_validator("estado")
     @classmethod
@@ -124,6 +143,7 @@ class SolicitudComplementariaUpdate(BaseModel):
     @field_validator(
         "fecha_inicio_inscripcion", "fecha_cierre_inscripcion",
         "fecha_inicio_formacion", "fecha_fin_formacion",
+        "fecha_publicacion", "fecha_programacion",
     )
     @classmethod
     def validar_fechas(cls, v: str | None, info) -> str | None:
