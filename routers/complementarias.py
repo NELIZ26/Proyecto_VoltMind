@@ -104,8 +104,8 @@ async def crear_solicitud(datos: SolicitudComplementariaCreate):
 @_con_manejo_de_errores
 async def crear_solicitud_con_archivos(
     datos: str = Form(..., description="Campos de la solicitud en JSON"),
-    archivo_matriz: UploadFile = File(..., description="Matriz de la ficha (obligatorio)"),
-    archivo_plano: UploadFile = File(..., description="Archivo plano de aprendices (obligatorio)"),
+    archivo_matriz: UploadFile | None = File(None, description="Matriz de la ficha (opcional)"),
+    archivo_plano: UploadFile | None = File(None, description="Archivo plano de aprendices (opcional)"),
     archivo_adicional: UploadFile | None = File(None, description="Documento adicional (opcional)"),
 ):
     """Flujo del INSTRUCTOR: crea la solicitud (estado Pendiente), almacena los archivos
@@ -123,7 +123,11 @@ async def crear_solicitud_con_archivos(
         )
 
     # 2. Leer y validar los archivos ANTES de crear la solicitud
-    pares = [("matriz", archivo_matriz), ("plano", archivo_plano)]
+    pares = []
+    if archivo_matriz and archivo_matriz.filename:
+        pares.append(("matriz", archivo_matriz))
+    if archivo_plano and archivo_plano.filename:
+        pares.append(("plano", archivo_plano))
     if archivo_adicional and archivo_adicional.filename:
         pares.append(("adicional", archivo_adicional))
 

@@ -57,7 +57,8 @@ _ZONA_BOGOTA = ZoneInfo("America/Bogota")
 
 def dataverse_configurado() -> bool:
     """True si el .env tiene todas las credenciales necesarias de Dataverse."""
-    return all([TENANT_ID, CLIENT_ID, CLIENT_SECRET, DATAVERSE_URL])
+    # Forzamos temporalmente a False porque la tabla cr6a3_notificacions aún NO existe en Dataverse
+    return False
 
 
 # ─────────────────────────────────────────────────────────────────────────────
