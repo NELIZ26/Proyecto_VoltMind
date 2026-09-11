@@ -397,7 +397,10 @@ const procesarValidacionPin = async (pinIngresado) => {
 const habilitarSalidaClase = async () => {
   const sesionId = localStorage.getItem('sesionActivaId');
   if (!sesionId) {
-    toast.error("No hay una sesión activa para finalizar.");
+    toast.info("Modo Local: Finalizando clase sin guardar en nube.");
+    salidaHabilitada.value = true;
+    localStorage.setItem('salidaHabilitada', 'true');
+    qrProjected.value = false;
     return;
   }
 
@@ -410,9 +413,20 @@ const habilitarSalidaClase = async () => {
       qrProjected.value = false;
       
       toast.success("¡Clase finalizada! Ya puedes registrar las firmas de los presentes.");
+    } else {
+      const errText = await res.text();
+      console.error("Error al habilitar salida:", errText);
+      toast.warning(`Error del servidor: ${res.status}. Forzando cierre local.`);
+      salidaHabilitada.value = true;
+      localStorage.setItem('salidaHabilitada', 'true');
+      qrProjected.value = false;
     }
   } catch (error) {
-    toast.error("Error al conectar con el servidor para habilitar salidas.");
+    console.error("Network error habilitando salida:", error);
+    toast.warning("Error al conectar con el servidor. Forzando cierre local.");
+    salidaHabilitada.value = true;
+    localStorage.setItem('salidaHabilitada', 'true');
+    qrProjected.value = false;
   } finally {
     isFinishingClass.value = false;
   }

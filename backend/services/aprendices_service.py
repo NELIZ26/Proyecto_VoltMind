@@ -46,7 +46,7 @@ async def consultar_aprendices_por_ficha(numero_ficha: str) -> list:
         "cr6a3_tipodocumento,"
         "cr6a3_correo_electronico,"
         "cr6a3_numero_celular,"
-        "cr6a3_Nombre_Completo,"
+        "cr6a3_nombre_completo,"
         "cr6a3_faltas_totales,"
         "cr6a3_faltas_consecutivas"
     )
@@ -134,7 +134,7 @@ async def buscar_aprendices_global(criterio: str) -> list:
         "cr6a3_tipodocumento,"
         "cr6a3_correo_electronico,"
         "cr6a3_numero_celular,"
-        "cr6a3_Nombre_Completo,"
+        "cr6a3_nombre_completo,"
         "cr6a3_faltas_totales,"
         "cr6a3_faltas_consecutivas"
     )
