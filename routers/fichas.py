@@ -117,7 +117,8 @@ async def listar_fichas_por_instructor(correo_instructor: str):
             {
                 "id": ficha.get("cr6a3_fichaid"),
                 "numero_ficha": ficha.get("cr6a3_numero_ficha"),
-                "nombre_programa": ficha.get("cr6a3_nombre_programa")
+                "nombre_programa": ficha.get("cr6a3_nombre_programa"),
+                "instructor": nombre_instructor
             }
             for ficha in datos_fichas
         ]

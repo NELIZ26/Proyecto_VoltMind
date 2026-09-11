@@ -215,6 +215,87 @@
       "leida": false,
       "fecha": "2026-09-10T13:09:52-05:00",
       "id": "notif-1f2fcd46"
+    },
+    {
+      "destinatario": "admin",
+      "tipo": "solicitud_ficha",
+      "texto": "El instructor Lucho Diaz solicitó la creación de una ficha complementaria: Excel Avanzado.",
+      "ficha_relacionada": "03fbbb52-50ad-f111-aaac-7ced8da870b8",
+      "leida": false,
+      "fecha": "2026-09-10T14:46:32-05:00",
+      "id": "notif-badad9df"
+    },
+    {
+      "destinatario": "voltmind4access@voltmind436.onmicrosoft.com",
+      "tipo": "ficha_publicada",
+      "texto": "Su ficha complementaria \"Excel Avanzado\" fue publicada y está disponible para ejecución.",
+      "ficha_relacionada": "03fbbb52-50ad-f111-aaac-7ced8da870b8",
+      "leida": false,
+      "fecha": "2026-09-10T14:49:18-05:00",
+      "id": "notif-24bf012c"
+    },
+    {
+      "destinatario": "voltmind4access@voltmind436.onmicrosoft.com",
+      "tipo": "ficha_en_ejecucion",
+      "texto": "Su ficha complementaria \"Excel Avanzado\" ya está publicada y cuenta con los aprendices matriculados. Se encuentra En Ejecución.",
+      "ficha_relacionada": "03fbbb52-50ad-f111-aaac-7ced8da870b8",
+      "leida": false,
+      "fecha": "2026-09-10T14:49:59-05:00",
+      "id": "notif-5e70b7b7"
+    },
+    {
+      "destinatario": "admin",
+      "tipo": "solicitud_ficha",
+      "texto": "El instructor Lucho Diaz solicitó la creación de una ficha complementaria: Excel 2.",
+      "ficha_relacionada": "b8e2ba06-63ad-f111-aaac-7ced8da870b8",
+      "leida": false,
+      "fecha": "2026-09-10T17:00:26-05:00",
+      "id": "notif-3bf92206"
+    },
+    {
+      "destinatario": "voltmind4access@voltmind436.onmicrosoft.com",
+      "tipo": "ficha_publicada",
+      "texto": "Su ficha complementaria \"Excel 2\" fue publicada y está disponible para ejecución.",
+      "ficha_relacionada": "b8e2ba06-63ad-f111-aaac-7ced8da870b8",
+      "leida": false,
+      "fecha": "2026-09-10T17:14:24-05:00",
+      "id": "notif-a76698eb"
+    },
+    {
+      "destinatario": "voltmind4access@voltmind436.onmicrosoft.com",
+      "tipo": "ficha_en_ejecucion",
+      "texto": "Su ficha complementaria \"Excel 2\" ya está publicada y cuenta con los aprendices matriculados. Se encuentra En Ejecución.",
+      "ficha_relacionada": "b8e2ba06-63ad-f111-aaac-7ced8da870b8",
+      "leida": false,
+      "fecha": "2026-09-10T17:15:31-05:00",
+      "id": "notif-44499769"
+    },
+    {
+      "destinatario": "admin",
+      "tipo": "solicitud_ficha",
+      "texto": "El instructor Lucho Diaz solicitó la creación de una ficha complementaria: Word.",
+      "ficha_relacionada": "34954fdb-66ad-f111-aaac-7ced8da870b8",
+      "leida": false,
+      "fecha": "2026-09-10T17:27:51-05:00",
+      "id": "notif-09794b2a"
+    },
+    {
+      "destinatario": "voltmind4access@voltmind436.onmicrosoft.com",
+      "tipo": "ficha_publicada",
+      "texto": "Su ficha complementaria \"Word\" fue publicada y está disponible para ejecución.",
+      "ficha_relacionada": "34954fdb-66ad-f111-aaac-7ced8da870b8",
+      "leida": false,
+      "fecha": "2026-09-10T17:28:33-05:00",
+      "id": "notif-ca2330ee"
+    },
+    {
+      "destinatario": "voltmind4access@voltmind436.onmicrosoft.com",
+      "tipo": "ficha_en_ejecucion",
+      "texto": "Su ficha complementaria \"Word\" ya está publicada y cuenta con los aprendices matriculados. Se encuentra En Ejecución.",
+      "ficha_relacionada": "34954fdb-66ad-f111-aaac-7ced8da870b8",
+      "leida": false,
+      "fecha": "2026-09-10T17:29:55-05:00",
+      "id": "notif-6c1dc889"
     }
   ]
 }

@@ -23,11 +23,13 @@ async def listar_ambientes():
 # ==========================================
 # 🟡 RUTA ACTUALIZADA: Iniciar Sesión (Ahora recibe ambiente_id)
 # ==========================================
+from schemas.sesiones import SesionIniciadaData
+
 @router.post("/iniciar")
-async def iniciar_sesion(ficha: str, email: str, ambiente_id: str = None):
+async def iniciar_sesion(datos: SesionIniciadaData):
     try:
         # 🟢 Pasamos el ambiente_id a la función del servicio
-        resultado = await registrar_inicio_sesion(ficha, email, ambiente_id)
+        resultado = await registrar_inicio_sesion(datos.ficha, datos.email, datos.ambiente_id)
         # Emitimos el evento de inicio de sesión
         import asyncio
         evento = {
