@@ -41,13 +41,17 @@ onMounted(async () => {
     
     const data = await response.json();
     
-    fichas.value = data.map((ficha) => ({
+        fichas.value = data.map((ficha) => ({
       id: ficha.id,
       numero: ficha.numero_ficha,
       programa: ficha.nombre_programa,
       instructor: ficha.instructor, 
       jornada: "Asignada"
     }));
+
+    if (data.length > 0 && data[0].instructor) {
+      localStorage.setItem('nombreInstructor', data[0].instructor.split(' ')[0]);
+    }
 
   } catch (error) {
     console.error("Error consultando la base de datos:", error);

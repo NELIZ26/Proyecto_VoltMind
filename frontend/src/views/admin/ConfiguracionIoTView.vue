@@ -318,7 +318,7 @@ const toggleRelay = async (modulo) => {
         await fetch(`${BASE_URL}/api/iot/master`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ estado: modulo.powerOn ? "1" : "0" })
+          body: JSON.stringify({ status: modulo.powerOn ? 1 : 0 })
         });
         
         // Mostrar alerta simple para feedback

@@ -50,9 +50,8 @@ _ZONA_BOGOTA = ZoneInfo("America/Bogota")
 
 
 def _es_demo() -> bool:
-    """Las tablas de Dataverse de tituladas aún no existen: demo salvo que se
-    active explícitamente TITULADAS_MODO=dataverse (rama pendiente de construir)."""
-    return os.getenv("TITULADAS_MODO", "demo").lower() != "dataverse"
+    """Fuerza el uso de Dataverse en producción."""
+    return False
 
 
 def _exigir_demo() -> None:
